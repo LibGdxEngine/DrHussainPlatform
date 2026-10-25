@@ -17,10 +17,10 @@ const modules: Record<ModuleTabId, React.ReactNode> = {
 export function ModuleTabs() {
   const [tab, setTab] = useState<ModuleTabId>("meno");
   return (
-    <Panel aria-label="الأقسام" className="flex flex-col gap-4 p-5">
+    <Panel aria-label="Modules" className="flex flex-col gap-4 p-5">
       <div
         role="tablist"
-        aria-label="الأقسام"
+        aria-label="Modules"
         className="flex gap-1.5 self-start rounded-full bg-canvas p-[5px]"
       >
         {moduleTabs.map((t) => {

@@ -11,10 +11,10 @@ export interface TodayStat {
 }
 
 export const todayStats: TodayStat[] = [
-  { title: "تنبيهات حمراء محتاجة تأكيد", value: 3, caption: "في حالتين النهارده", href: emrRoutes.visit, highlight: true },
-  { title: "استمارات لسه مبدأتش", value: 3, caption: "اتبعت تذكير الساعة 08:00", href: emrRoutes.today },
-  { title: "ردود المرضى", value: 2, caption: "أقدم رد من يوم", href: emrRoutes.visit },
-  { title: "فحوصات محتاجة قيم أساسية", value: 3, caption: "اتسحبت سكان النهارده", href: emrRoutes.visit },
+  { title: "Red alerts to confirm", value: 3, caption: "Across 2 visits today", href: emrRoutes.visit, highlight: true },
+  { title: "Forms not started", value: 3, caption: "Reminder sent at 08:00", href: emrRoutes.today },
+  { title: "Patient replies", value: 2, caption: "Oldest from 1 day ago", href: emrRoutes.visit },
+  { title: "Results needing key values", value: 3, caption: "Scanned today", href: emrRoutes.visit },
 ];
 
 export interface WeekDay {
@@ -24,12 +24,12 @@ export interface WeekDay {
 }
 
 export const weekDays: WeekDay[] = [
-  { label: "س", count: 7, kind: "past" },
-  { label: "ح", count: 11, kind: "past" },
-  { label: "ن", count: 8, kind: "past" },
-  { label: "ث", count: 9, kind: "today" },
-  { label: "ر", count: 12, kind: "future" },
-  { label: "خ", count: 6, kind: "future" },
+  { label: "Sat", count: 7, kind: "past" },
+  { label: "Sun", count: 11, kind: "past" },
+  { label: "Mon", count: 8, kind: "past" },
+  { label: "Tue", count: 9, kind: "today" },
+  { label: "Wed", count: 12, kind: "future" },
+  { label: "Thu", count: 6, kind: "future" },
 ];
 
 export interface TodayVisit {
@@ -48,12 +48,12 @@ export interface TodayVisit {
 }
 
 export const todayVisits: TodayVisit[] = [
-  { time: "09:30", name: "ليلى أحمد", age: 52, visit: "جديدة · سن اليأس، إفرازات", form: "complete", alerts: { red: 1, amber: 2 }, mrs: "18", mrsNote: "شديد", mrsHot: true, actionLabel: "افتح", href: emrRoutes.visit },
-  { time: "10:15", name: "نور صالح", age: 47, visit: "متابعة · سن اليأس (3 شهور)", form: "complete", alerts: { amber: 1 }, mrs: "9", mrsNote: "↓ من 21", actionLabel: "افتح", href: emrRoutes.visit },
-  { time: "11:00", name: "دينا فاروق", age: 34, visit: "جديدة · نزيف، منع الحمل", form: "complete", alerts: { red: 2 }, mrs: "—", mrsNote: "", actionLabel: "افتح", href: emrRoutes.visit },
-  { time: "11:45", name: "سلمى نبيل", age: 29, visit: "جديدة · تكيس المبايض، حبوب أو شعر", form: "inProgress", alerts: {}, noAlertsText: "لسه مفيش", mrs: "—", mrsNote: "", actionLabel: "افتح", href: emrRoutes.visit },
-  { time: "12:30", name: "هبة يوسف", age: 58, visit: "مراجعة HRT سنوية", form: "notStarted", alerts: { reminder: 2 }, mrs: "7", mrsNote: "آخر زيارة", actionLabel: "ابعت اللينك تاني", href: emrRoutes.patients },
-  { time: "13:15", name: "منى عادل", age: 41, visit: "كشف دوري / مسحة", form: "complete", alerts: {}, noAlertsText: "مفيش", mrs: "—", mrsNote: "", actionLabel: "افتح", href: emrRoutes.visit },
+  { time: "09:30", name: "Laila Ahmed", age: 52, visit: "New · Menopause, discharge", form: "complete", alerts: { red: 1, amber: 2 }, mrs: "18", mrsNote: "Severe", mrsHot: true, actionLabel: "Open", href: emrRoutes.visit },
+  { time: "10:15", name: "Nour Saleh", age: 47, visit: "Follow-up · Menopause (3 months)", form: "complete", alerts: { amber: 1 }, mrs: "9", mrsNote: "↓ from 21", actionLabel: "Open", href: emrRoutes.visit },
+  { time: "11:00", name: "Dina Farouk", age: 34, visit: "New · Bleeding, contraception", form: "complete", alerts: { red: 2 }, mrs: "—", mrsNote: "", actionLabel: "Open", href: emrRoutes.visit },
+  { time: "11:45", name: "Salma Nabil", age: 29, visit: "New · PCOS, acne or hair", form: "inProgress", alerts: {}, noAlertsText: "None yet", mrs: "—", mrsNote: "", actionLabel: "Open", href: emrRoutes.visit },
+  { time: "12:30", name: "Heba Youssef", age: 58, visit: "Annual HRT review", form: "notStarted", alerts: { reminder: 2 }, mrs: "7", mrsNote: "Last visit", actionLabel: "Resend link", href: emrRoutes.patients },
+  { time: "13:15", name: "Mona Adel", age: 41, visit: "Well-woman check / smear", form: "complete", alerts: {}, noAlertsText: "None", mrs: "—", mrsNote: "", actionLabel: "Open", href: emrRoutes.visit },
 ];
 
 export interface PatientReply {
@@ -64,13 +64,31 @@ export interface PatientReply {
 }
 
 export const patientReplies: PatientReply[] = [
-  { initial: "ل", title: "ليلى أحمد · 12 أكتوبر", excerpt: "\"شكراً يا دكتور. أبدأ مكمّل حديد؟\"", tone: "brand" },
-  { initial: "ن", title: "نور صالح · 11 أكتوبر", excerpt: "\"اللزقة بتقع بالليل على طول.\"", tone: "amber" },
+  { initial: "L", title: "Laila Ahmed · 12 Oct", excerpt: "\"Thank you, doctor. Should I start an iron supplement?\"", tone: "brand" },
+  { initial: "N", title: "Nour Saleh · 11 Oct", excerpt: "\"The patch keeps falling off at night.\"", tone: "amber" },
 ];
 
 export const reminders: { code: string; text: string }[] = [
-  { code: "R36", text: "ماموجرام متأخر · 4 مريضات" },
-  { code: "R39", text: "Lp(a) عمره ما اتعمل · 6 مريضات" },
-  { code: "R40", text: "مراجعة HRT السنوية · 3 مريضات" },
-  { code: "R38", text: "لولب هرموني عدّى 5 سنين · مريضة" },
+  { code: "R36", text: "Mammogram overdue · 4 patients" },
+  { code: "R39", text: "Lp(a) never tested · 6 patients" },
+  { code: "R40", text: "Annual HRT review · 3 patients" },
+  { code: "R38", text: "Hormonal IUD past 5 years · 1 patient" },
+];
+
+export interface UpcomingFollowup {
+  name: string;
+  due: string;
+  lastVisit: string;
+  overdue?: boolean;
+}
+
+/** Files reception still has to scan for today's visit 2/3 patients. */
+export const filesAwaitingScan = 6;
+
+/** Patients reaching the 3-month follow-up after their last visit. */
+export const upcomingFollowups: UpcomingFollowup[] = [
+  { name: "Rania Mostafa", due: "5 days overdue", lastVisit: "Last visit 8 Jul", overdue: true },
+  { name: "Nour Saleh", due: "Today", lastVisit: "Last visit 14 Jul" },
+  { name: "Mona Adel", due: "20 Oct", lastVisit: "Last visit 20 Jul" },
+  { name: "Heba Youssef", due: "2 Nov", lastVisit: "Last visit 2 Aug" },
 ];

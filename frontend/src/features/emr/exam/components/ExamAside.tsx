@@ -39,7 +39,7 @@ function ScreeningPanel() {
   return (
     <Panel aria-labelledby="sc" className="flex flex-col gap-1 p-5">
       <h2 id="sc" className="m-0 mb-2 text-lg font-semibold">
-        قايمة الفحوصات الدورية
+        Screening checklist
       </h2>
       {screeningItems.map((item, i) => (
         <ScreeningRow key={item.label} item={item} last={i === screeningItems.length - 1} />
@@ -55,7 +55,7 @@ function AutoCalcPanel() {
       className="flex flex-col gap-3 bg-[linear-gradient(160deg,#e4f2e9_0%,#cde6d7_100%)] p-5"
     >
       <h2 id="ac" className="m-0 text-lg font-semibold">
-        محسوبة تلقائي
+        Auto-calculated
       </h2>
       {autoCalcRows.map((r) => (
         <div key={r.label} className="flex items-center rounded-[14px] bg-white px-3.5 py-3 text-sm">
@@ -79,10 +79,10 @@ export function ExamAside() {
       <AutoCalcPanel />
       <div className="flex gap-2.5">
         <ActionLink href={emrRoutes.orders} size="lg" className="min-h-[50px] flex-1 text-sm">
-          احفظ وروح للطلبات
+          Save and go to orders
         </ActionLink>
         <ActionButton variant="outline" size="lg" className="min-h-[50px] bg-white px-6 text-sm">
-          احفظ
+          Save
         </ActionButton>
       </div>
     </div>

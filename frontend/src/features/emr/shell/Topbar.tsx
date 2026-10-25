@@ -40,7 +40,7 @@ export function DoctorBadge({ subtitle, mono }: { subtitle: string; mono?: boole
         className="size-11 rounded-full bg-brand-tint object-cover object-[50%_8%]"
       />
       <span className="flex flex-col leading-snug">
-        <strong className="text-sm font-semibold">د. ح. جوهر</strong>
+        <strong className="text-sm font-semibold">Dr. H. Gohar</strong>
         <span className={cn("text-xs text-muted", mono && "font-emr-mono")}>{subtitle}</span>
       </span>
     </div>
@@ -56,13 +56,13 @@ interface TopbarProps {
 }
 
 /** White rounded header shared by every EMR screen. */
-export function Topbar({ start, showMessages, doctorSubtitle = "دكتور", doctorMono }: TopbarProps) {
+export function Topbar({ start, showMessages, doctorSubtitle = "Doctor", doctorMono }: TopbarProps) {
   return (
     <header className="flex items-center gap-3 rounded-[22px] bg-white px-4 py-3">
       {start}
       <div className="ms-auto flex items-center gap-2.5">
-        {showMessages ? <RoundIconLink href={emrRoutes.visit} label="الرسائل" icon="msgs" /> : null}
-        <RoundIconLink href={emrRoutes.today} label="التنبيهات" icon="bell" dot />
+        {showMessages ? <RoundIconLink href={emrRoutes.visit} label="Messages" icon="msgs" /> : null}
+        <RoundIconLink href={emrRoutes.today} label="Alerts" icon="bell" dot />
         <DoctorBadge subtitle={doctorSubtitle} mono={doctorMono} />
       </div>
     </header>

@@ -17,16 +17,11 @@ import {
 } from "../data";
 import { computeVitals, type VitalsInput } from "../vitals";
 
-function ComputedBox({ label, value, alignEnd }: { label: string; value: string; alignEnd?: boolean }) {
+function ComputedBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1.5 text-[13px] font-medium text-ink-2">
       {label}
-      <span
-        dir={alignEnd ? "ltr" : undefined}
-        className={`flex min-h-11 items-center rounded-[14px] bg-brand-tint px-3.5 text-[17px] font-bold text-brand-ink ${
-          alignEnd ? "justify-end" : ""
-        }`}
-      >
+      <span className="flex min-h-11 items-center rounded-[14px] bg-brand-tint px-3.5 text-[17px] font-bold text-brand-ink">
         {value}
       </span>
     </div>
@@ -44,25 +39,25 @@ function VitalsPanel() {
   return (
     <Panel aria-labelledby="vt" className="flex flex-col gap-3.5 p-5">
       <h2 id="vt" className="m-0 text-lg font-semibold">
-        العلامات الحيوية
+        Vitals
       </h2>
       <div className="grid grid-cols-4 gap-3">
-        <Field label="الضغط · قراءة 1">
-          <TextInput dir="ltr" className="text-end text-[15px]" {...bind("bp1")} />
+        <Field label="BP · Reading 1">
+          <TextInput className="text-[15px]" {...bind("bp1")} />
         </Field>
-        <Field label="الضغط · قراءة 2">
-          <TextInput dir="ltr" className="text-end text-[15px]" {...bind("bp2")} />
+        <Field label="BP · Reading 2">
+          <TextInput className="text-[15px]" {...bind("bp2")} />
         </Field>
-        <ComputedBox label="المتوسط" value={result.bpAvg} alignEnd />
+        <ComputedBox label="Average" value={result.bpAvg} />
         <div />
-        <Field label="الطول (سم)">
+        <Field label="Height (cm)">
           <TextInput className="text-[15px]" {...bind("height")} />
         </Field>
-        <Field label="الوزن (كجم)">
+        <Field label="Weight (kg)">
           <TextInput className="text-[15px]" {...bind("weight")} />
         </Field>
-        <ComputedBox label="BMI (تلقائي)" value={result.bmi} />
-        <Field label="الوسط (سم)">
+        <ComputedBox label="BMI (auto)" value={result.bmi} />
+        <Field label="Waist (cm)">
           <TextInput className="text-[15px]" {...bind("waist")} />
         </Field>
       </div>
@@ -80,7 +75,7 @@ function VitalsPanel() {
         ))}
         {result.alerts.length === 0 ? (
           <div className="rounded-[14px] bg-ok-tint px-3 py-2.5 text-[13px] text-ok-ink">
-            مفيش تنبيهات للعلامات الحيوية.
+            No vitals alerts.
           </div>
         ) : null}
       </div>
@@ -92,7 +87,7 @@ function FindingsPanel() {
   return (
     <Panel aria-labelledby="xm" className="flex flex-col gap-3.5 p-5">
       <h2 id="xm" className="m-0 text-lg font-semibold">
-        الكشف
+        Examination
       </h2>
       {examFindings.map((f) => (
         <Field key={f.label} label={f.label}>
@@ -108,17 +103,17 @@ function PlanPanel() {
   return (
     <Panel aria-labelledby="pl" className="flex flex-col gap-3.5 p-5">
       <h2 id="pl" className="m-0 text-lg font-semibold">
-        الخطة
+        Plan
       </h2>
-      <ChipGroup options={planOptions} value={plan} onChange={setPlan} label="الخطة" />
-      <Field label="ملاحظات الخطة">
+      <ChipGroup options={planOptions} value={plan} onChange={setPlan} label="Plan" />
+      <Field label="Plan notes">
         <TextArea rows={4} defaultValue={planNotes} className="resize-y text-sm leading-[1.7]" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="المراجعة الجاية">
+        <Field label="Next review">
           <TextInput defaultValue={nextReview} />
         </Field>
-        <Field label="استمارة المتابعة">
+        <Field label="Follow-up form">
           <SelectInput>
             {followUpOptions.map((o) => (
               <option key={o}>{o}</option>

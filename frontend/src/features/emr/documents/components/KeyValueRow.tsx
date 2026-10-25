@@ -12,9 +12,9 @@ const cols = "grid grid-cols-[1.3fr_1fr_1fr] gap-2";
 export function KeyValueHeader() {
   return (
     <div className={cn(cols, "px-1 text-xs text-muted")}>
-      <span>التحليل</span>
-      <span>القيمة</span>
-      <span>المثالي · المعمل</span>
+      <span>Test</span>
+      <span>Value</span>
+      <span>Optimal · lab</span>
     </div>
   );
 }
@@ -24,9 +24,9 @@ export function KeyValueRow({ def, value, onChange }: KeyValueRowProps) {
   const out = isOutOfRange(def, value);
   return (
     <div className={cn(cols, "items-center")}>
-      <label htmlFor={id} dir="ltr" className="flex flex-col text-[13px] font-semibold">
-        <span className="text-right">{def.name}</span>
-        <span className="text-right text-[11px] font-normal text-muted">{def.unit}</span>
+      <label htmlFor={id} className="flex flex-col text-[13px] font-semibold">
+        <span>{def.name}</span>
+        <span className="text-[11px] font-normal text-muted">{def.unit}</span>
       </label>
       <input
         id={id}
@@ -40,7 +40,7 @@ export function KeyValueRow({ def, value, onChange }: KeyValueRowProps) {
       <span className="text-xs leading-normal text-ink-2">
         {def.optimal}
         <br />
-        <span className="text-subtle">المعمل {def.lab}</span>
+        <span className="text-subtle">Lab {def.lab}</span>
       </span>
     </div>
   );

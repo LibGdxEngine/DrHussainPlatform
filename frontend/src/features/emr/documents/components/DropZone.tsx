@@ -16,8 +16,8 @@ export function DropZone() {
       >
         <path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
       </svg>
-      <strong className="text-[15px] font-semibold">اسحب السكان هنا</strong>
-      <span className="text-[13px] text-muted">PDF أو JPG أو PNG. اختار الخانة والتاريخ والاسم بعد الرفع.</span>
+      <strong className="text-[15px] font-semibold">Drop scans here</strong>
+      <span className="text-[13px] text-muted">PDF, JPG or PNG. Choose the category, date and name after uploading.</span>
     </div>
   );
 }

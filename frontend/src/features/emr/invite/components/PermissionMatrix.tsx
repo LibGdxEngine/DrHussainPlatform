@@ -18,17 +18,17 @@ export function PermissionMatrix({ roleLabel, groups, onToggle, onReset }: Permi
     <Panel aria-labelledby="pm" className="flex flex-col gap-1.5 p-5">
       <div className="mb-1.5 flex items-center gap-2.5">
         <h2 id="pm" className="m-0 text-lg font-semibold">
-          صلاحيات {roleLabel}
+          {roleLabel} permissions
         </h2>
         <span className="ms-auto text-xs text-muted">
-          {onCount} من {items.length} مفعّلة
+          {onCount} of {items.length} enabled
         </span>
         <button
           type="button"
           onClick={onReset}
           className="min-h-[34px] cursor-pointer rounded-full border border-line-strong bg-white px-3 text-xs font-semibold hover:border-brand"
         >
-          رجّع الافتراضي
+          Reset to default
         </button>
       </div>
       {groups.map((g) => (
@@ -48,7 +48,7 @@ export function PermissionMatrix({ roleLabel, groups, onToggle, onReset }: Permi
               </span>
               {locked ? (
                 <span className="rounded-full bg-line-soft px-2.5 py-[3px] text-[11px] font-semibold text-ink-3">
-                  🔒 للدكتور بس
+                  🔒 Doctor only
                 </span>
               ) : (
                 <Switch checked={on} onChange={(next) => onToggle(def.id, next)} label={def.label} />

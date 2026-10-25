@@ -11,18 +11,18 @@ export function SignInHero() {
       <Logo size="hero" className="relative z-20" />
       <div className="relative z-20 flex max-w-[330px] flex-col gap-3.5">
         <span className="self-start rounded-full bg-white px-3.5 py-1.5 text-[13px] font-semibold text-ok-ink">
-          سجل طبي للموظفين
+          Staff medical record
         </span>
         <h1 className="m-0 text-balance text-4xl font-bold leading-tight tracking-tight lg:text-[44px]">
-          سجلات المرضى لفريق رعاية V-Clinic
+          Patient records for the V-Clinic care team
         </h1>
         <p className="m-0 text-base leading-[1.7] text-ink-2">
-          للموظفين المصرّح لهم بس. كل دخول وكل فتح ملف وكل تعديل بيتسجّل.
+          Authorised staff only. Every sign-in, record opened and edit is logged.
         </p>
       </div>
       <Image
         src="/emr/dr-gohar-cutout.png"
-        alt="د. جوهر"
+        alt="Dr. Gohar"
         width={640}
         height={800}
         priority
@@ -30,13 +30,13 @@ export function SignInHero() {
       />
       <div className="relative z-20 mt-auto flex flex-col gap-2.5">
         <div className="flex flex-col gap-1 self-start rounded-2xl bg-white/85 px-[18px] py-3.5">
-          <strong className="text-[15px] font-semibold">د. ح. جوهر</strong>
-          <span className="text-[13px] text-ink-3">استشاري أمراض النساء وسن اليأس</span>
+          <strong className="text-[15px] font-semibold">Dr. H. Gohar</strong>
+          <span className="text-[13px] text-ink-3">Consultant gynaecologist and menopause specialist</span>
         </div>
-        <span dir="ltr" className="text-right font-emr-mono text-[13px] text-ink-2">
+        <span className="font-emr-mono text-[13px] text-ink-2">
           records.vclinicgohar.com
         </span>
-        <span className="text-[13px] text-ink-2">للمرضى: ده مش بوابة المريض.</span>
+        <span className="text-[13px] text-ink-2">Patients: this is not the patient portal.</span>
       </div>
     </section>
   );

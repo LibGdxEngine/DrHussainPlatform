@@ -45,15 +45,15 @@ export function computeVitals({ bp1, bp2, height, weight, waist }: VitalsInput):
   const alerts: VitalsAlert[] = [];
   if (sys >= 140 || dia >= 90) {
     alerts.push({
-      tag: "أصفر · R20",
-      text: `متوسط الضغط ${bpAvg}: أعد القياس؛ عالج قبل HRT أو الحبوب المركبة.`,
+      tag: "Amber · R20",
+      text: `Average BP ${bpAvg}: recheck; treat before HRT or combined pills.`,
     });
   }
   if (bmiNum >= 30) {
-    alerts.push({ tag: "أصفر · R21", text: `BMI ${bmi}: عن طريق الجلد؛ خطر قلبي وخطر على الثدي.` });
+    alerts.push({ tag: "Amber · R21", text: `BMI ${bmi}: transdermal route; cardiac and breast risk.` });
   }
   if (Number(waist) > 88) {
-    alerts.push({ tag: "أصفر · R22", text: `الوسط ${waist} سم: خطر أيضي. Insulin و HbA1c ودهون.` });
+    alerts.push({ tag: "Amber · R22", text: `Waist ${waist} cm: metabolic risk. Insulin, HbA1c and lipids.` });
   }
   return { bpAvg, bmi, alerts };
 }

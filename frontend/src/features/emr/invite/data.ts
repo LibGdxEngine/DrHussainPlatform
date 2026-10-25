@@ -1,15 +1,15 @@
 import type { PermissionDef, PermissionGroupId, RoleDef } from "./types";
 
 export const roleDefs: RoleDef[] = [
-  { id: "doctor", label: "دكتور", hint: "كل الصلاحيات الطبية والإدارية" },
-  { id: "nurse", label: "ممرضة", hint: "الحضور، العلامات الحيوية، المسحات" },
-  { id: "staff", label: "استقبال", hint: "الحجز، الاستمارات، السكان" },
+  { id: "doctor", label: "Doctor", hint: "All clinical and admin permissions" },
+  { id: "nurse", label: "Nurse", hint: "Check-in, vital signs, swabs" },
+  { id: "staff", label: "Reception", hint: "Booking, forms, scanning" },
 ];
 
 export const groupNames: Record<PermissionGroupId, string> = {
-  visits: "المرضى والزيارات",
-  med: "الطب",
-  admin: "الإدارة",
+  visits: "Patients and visits",
+  med: "Clinical",
+  admin: "Administration",
 };
 
 export const groupOrder: PermissionGroupId[] = ["visits", "med", "admin"];
@@ -24,33 +24,33 @@ const perm = (
 ): PermissionDef => ({ group, id, label, note, defaults: { doctor, nurse, staff }, doctorOnly });
 
 export const permissions: PermissionDef[] = [
-  perm("visits", "checkin", "تسجيل حضور المريضة", undefined, [true, true, true]),
-  perm("visits", "book", "حجز زيارات وبعت لينكات الاستمارات", undefined, [true, false, true]),
-  perm("visits", "vitals", "تسجيل العلامات الحيوية", "ضغط، وزن، طول، وسط · بتظهر للدكتور في الكشف", [true, true, false]),
-  perm("visits", "swabs", "تسجيل المسحات والعينات اللي اتاخدت", undefined, [true, true, false]),
-  perm("visits", "scan", "سكان المستندات وكتابة القيم الأساسية", undefined, [true, true, true]),
-  perm("med", "alertsView", "شوف التنبيهات (قراية بس)", "عشان تعرف الحالات الحمرا قبل ما تدخل", [true, true, false]),
-  perm("med", "summary", "شوف ملخص الزيارة والدرجات", "من غير ملاحظات الدكتور", [true, true, false]),
-  perm("med", "sendOrders", "بعت طلبات متكتبة قبل كده", undefined, [true, true, true]),
-  perm("med", "ack", "تأكيد التنبيهات", undefined, [true, false, false], true),
-  perm("med", "rx", "كتابة الروشتات وطلب التحاليل", undefined, [true, false, false], true),
-  perm("med", "email", "إيميل النتايج وقراية الردود", undefined, [true, false, false]),
-  perm("admin", "settings", "إعدادات العيادة وقواعد التنبيهات", undefined, [true, false, false], true),
-  perm("admin", "audit", "سجل المراجعة والمستخدمين", undefined, [true, false, false], true),
+  perm("visits", "checkin", "Check in patients", undefined, [true, true, true]),
+  perm("visits", "book", "Book visits and send form links", undefined, [true, false, true]),
+  perm("visits", "vitals", "Record vital signs", "BP, weight, height, waist · shown to the doctor during the visit", [true, true, false]),
+  perm("visits", "swabs", "Record swabs and samples taken", undefined, [true, true, false]),
+  perm("visits", "scan", "Scan documents and enter key values", undefined, [true, true, true]),
+  perm("med", "alertsView", "View alerts (read only)", "To spot red-flag cases before they go in", [true, true, false]),
+  perm("med", "summary", "View visit summary and scores", "Excludes doctor's notes", [true, true, false]),
+  perm("med", "sendOrders", "Send pre-written orders", undefined, [true, true, true]),
+  perm("med", "ack", "Acknowledge alerts", undefined, [true, false, false], true),
+  perm("med", "rx", "Write prescriptions and order labs", undefined, [true, false, false], true),
+  perm("med", "email", "Email results and read replies", undefined, [true, false, false]),
+  perm("admin", "settings", "Clinic settings and alert rules", undefined, [true, false, false], true),
+  perm("admin", "audit", "Audit log and users", undefined, [true, false, false], true),
 ];
 
 /** Sidebar entries unlocked by a permission (the live "what they will see" preview). */
 export const menuRules: { label: string; anyOf: string[] }[] = [
-  { label: "المرضى", anyOf: ["summary", "vitals"] },
-  { label: "المواعيد", anyOf: ["book", "checkin"] },
-  { label: "المستندات", anyOf: ["scan"] },
-  { label: "الرسائل", anyOf: ["email"] },
-  { label: "إعدادات العيادة", anyOf: ["settings"] },
-  { label: "سجل المراجعة", anyOf: ["audit"] },
+  { label: "Patients", anyOf: ["summary", "vitals"] },
+  { label: "Appointments", anyOf: ["book", "checkin"] },
+  { label: "Documents", anyOf: ["scan"] },
+  { label: "Messages", anyOf: ["email"] },
+  { label: "Clinic settings", anyOf: ["settings"] },
+  { label: "Audit log", anyOf: ["audit"] },
 ];
 
-export const alwaysVisibleMenu = "اليوم";
+export const alwaysVisibleMenu = "Today";
 
 export function shiftText(role: string) {
-  return role === "nurse" ? "الصبح 9–3 · الدخول برّه الوردية بيتسجل" : "من غير تحديد";
+  return role === "nurse" ? "Mornings 9–3 · sign-ins outside the shift are logged" : "Unrestricted";
 }

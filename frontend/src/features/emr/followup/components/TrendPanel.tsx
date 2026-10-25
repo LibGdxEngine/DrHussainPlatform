@@ -17,7 +17,7 @@ export function TrendPanel() {
         <h2 id="ch" className="m-0 text-xl font-semibold">
           {metric.title}
         </h2>
-        <div role="group" aria-label="المؤشر" className="ms-auto flex gap-1 rounded-full bg-canvas p-1">
+        <div role="group" aria-label="Metric" className="ms-auto flex gap-1 rounded-full bg-canvas p-1">
           {metrics.map((m) => {
             const on = m.id === metricId;
             return (
@@ -42,9 +42,9 @@ export function TrendPanel() {
         range={{ min: metric.min, max: metric.max }}
         band={{ from: metric.band[0], to: metric.band[1], tone: metric.bandTone }}
         xLabels={xLabels}
-        ariaLabel={`${metric.name}: ${metric.values.join("، ")}`}
+        ariaLabel={`${metric.name}: ${metric.values.join(", ")}`}
       />
-      <p className="m-0 text-[13px] text-muted">{metric.note} المريضة بتشوف نفس الرسم في الاستمارة بتاعتها.</p>
+      <p className="m-0 text-[13px] text-muted">{metric.note} The patient sees the same chart in her form.</p>
     </Panel>
   );
 }

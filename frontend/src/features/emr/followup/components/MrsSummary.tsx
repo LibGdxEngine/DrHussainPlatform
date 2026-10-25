@@ -7,7 +7,7 @@ export function MrsSummary() {
   return (
     <Panel aria-labelledby="ms" className="flex flex-col gap-2.5 p-5">
       <h2 id="ms" className="m-0 mb-1 text-[17px] font-semibold">
-        مقاييس MRS · البداية ← دلوقتي
+        MRS domains · Baseline → now
       </h2>
       {mrsRows.map((r, i) => (
         <div
@@ -22,7 +22,7 @@ export function MrsSummary() {
           <Pill tone={r.fromTone} size="xs" className="px-2 py-0.5">
             {r.fromBand}
           </Pill>
-          <span className="text-subtle">←</span>
+          <span className="text-subtle">→</span>
           <strong>{r.to}</strong>
           <Pill tone={r.toTone} size="xs" className="px-2 py-0.5">
             {r.toBand}

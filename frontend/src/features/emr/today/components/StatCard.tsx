@@ -23,7 +23,7 @@ export function StatCard({ stat }: { stat: TodayStat }) {
             highlight ? "bg-white text-brand-ink" : "border border-line-strong",
           )}
         >
-          <Icon name="arrowUpLeft" size={16} strokeWidth={2} />
+          <Icon name="arrowUpRight" size={16} strokeWidth={2} />
         </span>
       </div>
       <span className="text-5xl font-bold leading-none">{stat.value}</span>

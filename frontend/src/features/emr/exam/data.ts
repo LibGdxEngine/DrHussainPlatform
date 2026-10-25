@@ -1,8 +1,8 @@
 import type { ChipOption } from "../ui/ChipGroup";
 import type { VitalsInput } from "./vitals";
 
-export const examMeta = "زيارة جديدة · الرحم موجود";
-export const examFlag = "أحمر · R7 مفتوح";
+export const examMeta = "New visit · Uterus present";
+export const examFlag = "Red · R7 open";
 
 export const initialVitals: VitalsInput = {
   bp1: "144/92",
@@ -15,32 +15,32 @@ export const initialVitals: VitalsInput = {
 export type PlanId = "continue" | "start" | "adjust" | "route" | "investigate" | "stop";
 
 export const planOptions: ChipOption<PlanId>[] = [
-  { id: "continue", label: "نكمّل" },
-  { id: "start", label: "نبدأ علاج" },
-  { id: "adjust", label: "نعدّل الجرعة" },
-  { id: "route", label: "نغيّر الطريقة" },
-  { id: "investigate", label: "نفحص الأول" },
-  { id: "stop", label: "نوقف" },
+  { id: "continue", label: "Continue" },
+  { id: "start", label: "Start treatment" },
+  { id: "adjust", label: "Adjust dose" },
+  { id: "route", label: "Change route" },
+  { id: "investigate", label: "Investigate first" },
+  { id: "stop", label: "Stop" },
 ];
 
 export const initialPlan: PlanId = "investigate";
 
 export const examFindings = [
   {
-    label: "كشف الثدي",
-    text: "اتعمل. مفيش كتل، مفيش تغيّر في الجلد، مفيش إفرازات من الحلمة.",
+    label: "Breast exam",
+    text: "Done. No masses, no skin changes, no nipple discharge.",
   },
   {
-    label: "كشف الحوض",
-    text: "اتعمل. غشاء مهبلي ضامر، عنق الرحم طبيعي، مفيش نزيف نشط. اتاخدت مسحات.",
+    label: "Pelvic exam",
+    text: "Done. Atrophic vaginal mucosa, normal cervix, no active bleeding. Swabs taken.",
   },
 ];
 
 export const planNotes =
-  "سونار مهبلي للنزيف بعد انقطاع الطمث قبل أي HRT جهازي. Estriol مهبلي دلوقتي لأعراض GSM. لو بطانة الرحم أقل من 4 مم، نبدأ estradiol عن طريق الجلد + micronised progesterone (بسبب الصداع النصفي مع أورة). دهون و Lp(a) مع التحاليل الأساسية.";
+  "Transvaginal ultrasound for postmenopausal bleeding before any systemic HRT. Vaginal estriol now for GSM symptoms. If endometrium is under 4 mm, start transdermal estradiol + micronised progesterone (due to migraine with aura). Lipids and Lp(a) with baseline labs.";
 
-export const nextReview = "13 يناير 2027 (3 شهور)";
-export const followUpOptions = ["تتبعت قبل المراجعة بـ 3 أيام", "متتبعتش"];
+export const nextReview = "13 Jan 2027 (3 months)";
+export const followUpOptions = ["Send 3 days before review", "Don't send"];
 
 export interface ScreeningItem {
   label: string;
@@ -52,12 +52,12 @@ export interface ScreeningItem {
 }
 
 export const screeningItems: ScreeningItem[] = [
-  { label: "الماموجرام في ميعاده", checked: false, note: "آخر مرة 2022", noteTone: "danger" },
-  { label: "مسحة عنق الرحم في ميعادها", checked: true, note: "2024 طبيعية" },
-  { label: "سونار حوض (نزيف غير طبيعي)", checked: false, note: "R7", noteTone: "danger", noteMono: true },
-  { label: "DEXA لو فيه عوامل خطر", checked: false, note: "الأم: هشاشة" },
-  { label: "فحص المزاج اتعمل", checked: true, note: "PHQ-2 2 · GAD-2 1", noteMono: true },
-  { label: "خطة منع الحمل (مش في مرحلة ما قبل سن اليأس)", checked: true, disabled: true },
+  { label: "Mammogram up to date", checked: false, note: "Last in 2022", noteTone: "danger" },
+  { label: "Cervical smear up to date", checked: true, note: "2024 normal" },
+  { label: "Pelvic ultrasound (abnormal bleeding)", checked: false, note: "R7", noteTone: "danger", noteMono: true },
+  { label: "DEXA if risk factors", checked: false, note: "Mother: osteoporosis" },
+  { label: "Mood screen done", checked: true, note: "PHQ-2 2 · GAD-2 1", noteMono: true },
+  { label: "Contraception plan (not perimenopausal)", checked: true, disabled: true },
 ];
 
 export interface AutoCalcRow {
@@ -68,7 +68,7 @@ export interface AutoCalcRow {
 }
 
 export const autoCalcRows: AutoCalcRow[] = [
-  { label: "HOMA-IR", mono: true, value: "مستني التحاليل" },
-  { label: "TG / HDL", mono: true, value: "مستني التحاليل" },
-  { label: "سنين من آخر دورة", value: "1.2", strong: true },
+  { label: "HOMA-IR", mono: true, value: "Awaiting labs" },
+  { label: "TG / HDL", mono: true, value: "Awaiting labs" },
+  { label: "Years since last period", value: "1.2", strong: true },
 ];

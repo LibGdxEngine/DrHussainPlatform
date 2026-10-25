@@ -7,12 +7,12 @@ import { Pill } from "../ui/Pill";
 export type PatientTab = "summary" | "exam" | "orders" | "docs" | "emails" | "trends";
 
 const tabs: { id: PatientTab; label: string; href: string }[] = [
-  { id: "summary", label: "الملخص", href: emrRoutes.visit },
-  { id: "exam", label: "الكشف والخطة", href: emrRoutes.exam },
-  { id: "orders", label: "الطلبات والروشتات", href: emrRoutes.orders },
-  { id: "docs", label: "المستندات", href: emrRoutes.docs },
-  { id: "emails", label: "الإيميلات", href: emrRoutes.msgs },
-  { id: "trends", label: "المؤشرات والمتابعة", href: emrRoutes.followup },
+  { id: "summary", label: "Summary", href: emrRoutes.visit },
+  { id: "exam", label: "Exam & plan", href: emrRoutes.exam },
+  { id: "orders", label: "Orders & prescriptions", href: emrRoutes.orders },
+  { id: "docs", label: "Documents", href: emrRoutes.docs },
+  { id: "emails", label: "Emails", href: emrRoutes.msgs },
+  { id: "trends", label: "Trends & follow-up", href: emrRoutes.followup },
 ];
 
 interface PatientHeaderProps {
@@ -21,7 +21,7 @@ interface PatientHeaderProps {
   mrn?: string;
   meta?: string;
   initial?: string;
-  /** Red banner pill, e.g. "أحمر 1". */
+  /** Red banner pill, e.g. "Red 1". */
   flag?: string;
   /** Trailing action buttons (e.g. new prescription). */
   actions?: React.ReactNode;
@@ -30,10 +30,10 @@ interface PatientHeaderProps {
 /** Patient identity card with the six file tabs. Used by screens 04-09. */
 export function PatientHeader({
   tab,
-  name = "ليلى أحمد، 52",
+  name = "Laila Ahmed, 52",
   mrn = "VC-000142",
   meta,
-  initial = "ل",
+  initial = "L",
   flag,
   actions,
 }: PatientHeaderProps) {
@@ -57,7 +57,7 @@ export function PatientHeader({
         ) : null}
         {actions ? <div className="ms-auto flex flex-wrap gap-2">{actions}</div> : null}
       </div>
-      <nav aria-label="الملف" className="flex gap-1">
+      <nav aria-label="Patient chart" className="flex gap-1">
         {tabs.map((t) => {
           const on = t.id === tab;
           return (

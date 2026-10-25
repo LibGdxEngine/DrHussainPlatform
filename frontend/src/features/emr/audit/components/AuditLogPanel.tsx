@@ -9,29 +9,29 @@ const td = "border-b border-line-soft px-2 py-3";
 
 export function AuditLogPanel() {
   return (
-    <Panel aria-label="السجل" className="overflow-hidden">
+    <Panel aria-label="Log" className="overflow-hidden">
       <div className="flex flex-wrap gap-2.5 px-5 py-[18px]">
-        <FilterSelect label="الفترة" options={periodOptions} />
-        <FilterSelect label="المستخدم" options={userFilterOptions} />
-        <FilterSelect label="الإجراء" options={actionFilterOptions} />
+        <FilterSelect label="Period" options={periodOptions} />
+        <FilterSelect label="User" options={userFilterOptions} />
+        <FilterSelect label="Action" options={actionFilterOptions} />
         <input
-          placeholder="رقم الملف"
+          placeholder="MRN"
           className="min-h-[42px] w-40 rounded-full border border-field px-3.5 text-[13px] outline-none focus:border-brand"
         />
         <ActionButton variant="outline" className="ms-auto min-h-[42px] px-[18px] text-[13px]">
-          تصدير (أكّد بالـ Passkey)
+          Export (confirm with Passkey)
         </ActionButton>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>
-              <th className={`${th} ps-5`}>الوقت</th>
-              <th className={th}>مين</th>
-              <th className={th}>الإجراء</th>
-              <th className={th}>المريضة</th>
-              <th className={th}>التفاصيل</th>
-              <th className={`${th} pe-5`}>النتيجة</th>
+              <th className={`${th} ps-5`}>Time</th>
+              <th className={th}>Who</th>
+              <th className={th}>Action</th>
+              <th className={th}>Patient</th>
+              <th className={th}>Details</th>
+              <th className={`${th} pe-5`}>Outcome</th>
             </tr>
           </thead>
           <tbody>
@@ -57,7 +57,7 @@ export function AuditLogPanel() {
         </table>
       </div>
       <p className="m-0 px-5 py-3.5 text-xs text-muted">
-        محدش يقدر يعدّل أو يمسح أي سطر. القيم الطبية ونص الملاحظات عمرها ما بتتكتب في السجل.
+        No one can edit or delete any row. Clinical values and note text are never written to the log.
       </p>
     </Panel>
   );

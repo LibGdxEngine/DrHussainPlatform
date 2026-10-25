@@ -14,11 +14,11 @@ interface NextVisitCardProps {
 export function NextVisitCard({ time, name, summary, alerts, href }: NextVisitCardProps) {
   return (
     <section
-      aria-label="الزيارة الجاية"
+      aria-label="Next visit"
       className="relative flex min-h-[300px] flex-col gap-2.5 overflow-hidden rounded-[22px] bg-gradient-to-br from-mint-1 to-[#cde6d7] p-[22px]"
     >
       <span className="self-start rounded-full bg-white px-3 py-[5px] text-xs font-semibold text-ok-ink">
-        الزيارة الجاية · {time}
+        Next visit · {time}
       </span>
       <strong className="mt-1.5 text-2xl font-bold">{name}</strong>
       <span className="max-w-[190px] text-sm leading-relaxed text-ink-2">{summary}</span>
@@ -26,8 +26,8 @@ export function NextVisitCard({ time, name, summary, alerts, href }: NextVisitCa
         <AlertPills counts={alerts} />
       </div>
       <ActionLink href={href} variant="dark" className="mt-auto self-start px-[18px]" size="md">
-        افتح الملف
-        <Icon name="chevronLeft" size={16} strokeWidth={2} />
+        Open chart
+        <Icon name="chevronRight" size={16} strokeWidth={2} />
       </ActionLink>
     </section>
   );

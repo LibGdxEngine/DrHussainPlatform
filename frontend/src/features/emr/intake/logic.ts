@@ -13,7 +13,7 @@ export function modulesFor(selected: ReadonlySet<string>): FormModule[] {
   const chosen = visitReasons.filter((r) => selected.has(r.id));
   const modules: FormModule[] = chosen
     .filter((r) => r.module)
-    .map((r) => ({ name: `أسئلة ${r.module!.title}`, minutes: r.module!.minutes }));
+    .map((r) => ({ name: `Questions on ${r.module!.title}`, minutes: r.module!.minutes }));
   if (chosen.some((r) => r.menopause)) modules.unshift(menopauseModule);
   return modules;
 }
@@ -23,10 +23,10 @@ export const totalSteps = (modules: FormModule[]) => baseStepCount + modules.len
 export const progressPct = (step: number, total: number) => Math.round((step / total) * 100);
 
 function bandFor(total: number): MrsBand {
-  if (total >= 16) return { label: "شديد", className: "text-danger-ink" };
-  if (total >= 9) return { label: "متوسط", className: "text-warn-ink" };
-  if (total >= 5) return { label: "بسيط", className: "text-ok-ink" };
-  return { label: "مفيش / قليل", className: "text-muted" };
+  if (total >= 16) return { label: "Severe", className: "text-danger-ink" };
+  if (total >= 9) return { label: "Moderate", className: "text-warn-ink" };
+  if (total >= 5) return { label: "Mild", className: "text-ok-ink" };
+  return { label: "None / minimal", className: "text-muted" };
 }
 
 export function summarizeMrs(scores: number[]): MrsSummary {

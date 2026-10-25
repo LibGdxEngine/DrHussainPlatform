@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { emrRoutes } from "../../routes";
 import { ActionButton } from "../../ui/Action";
 import { Panel } from "../../ui/Panel";
 import { Pill } from "../../ui/Pill";
@@ -18,11 +20,19 @@ function AppointmentRow({ item, done, onDone }: { item: Appointment; done: boole
       <span className="flex flex-col gap-0.5">
         <strong className="text-sm font-semibold">{item.name}</strong>
         <span className="text-xs text-muted">{item.type}</span>
+        {item.scanVisit ? (
+          <Link
+            href={`${emrRoutes.scan}?patient=${item.mrn}&visit=${item.scanVisit}`}
+            className="text-xs font-semibold text-brand no-underline"
+          >
+            Scan the files she brought
+          </Link>
+        ) : null}
       </span>
       <Pill tone={done ? "brand" : status.tone} className="justify-self-start">
-        {done ? (isSend ? "اللينك اتبعت" : "حضرت") : status.label}
+        {done ? (isSend ? "Link sent" : "Checked in") : status.label}
       </Pill>
-      <span className="text-xs text-muted">{done ? "دلوقتي · مي سمير" : item.sent}</span>
+      <span className="text-xs text-muted">{done ? "Just now · Mai Samir" : item.sent}</span>
       <ActionButton
         size="sm"
         variant={isSend ? "primary" : "quiet"}
@@ -32,7 +42,7 @@ function AppointmentRow({ item, done, onDone }: { item: Appointment; done: boole
           done && "border-canvas bg-canvas text-muted hover:border-canvas hover:bg-canvas hover:text-muted",
         )}
       >
-        {done ? "تم ✓" : item.actionLabel}
+        {done ? "Done ✓" : item.actionLabel}
       </ActionButton>
     </div>
   );
@@ -45,7 +55,7 @@ export function AppointmentsTable() {
   return (
     <Panel aria-labelledby="sch" className="flex flex-col gap-1.5 p-5">
       <h2 id="sch" className="m-0 mb-2 text-lg font-semibold">
-        جدول الثلاثاء 13 أكتوبر
+        Schedule · Tuesday 13 Oct
       </h2>
       {appointments.map((a) => (
         <AppointmentRow

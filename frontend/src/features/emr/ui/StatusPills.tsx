@@ -7,12 +7,12 @@ export interface AlertCounts {
 }
 
 const alertDefs: { key: keyof AlertCounts; tone: PillTone; label: string }[] = [
-  { key: "red", tone: "red", label: "أحمر" },
-  { key: "amber", tone: "amber", label: "أصفر" },
-  { key: "reminder", tone: "reminder", label: "تذكير" },
+  { key: "red", tone: "red", label: "Red" },
+  { key: "amber", tone: "amber", label: "Amber" },
+  { key: "reminder", tone: "reminder", label: "Reminder" },
 ];
 
-/** Row of "أحمر 1 / أصفر 2 / تذكير 2" pills; renders `empty` when there are none. */
+/** Row of "Red 1 / Amber 2 / Reminder 2" pills; renders `empty` when there are none. */
 export function AlertPills({
   counts,
   size = "sm",
@@ -40,10 +40,10 @@ export function AlertPills({
 export type FormStatus = "complete" | "inProgress" | "notStarted" | "sent";
 
 const formDefs: Record<FormStatus, { tone: PillTone; label: string }> = {
-  complete: { tone: "ok", label: "مكتملة" },
-  inProgress: { tone: "amber", label: "جارية" },
-  notStarted: { tone: "neutral", label: "مبدأتش" },
-  sent: { tone: "neutral", label: "اتبعتت" },
+  complete: { tone: "ok", label: "Complete" },
+  inProgress: { tone: "amber", label: "In progress" },
+  notStarted: { tone: "neutral", label: "Not started" },
+  sent: { tone: "neutral", label: "Sent" },
 };
 
 /** Intake-form status pill shared by the dashboard and the patients list. */

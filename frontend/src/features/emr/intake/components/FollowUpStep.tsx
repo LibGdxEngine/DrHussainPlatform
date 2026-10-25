@@ -20,8 +20,8 @@ const barClass = {
 function ProgressChart() {
   return (
     <div className="flex flex-col gap-3 rounded-[22px] bg-linear-to-br from-mint-1 to-mint-2 p-[18px]">
-      <span className="text-sm font-semibold">تقدّمك في الأعراض (MRS)</span>
-      <div dir="ltr" className="flex h-[120px] items-end gap-3.5">
+      <span className="text-sm font-semibold">Your symptom progress (MRS)</span>
+      <div className="flex h-[120px] items-end gap-3.5">
         {followUpBars.map((b) => (
           <div key={b.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
             <strong className="text-sm">{b.value}</strong>
@@ -32,14 +32,14 @@ function ProgressChart() {
           </div>
         ))}
       </div>
-      <div dir="ltr" className="flex gap-3.5 text-center text-xs text-ink-2">
+      <div className="flex gap-3.5 text-center text-xs text-ink-2">
         {followUpBars.map((b) => (
-          <span key={b.label} dir="rtl" className="flex-1">
+          <span key={b.label} className="flex-1">
             {b.label}
           </span>
         ))}
       </div>
-      <span className="text-[13px] text-brand-deep">الأعراض قلّت للنص تقريباً من أول العلاج.</span>
+      <span className="text-[13px] text-brand-deep">Your symptoms have roughly halved since starting treatment.</span>
     </div>
   );
 }
@@ -52,23 +52,23 @@ export function FollowUpStep() {
   const [bleeding, setBleeding] = useState("no");
 
   return (
-    <PhoneFrame label="هـ · استمارة المتابعة (نور صالح)">
-      <StepHeader title="متابعة 3 شهور" stepText="خطوة 2 من 3" progress={66} />
+    <PhoneFrame label="E · Follow-up form (Nour Saleh)">
+      <StepHeader title="3-month follow-up" stepText="Step 2 of 3" progress={66} />
       <PhoneBody className="gap-5 px-6 py-[22px]">
         <ProgressChart />
-        <Question label="من آخر زيارة، إنتي عاملة إيه؟" className="gap-2.5 [&>span]:text-base">
-          <ChoiceGroup label="الحالة العامة" columns={2} size="lg" options={overallOptions} value={overall} onChange={setOverall} />
+        <Question label="Since your last visit, how are you feeling?" className="gap-2.5 [&>span]:text-base">
+          <ChoiceGroup label="Overall feeling" columns={2} size="lg" options={overallOptions} value={overall} onChange={setOverall} />
         </Question>
-        <Question label="بتاخدي العلاج زي ما اتكتب؟" className="gap-2.5 [&>span]:text-base">
-          <ChoiceGroup label="الالتزام بالعلاج" columns={3} size="lg" options={adherenceOptions} value={adherence} onChange={setAdherence} />
+        <Question label="Are you taking your treatment as prescribed?" className="gap-2.5 [&>span]:text-base">
+          <ChoiceGroup label="Treatment adherence" columns={3} size="lg" options={adherenceOptions} value={adherence} onChange={setAdherence} />
           {adherence !== "yes" ? (
             <label className="flex flex-col gap-1.5 text-sm font-semibold">
-              ليه؟
-              <input defaultValue="اللزقة بتقع بالليل على طول." className={phoneInputClass} />
+              Why?
+              <input defaultValue="The patch keeps falling off at night." className={phoneInputClass} />
             </label>
           ) : null}
         </Question>
-        <Question label="أعراض جانبية" className="gap-2.5 [&>span]:text-base">
+        <Question label="Side effects" className="gap-2.5 [&>span]:text-base">
           <div className="flex flex-wrap gap-2">
             {sideEffectOptions.map((o) => (
               <ToggleChip
@@ -82,25 +82,25 @@ export function FollowUpStep() {
             ))}
           </div>
         </Question>
-        <Question label="أي نزيف أو تبقيع؟" className="[&>span]:text-base">
-          <ChoiceGroup label="نزيف أو تبقيع" columns={2} size="lg" options={yesNo} value={bleeding} onChange={setBleeding} />
+        <Question label="Any bleeding or spotting?" className="[&>span]:text-base">
+          <ChoiceGroup label="Bleeding or spotting" columns={2} size="lg" options={yesNo} value={bleeding} onChange={setBleeding} />
         </Question>
         <div className="flex flex-col gap-2 rounded-[18px] border border-line bg-white px-4 py-3.5">
-          <span className="text-sm font-semibold">أدويتك من آخر زيارة · أكّدي أو عدّلي</span>
+          <span className="text-sm font-semibold">Your medicines from last visit · confirm or edit</span>
           {followUpMeds.map((m) => (
             <div key={m} className="flex items-center gap-2.5 text-sm">
-              <span dir="ltr" className="flex-1 text-right">
+              <span className="flex-1">
                 {m}
               </span>
-              <span className="text-xs font-semibold text-ok-ink">✓ لسه باخده</span>
+              <span className="text-xs font-semibold text-ok-ink">✓ Still taking</span>
             </div>
           ))}
           <Link href={emrRoutes.intake} className="text-[13px] font-semibold text-brand">
-            + ضيفي دوا جديد
+            + Add a new medicine
           </Link>
         </div>
       </PhoneBody>
-      <PhoneFooter backHref={emrRoutes.intake} next={{ label: "ابعتي للدكتور", href: emrRoutes.followup }} />
+      <PhoneFooter backHref={emrRoutes.intake} next={{ label: "Send to doctor", href: emrRoutes.followup }} />
     </PhoneFrame>
   );
 }

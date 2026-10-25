@@ -6,7 +6,7 @@ import { Icon } from "@/features/emr/ui/icons";
 import { Panel } from "@/features/emr/ui/Panel";
 import { FormGauge } from "@/features/emr/today/components/FormGauge";
 import { NextVisitCard } from "@/features/emr/today/components/NextVisitCard";
-import { PatientRepliesPanel, RemindersPanel } from "@/features/emr/today/components/SidePanels";
+import { FollowupsPanel, PatientRepliesPanel, RemindersPanel } from "@/features/emr/today/components/SidePanels";
 import { StatCard } from "@/features/emr/today/components/StatCard";
 import { VisitsTable } from "@/features/emr/today/components/VisitsTable";
 import { WeekChart } from "@/features/emr/today/components/WeekChart";
@@ -20,8 +20,8 @@ export default function TodayPage() {
       topbarStart={
         <SearchBox
           className="max-w-[440px]"
-          label="بحث عن مريضة"
-          placeholder="دوّر باسم المريضة أو الموبايل أو رقم الملف"
+          label="Search patients"
+          placeholder="Search by patient name, mobile or MRN"
         />
       }
       showMessages
@@ -31,18 +31,18 @@ export default function TodayPage() {
       <Panel className="flex flex-1 flex-col gap-5 p-7">
         <div className="flex flex-wrap items-end gap-4">
           <div className="flex flex-col gap-1.5">
-            <h1 className="m-0 text-[34px] font-bold">صباح الخير يا دكتور</h1>
+            <h1 className="m-0 text-[34px] font-bold">Good morning, doctor</h1>
             <p className="m-0 text-[15px] text-muted">
-              الثلاثاء 13 أكتوبر · 9 زيارات النهارده · 6 مريضات خلّصوا الاستمارة · أول زيارة 09:30
+              Tuesday 13 Oct · 9 visits today · 6 patients completed the form · First visit 09:30
             </p>
           </div>
           <div className="ms-auto flex gap-2.5">
             <ActionLink href={emrRoutes.patients}>
               <Icon name="plus" size={16} strokeWidth={2.2} />
-              مريضة جديدة
+              New patient
             </ActionLink>
             <ActionLink href={emrRoutes.patients} variant="outline">
-              ابعت لينك استمارة
+              Send form link
             </ActionLink>
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function TodayPage() {
         <div className="grid gap-4 xl:grid-cols-[1.25fr_1.15fr_0.9fr]">
           <NextVisitCard
             time={first.time}
-            name={`${first.name}، ${first.age}`}
+            name={`${first.name}, ${first.age}`}
             summary={first.visit}
             alerts={first.alerts}
             href={emrRoutes.visit}
@@ -68,6 +68,7 @@ export default function TodayPage() {
         <div className="grid items-start gap-4 xl:grid-cols-[2fr_1fr]">
           <VisitsTable visits={todayVisits} />
           <div className="flex flex-col gap-4">
+            <FollowupsPanel />
             <PatientRepliesPanel />
             <RemindersPanel />
           </div>

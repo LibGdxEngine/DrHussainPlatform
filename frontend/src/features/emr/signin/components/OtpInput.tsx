@@ -10,7 +10,7 @@ interface OtpInputProps {
   onChange?: (code: string) => void;
 }
 
-/** Segmented one-time-code field (LTR digits inside an RTL page). */
+/** Segmented one-time-code field. */
 export function OtpInput({ length = 6, label, initial = "", onChange }: OtpInputProps) {
   const [digits, setDigits] = useState<string[]>(() =>
     Array.from({ length }, (_, i) => initial[i] ?? ""),
@@ -32,14 +32,14 @@ export function OtpInput({ length = 6, label, initial = "", onChange }: OtpInput
   return (
     <fieldset className="m-0 flex flex-col gap-2.5 border-0 p-0">
       <legend className="mb-2.5 p-0 text-sm font-semibold">{label}</legend>
-      <div dir="ltr" className="flex justify-between gap-2">
+      <div className="flex justify-between gap-2">
         {digits.map((d, i) => (
           <input
             key={i}
             ref={(el) => {
               refs.current[i] = el;
             }}
-            aria-label={`رقم ${i + 1}`}
+            aria-label={`Digit ${i + 1}`}
             inputMode="numeric"
             maxLength={1}
             value={d}

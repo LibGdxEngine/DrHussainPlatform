@@ -18,7 +18,7 @@ export function MedicationCard({ med, checked, onToggle }: MedicationCardProps) 
     >
       <input type="checkbox" checked={checked} onChange={onToggle} className="m-0 size-[18px] flex-none accent-brand" />
       <span className="flex min-w-0 flex-col gap-[3px]">
-        <strong dir="ltr" className="text-right text-sm font-semibold">{med.name}</strong>
+        <strong className="text-sm font-semibold">{med.name}</strong>
         <span className="text-[13px] text-muted">{med.sig}</span>
       </span>
       <Pill tone="neutral" size="xs" className="ms-auto flex-none">{med.kind}</Pill>

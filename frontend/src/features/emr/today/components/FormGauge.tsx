@@ -17,10 +17,10 @@ export function FormGauge({ done, pending }: FormGaugeProps) {
   return (
     <Panel variant="outline" aria-labelledby="fp" className="flex flex-col gap-2.5 p-5">
       <h2 id="fp" className="m-0 text-lg font-semibold">
-        استمارات النهارده
+        Today&apos;s forms
       </h2>
       <div className="relative mt-2 flex justify-center">
-        <svg width="220" height="124" viewBox="0 0 220 124" aria-hidden="true" className="-scale-x-100">
+        <svg width="220" height="124" viewBox="0 0 220 124" aria-hidden="true">
           <defs>
             <pattern id={hatchId} width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
               <rect width="7" height="7" fill="#fff" />
@@ -38,17 +38,17 @@ export function FormGauge({ done, pending }: FormGaugeProps) {
         </svg>
         <div className="absolute bottom-0 flex flex-col items-center">
           <span className="text-[38px] font-bold leading-none">{percent}%</span>
-          <span className="mt-1 text-xs text-muted">مكتملة</span>
+          <span className="mt-1 text-xs text-muted">complete</span>
         </div>
       </div>
       <div className="mt-auto flex justify-center gap-4 text-[13px] text-ink-3">
         <span className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-full bg-brand" />
-          مكتملة {done}
+          Complete {done}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="box-border size-2.5 rounded-full border border-hatch bg-[repeating-linear-gradient(45deg,var(--color-hatch)_0_2px,#fff_2px_4px)]" />
-          لسه {pending}
+          Pending {pending}
         </span>
       </div>
     </Panel>

@@ -24,7 +24,7 @@ export function PhoneFrame({ label, children }: PhoneFrameProps) {
 
 interface StepHeaderProps {
   title: string;
-  /** e.g. "خطوة 2 من 9" */
+  /** e.g. "Step 2 of 9" */
   stepText: string;
   progress: number;
   children?: React.ReactNode;
@@ -72,7 +72,7 @@ export function PhoneFooter({ backHref, next }: PhoneFooterProps) {
           href={backHref}
           className={cn(footerButton, "min-h-14 border-[1.5px] border-line-strong text-base font-semibold text-ink")}
         >
-          رجوع
+          Back
         </Link>
       ) : null}
       <Link

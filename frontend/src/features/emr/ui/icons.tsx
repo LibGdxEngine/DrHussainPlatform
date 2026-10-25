@@ -19,8 +19,11 @@ export const iconPaths = {
   check: "M5 12l5 5L20 7",
   lock: "M6 11h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2zM8 11V7a4 4 0 0 1 8 0v4",
   key: "M8 11a4 4 0 1 1 0 8a4 4 0 0 1 0-8M11 12l9-9M16 7l3 3",
-  arrowUpLeft: "M17 17L7 7M7 16V7h9",
-  chevronLeft: "M15 6l-6 6 6 6",
+  arrowUpRight: "M7 17L17 7M8 7h9v9",
+  chevronRight: "M9 6l6 6-6 6",
+  scan: "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16",
+  whatsapp: "M4 20l1.3-4A8 8 0 1 1 8 18.7zM9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 1a4 4 0 0 1-2-2l1-1-1-2z",
+  upload: "M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3",
 } as const;
 
 export type IconName = keyof typeof iconPaths;

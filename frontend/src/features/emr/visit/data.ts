@@ -10,119 +10,119 @@ import type {
 } from "./types";
 
 export const patientMeta =
-  "زيارة جديدة · آخر دورة من 14 شهر · الرحم موجود · الأقسام: سن اليأس، الإفرازات والالتهابات";
+  "New visit · Last period 14 months ago · Uterus present · Modules: Menopause, Discharge & infections";
 
 export const visitAlerts: VisitAlert[] = [
   {
     id: "R7",
     tone: "red",
-    tag: "أحمر · R7",
-    title: "نزيف بعد انقطاع الطمث: كشف وسونار مهبلي قبل كتابة العلاج",
-    source: 'من القسم 3: "نزيف بعد ≥12 شهر من آخر دورة" = أيوه',
+    tag: "Red · R7",
+    title: "Postmenopausal bleeding: examine and do a transvaginal ultrasound before prescribing",
+    source: 'From section 3: "Bleeding ≥12 months after last period" = Yes',
     needsReason: true,
   },
   {
     id: "R18",
     tone: "amber",
-    tag: "أصفر · R18",
-    title: "صداع نصفي مع أورة: عن طريق الجلد بس، ممنوع الحبوب المركبة",
-    source: "من القسم 6ب",
+    tag: "Amber · R18",
+    title: "Migraine with aura: transdermal only, no combined pills",
+    source: "From section 6b",
   },
   {
     id: "R28",
     tone: "amber",
-    tag: "أصفر · R28",
-    title: "عامل خطر قلبي: تسمم حمل سابق. افحص الدهون والضغط",
-    source: "من القسم 5",
+    tag: "Amber · R28",
+    title: "Cardiac risk factor: previous pre-eclampsia. Check lipids and BP",
+    source: "From section 5",
   },
   {
     id: "R36",
     tone: "reminder",
-    tag: "تذكير · R36",
-    title: "ماموجرام متأخر (آخر مرة 2022)",
-    source: "المدة متحددة في إعدادات العيادة",
+    tag: "Reminder · R36",
+    title: "Mammogram overdue (last in 2022)",
+    source: "Interval set in clinic settings",
     reminder: true,
   },
   {
     id: "R39",
     tone: "reminder",
-    tag: "تذكير · R39",
-    title: "Lp(a) عمره ما اتعمل: اطلبه مرة واحدة",
-    source: "التحاليل",
+    tag: "Reminder · R39",
+    title: "Lp(a) never tested: order once",
+    source: "Labs",
     reminder: true,
   },
 ];
 
 export const ackReasons = [
-  "اتحجز سونار مهبلي قبل العلاج",
-  "اتفحص، حميد",
-  "هكتب إستروجين مهبلي بس",
-  "سبب تاني (اكتبه تحت)",
+  "Transvaginal ultrasound booked before treatment",
+  "Examined, benign",
+  "Prescribing vaginal estrogen only",
+  "Other reason (write below)",
 ];
 
-export const ackDoneText = "اتأكد بواسطة د. جوهر · 09:41";
+export const ackDoneText = "Confirmed by Dr. Gohar · 09:41";
 
 export const moduleTabs: { id: ModuleTabId; label: string }[] = [
-  { id: "meno", label: "سن اليأس" },
-  { id: "dis", label: "الإفرازات والالتهابات" },
-  { id: "core", label: "التاريخ الأساسي" },
+  { id: "meno", label: "Menopause" },
+  { id: "dis", label: "Discharge & infections" },
+  { id: "core", label: "Core history" },
 ];
 
 export const mrsDomains: MrsDomain[] = [
-  { label: "جسدي", score: 8, max: 16, severity: "متوسط", percent: 50 },
-  { label: "نفسي", score: 7, max: 16, severity: "شديد", percent: 44, dark: true },
-  { label: "بولي تناسلي", score: 3, max: 12, severity: "متوسط", percent: 25 },
+  { label: "Somatic", score: 8, max: 16, severity: "Moderate", percent: 50 },
+  { label: "Psychological", score: 7, max: 16, severity: "Severe", percent: 44, dark: true },
+  { label: "Urogenital", score: 3, max: 12, severity: "Moderate", percent: 25 },
 ];
 
 export const discharge: LabeledValue[] = [
-  { label: "الإفرازات", value: "بيضا، من غير ريحة" },
-  { label: "هرش", value: "أيوه، من 3 أسابيع" },
-  { label: "حرقان في البول", value: "لا" },
-  { label: "ألم في الحوض أو سخونية", value: "لا" },
-  { label: "شريك جديد أو أكتر من شريك", value: "لا" },
-  { label: "مقترح", value: "مسحات: مهبلية + NAAT كلاميديا/سيلان", highlight: true },
+  { label: "Discharge", value: "White, no odour" },
+  { label: "Itching", value: "Yes, for 3 weeks" },
+  { label: "Burning on urination", value: "No" },
+  { label: "Pelvic pain or fever", value: "No" },
+  { label: "New or multiple partners", value: "No" },
+  { label: "Suggested", value: "Swabs: vaginal + chlamydia/gonorrhoea NAAT", highlight: true },
 ];
 
 export const coreHistory: { title: string; body: string }[] = [
-  { title: "الولادة", body: "G2 P2 · تسمم حمل (الحمل التاني)" },
-  { title: "الأدوية", body: "Sertraline 50 مجم يومياً · فيتامين د" },
-  { title: "التاريخ العائلي", body: "الأم: هشاشة عظام · مفيش سرطان ثدي أو جلطات" },
-  { title: "نمط الحياة", body: "نوم 5 ساعات · نشاط يومين في الأسبوع · ضغط 7/10" },
-  { title: "الفحوصات الدورية", body: "مسحة 2024 طبيعية · ماموجرام 2022" },
-  { title: "الحساسية", body: "بنسلين (طفح) · مفيش حساسية فول سوداني" },
+  { title: "Obstetric", body: "G2 P2 · Pre-eclampsia (2nd pregnancy)" },
+  { title: "Medications", body: "Sertraline 50 mg daily · Vitamin D" },
+  { title: "Family history", body: "Mother: osteoporosis · No breast cancer or clots" },
+  { title: "Lifestyle", body: "Sleeps 5 hours · Active 2 days a week · Stress 7/10" },
+  { title: "Screening", body: "Smear 2024 normal · Mammogram 2022" },
+  { title: "Allergies", body: "Penicillin (rash) · No peanut allergy" },
 ];
 
 export const documentSlots: DocumentSlot[] = [
-  { name: "نتايج التحاليل", meta: "2 · آخرها 3 أكتوبر" },
-  { name: "سونار", meta: "1 · 2024" },
-  { name: "أشعة تانية", meta: "ماموجرام 2022" },
-  { name: "باثولوجي", meta: "مفيش" },
-  { name: "ملاحظات ورق قديمة", meta: "3 سكان" },
-  { name: "جوابات", meta: "1" },
+  { name: "Lab results", meta: "2 · Latest 3 Oct" },
+  { name: "Ultrasound", meta: "1 · 2024" },
+  { name: "Other imaging", meta: "Mammogram 2022" },
+  { name: "Pathology", meta: "None" },
+  { name: "Old paper notes", meta: "3 scans" },
+  { name: "Letters", meta: "1" },
 ];
 
 export const keyValues: KeyValueRow[] = [
-  { name: "Ferritin", result: "32 ng/mL", ideal: "50–150", out: true, idealLtr: true },
-  { name: "HbA1c", result: "5.3%", ideal: "<5.4", idealLtr: true },
-  { name: "TSH", result: "1.8", ideal: "1–2.5", idealLtr: true },
-  { name: "LDL", result: "3.9 mmol/L", ideal: "حسب خطر القلب", out: true },
+  { name: "Ferritin", result: "32 ng/mL", ideal: "50–150", out: true },
+  { name: "HbA1c", result: "5.3%", ideal: "<5.4" },
+  { name: "TSH", result: "1.8", ideal: "1–2.5" },
+  { name: "LDL", result: "3.9 mmol/L", ideal: "Per cardiac risk", out: true },
 ];
 
 export const sentOrders: SentOrder[] = [
-  { title: "طلب تحاليل: مبدئي – الكل + هرمونات", meta: "اتبعت للمعمل بالإيميل · 11 أكتوبر 2026" },
-  { title: "طلب سونار مهبلي", meta: "اتطبع واتسلّم للمريضة · 11 أكتوبر 2026" },
-  { title: "مسحات: مهبلية + NAAT كلاميديا/سيلان", meta: "اتاخدت في العيادة · 11 أكتوبر 2026" },
+  { title: "Lab request: Baseline – all + hormones", meta: "Emailed to the lab · 11 Oct 2026" },
+  { title: "Transvaginal ultrasound request", meta: "Printed and given to the patient · 11 Oct 2026" },
+  { title: "Swabs: vaginal + chlamydia/gonorrhoea NAAT", meta: "Taken in clinic · 11 Oct 2026" },
 ];
 
 export const emails: EmailMessage[] = [
   {
     from: "doctor",
-    meta: "الدكتور ← المريضة · 3 أكتوبر 2026",
-    text: "نتايج الدم طلعت. مخزون الحديد واطي شوية؛ التفاصيل مرفقة.",
+    meta: "Doctor → Patient · 3 Oct 2026",
+    text: "Your blood results are back. Your iron stores are a little low; details attached.",
   },
   {
     from: "patient",
-    meta: "المريضة ← الدكتور · 4 أكتوبر 2026",
-    text: "شكراً. أبدأ مكمّل حديد؟",
+    meta: "Patient → Doctor · 4 Oct 2026",
+    text: "Thank you. Should I start an iron supplement?",
   },
 ];

@@ -6,7 +6,7 @@ import { totalPatients } from "@/features/emr/patients/data";
 
 export default function PatientsPage() {
   return (
-    <AppShell active="patients" topbarStart={<PageTitle title="المرضى" meta={`${totalPatients} ملف`} />}>
+    <AppShell active="patients" topbarStart={<PageTitle title="Patients" meta={`${totalPatients} files`} />}>
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
         <PatientsBrowser />
         <NewPatientForm />

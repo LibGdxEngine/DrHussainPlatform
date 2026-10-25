@@ -28,19 +28,19 @@ export function MenoModule() {
     <div className="grid grid-cols-2 gap-4">
       <Panel variant="outline" aria-labelledby="mrs" className="flex flex-col gap-3 rounded-[18px] p-[18px]">
         <h3 id="mrs" className="m-0 text-[15px] font-semibold">
-          MRS · البداية 11 أكتوبر
+          MRS · Baseline 11 Oct
         </h3>
         <div className="flex items-baseline gap-2.5">
           <span className="text-[44px] font-bold leading-none">18</span>
           <span className="text-[15px] text-muted">/ 44</span>
           <Pill tone="danger" className="ms-auto">
-            شديد
+            Severe
           </Pill>
         </div>
         {mrsDomains.map((d) => (
           <MrsBar key={d.label} domain={d} />
         ))}
-        <span className="text-[13px] font-semibold text-brand">المتابعات هتظهر هنا كمنحنى</span>
+        <span className="text-[13px] font-semibold text-brand">Follow-ups will appear here as a trend line</span>
       </Panel>
       <Panel
         variant="outline"
@@ -48,21 +48,21 @@ export function MenoModule() {
         className="flex flex-col gap-2.5 rounded-[18px] p-[18px] text-[13px] leading-relaxed"
       >
         <h3 id="hs" className="m-0 text-[15px] font-semibold">
-          فحص أمان الهرمونات
+          Hormone safety screen
         </h3>
         <div>
-          الجزء أ (وقّف وراجع): <strong>مفيش</strong>
+          Part A (stop and review): <strong>None</strong>
         </div>
         <div>
-          الجزء ب (حذر): <strong>صداع نصفي مع أورة</strong>
+          Part B (caution): <strong>Migraine with aura</strong>
         </div>
-        <div>السن 52، 14 شهر من آخر دورة: جوه نافذة الـ HRT</div>
+        <div>Age 52, 14 months since last period: within the HRT window</div>
         <div>
-          حساسية فول سوداني: <strong>لا</strong> · الرحم موجود: <strong>أيوه</strong>
+          Peanut allergy: <strong>No</strong> · Uterus present: <strong>Yes</strong>
         </div>
-        <div className="font-emr-mono text-xs text-ink-3">PHQ-2: 2 · GAD-2: 1 · إيذاء النفس: أبداً</div>
+        <div className="font-emr-mono text-xs text-ink-3">PHQ-2: 2 · GAD-2: 1 · Self-harm: never</div>
         <p className="m-0 mt-auto rounded-xl bg-brand-tint px-3 py-2.5 font-medium text-brand-deep">
-          الـ HRT الجهازي ممكن يتكتب أول ما R7 يتأكد. الإستروجين المهبلي مش مقفول.
+          Systemic HRT can be prescribed once R7 is confirmed. Vaginal estrogen is not locked.
         </p>
       </Panel>
     </div>

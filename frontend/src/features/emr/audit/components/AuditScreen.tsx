@@ -16,9 +16,9 @@ export function AuditScreen() {
     <>
       <section className="flex flex-wrap items-center gap-4 rounded-3xl bg-white p-6">
         <div className="flex flex-col gap-2">
-          <h1 className="m-0 text-[30px] font-bold">سجل المراجعة والمستخدمين</h1>
+          <h1 className="m-0 text-[30px] font-bold">Audit log and users</h1>
           <Pill tone="ok" size="sm" className="self-start font-normal">
-            ✓ إضافة فقط · فحص السلامة نجح 13 أكتوبر 06:00
+            ✓ Append-only · integrity check passed 13 Oct 06:00
           </Pill>
         </div>
         <div role="tablist" className="ms-auto flex gap-1 rounded-full bg-canvas p-[5px]">

@@ -47,7 +47,7 @@ function AlertRow({ alert, acknowledged, asking, onStart, onConfirm }: AlertRowP
             onClick={onStart}
             className="ms-auto shrink-0 border-ink bg-white hover:bg-ink hover:text-white"
           >
-            تأكيد
+            Confirm
           </ActionButton>
         ) : null}
         {acknowledged ? (
@@ -57,7 +57,7 @@ function AlertRow({ alert, acknowledged, asking, onStart, onConfirm }: AlertRowP
       {asking ? (
         <div className="flex flex-wrap items-center gap-2.5 rounded-xl bg-white px-3 py-2.5">
           <label className="flex items-center gap-2 text-[13px] font-medium">
-            السبب
+            Reason
             <SelectInput className="min-h-[38px] w-auto rounded-[10px] text-[13px]">
               {ackReasons.map((r) => (
                 <option key={r}>{r}</option>
@@ -65,10 +65,10 @@ function AlertRow({ alert, acknowledged, asking, onStart, onConfirm }: AlertRowP
             </SelectInput>
           </label>
           <ActionButton variant="primary" size="sm" onClick={onConfirm} className="min-h-[38px] px-4">
-            أكّد
+            Confirm
           </ActionButton>
           <span className="basis-full text-xs text-muted">
-            بيتسجل باسمك والوقت. الـ HRT الجهازي هيفضل مقفول لحد ما ده يتأكد.
+            Logged with your name and the time. Systemic HRT stays locked until this is confirmed.
           </span>
         </div>
       ) : null}
@@ -88,7 +88,7 @@ export function AlertsPanel({ alerts }: { alerts: VisitAlert[] }) {
   return (
     <Panel aria-labelledby="al" className="flex flex-col gap-2.5 p-5">
       <h2 id="al" className="m-0 mb-1 text-lg font-semibold">
-        التنبيهات ({alerts.length})
+        Alerts ({alerts.length})
       </h2>
       {alerts.map((a) => (
         <AlertRow

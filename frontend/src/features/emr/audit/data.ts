@@ -7,31 +7,31 @@ import type {
 } from "./types";
 
 export const auditTabs: { id: AuditTab; label: string }[] = [
-  { id: "log", label: "سجل المراجعة" },
-  { id: "users", label: "المستخدمين والصلاحيات" },
+  { id: "log", label: "Audit log" },
+  { id: "users", label: "Users and permissions" },
 ];
 
-export const periodOptions = ["آخر 7 أيام", "النهارده", "آخر 30 يوم"];
-export const userFilterOptions = ["كل المستخدمين", "د. ح. جوهر", "مي سمير", "المرضى"];
-export const actionFilterOptions = ["كل الإجراءات", "مشاهدة", "تعديل", "تأكيد تنبيه", "إرسال", "مرفوض"];
+export const periodOptions = ["Last 7 days", "Today", "Last 30 days"];
+export const userFilterOptions = ["All users", "Dr. H. Gohar", "Mai Samir", "Patients"];
+export const actionFilterOptions = ["All actions", "View", "Edit", "Acknowledge alert", "Send", "Denied"];
 
 export const auditRows: AuditRow[] = [
-  { time: "13 أكتوبر 09:41", who: "د. ح. جوهر", role: "دكتور", action: "تأكيد تنبيه", patient: "VC-000142", details: 'R7 · السبب: "اتحجز سونار مهبلي قبل العلاج"', outcome: "success" },
-  { time: "13 أكتوبر 09:38", who: "د. ح. جوهر", role: "دكتور", action: "فتح ملخص الزيارة", patient: "VC-000142", details: "الملخص، تاب سن اليأس", outcome: "success" },
-  { time: "13 أكتوبر 09:20", who: "مي سمير", role: "موظفة العيادة", action: "فتح التنبيهات", patient: "VC-000142", details: "دور الموظف مش مسموح له يشوف التنبيهات الطبية", outcome: "denied" },
-  { time: "13 أكتوبر 09:12", who: "مي سمير", role: "موظفة العيادة", action: "كتابة قيم أساسية", patient: "VC-000142", details: "Ferritin 32، HbA1c 5.3، TSH 1.8 · من سكان 3 أكتوبر", outcome: "success" },
-  { time: "12 أكتوبر 21:04", who: "ليلى أحمد", role: "مريضة", action: "رد على إيميل", patient: "VC-000142", details: 'محادثة "نتايج الدم" · اتحفظت في الملف', outcome: "success" },
-  { time: "12 أكتوبر 18:30", who: "نور صالح", role: "مريضة", action: "بعتت استمارة المتابعة", patient: "VC-000118", details: "MRS 9 · دخلت باللينك + الكود", outcome: "success" },
-  { time: "12 أكتوبر 11:02", who: "د. ح. جوهر", role: "دكتور", action: "تعديل قاعدة تنبيه", patient: "إعدادات العيادة", details: "اتحدد ميعاد الماموجرام R36 · R16 من غير تغيير", outcome: "success" },
-  { time: "11 أكتوبر 09:52", who: "د. ح. جوهر", role: "دكتور", action: "بعت طلب تحاليل", patient: "VC-000142", details: "مبدئي – الكل + هرمونات · اتبعت للمعمل بالإيميل", outcome: "success" },
+  { time: "13 Oct 09:41", who: "Dr. H. Gohar", role: "Doctor", action: "Acknowledged alert", patient: "VC-000142", details: 'R7 · Reason: "TVUS booked before treatment"', outcome: "success" },
+  { time: "13 Oct 09:38", who: "Dr. H. Gohar", role: "Doctor", action: "Opened visit summary", patient: "VC-000142", details: "Summary, Menopause tab", outcome: "success" },
+  { time: "13 Oct 09:20", who: "Mai Samir", role: "Clinic staff", action: "Opened alerts", patient: "VC-000142", details: "Staff role is not allowed to view clinical alerts", outcome: "denied" },
+  { time: "13 Oct 09:12", who: "Mai Samir", role: "Clinic staff", action: "Entered key values", patient: "VC-000142", details: "Ferritin 32, HbA1c 5.3, TSH 1.8 · from 3 Oct scan", outcome: "success" },
+  { time: "12 Oct 21:04", who: "Laila Ahmed", role: "Patient", action: "Replied to email", patient: "VC-000142", details: 'Thread "Blood results" · saved to record', outcome: "success" },
+  { time: "12 Oct 18:30", who: "Nour Saleh", role: "Patient", action: "Submitted follow-up form", patient: "VC-000118", details: "MRS 9 · signed in with link + code", outcome: "success" },
+  { time: "12 Oct 11:02", who: "Dr. H. Gohar", role: "Doctor", action: "Edited alert rule", patient: "Clinic settings", details: "Mammogram interval set for R36 · R16 unchanged", outcome: "success" },
+  { time: "11 Oct 09:52", who: "Dr. H. Gohar", role: "Doctor", action: "Sent lab request", patient: "VC-000142", details: "Baseline – full panel + hormones · emailed to lab", outcome: "success" },
 ];
 
-export const outcomeLabel = { success: "نجح", denied: "مرفوض" } as const;
+export const outcomeLabel = { success: "Success", denied: "Denied" } as const;
 
-const YES: PermissionCell = { text: "أيوه", tone: "yes" };
-const NO: PermissionCell = { text: "لا", tone: "no" };
-const OWN: PermissionCell = { text: "بتاعتها بس", tone: "own" };
-const READ_ONLY: PermissionCell = { text: "قراية بس", tone: "readOnly" };
+const YES: PermissionCell = { text: "Yes", tone: "yes" };
+const NO: PermissionCell = { text: "No", tone: "no" };
+const OWN: PermissionCell = { text: "Own only", tone: "own" };
+const READ_ONLY: PermissionCell = { text: "Read only", tone: "readOnly" };
 const NA: PermissionCell = { text: "—", tone: "na" };
 
 const row = (
@@ -43,46 +43,46 @@ const row = (
 ): RolePermissionRow => ({ action, doctor, nurse, staff, patient });
 
 export const rolePermissions: RolePermissionRow[] = [
-  row("حجز زيارات، بعت لينكات الاستمارات", YES, NO, YES, NO),
-  row("تسجيل الحضور والعلامات الحيوية", YES, YES, NO, NO),
-  row("سكان، تسمية، كتابة القيم الأساسية", YES, YES, YES, NO),
-  row("شوف الملخص والتنبيهات والدرجات", YES, READ_ONLY, NO, NO),
-  row("تأكيد التنبيهات، كتابة الروشتات", YES, NO, NO, NO),
-  row("بعت طلبات متكتبة قبل كده", YES, YES, YES, NO),
-  row("بعت النتايج بالإيميل، قراية الردود", YES, NO, NO, OWN),
-  row("ملي الاستمارات، شوف مؤشراتها", NA, NO, NO, OWN),
-  row("إعدادات العيادة، سجل المراجعة", YES, NO, NO, NO),
+  row("Book visits, send form links", YES, NO, YES, NO),
+  row("Check-in and vital signs", YES, YES, NO, NO),
+  row("Scan, label, enter key values", YES, YES, YES, NO),
+  row("View summary, alerts and scores", YES, READ_ONLY, NO, NO),
+  row("Acknowledge alerts, write prescriptions", YES, NO, NO, NO),
+  row("Send pre-written orders", YES, YES, YES, NO),
+  row("Email results, read replies", YES, NO, NO, OWN),
+  row("Fill in forms, view their scores", NA, NO, NO, OWN),
+  row("Clinic settings, audit log", YES, NO, NO, NO),
 ];
 
 export const clinicUsers: ClinicUser[] = [
   {
     id: "doctor",
-    name: "د. حسين جوهر",
+    name: "Dr. Hussain Gohar",
     email: "hsgohar@gmail.com",
-    roleLabel: "دكتور · أدمن",
+    roleLabel: "Doctor · Admin",
     roleTone: "brand",
     avatar: { kind: "photo" },
-    meta: { kind: "text", text: "Passkey · دلوقتي" },
+    meta: { kind: "text", text: "Passkey · now" },
   },
   {
     id: "staff",
-    name: "مي سمير",
+    name: "Mai Samir",
     email: "clinicgohar@gmail.com",
-    roleLabel: "موظفة العيادة",
+    roleLabel: "Clinic staff",
     roleTone: "neutral",
-    avatar: { kind: "initial", letter: "م", className: "bg-warn-tint text-warn-ink" },
-    meta: { kind: "text", text: "تطبيق التحقق · 09:20" },
+    avatar: { kind: "initial", letter: "M", className: "bg-warn-tint text-warn-ink" },
+    meta: { kind: "text", text: "Authenticator app · 09:20" },
   },
   {
     id: "nurse",
-    name: "سارة محمود",
+    name: "Sara Mahmoud",
     email: "nurse.vclinic@gmail.com",
-    roleLabel: "ممرضة",
+    roleLabel: "Nurse",
     roleTone: "brand",
-    avatar: { kind: "initial", letter: "س", className: "bg-brand-tint text-brand-deep" },
-    meta: { kind: "inviteLink", text: "الدعوة مستنية · عدّل الصلاحيات" },
+    avatar: { kind: "initial", letter: "S", className: "bg-brand-tint text-brand-deep" },
+    meta: { kind: "inviteLink", text: "Invite pending · edit permissions" },
   },
 ];
 
 export const patientsNote =
-  "المرضى ملهمش حسابات موظفين. بيفتحوا لينك استمارة لمرة واحدة ويأكدوا بتاريخ الميلاد + كود بيوصل SMS؛ بيشوفوا استماراتهم ونتايجهم وإيميلاتهم بس.";
+  "Patients do not have staff accounts. They open a one-time form link and verify with date of birth + an SMS code; they only see their own forms, results and emails.";

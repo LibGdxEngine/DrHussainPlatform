@@ -6,15 +6,17 @@ export interface DocSlot {
   count: string;
   label: string;
   meta: string;
+  /** Which visit the file belongs to and how it reached the clinic. */
+  origin: string;
 }
 
 export const docSlots: DocSlot[] = [
-  { id: "lab", name: "نتايج التحاليل", count: "2", label: "نتايج الدم · مبدئي – الكل", meta: "العينة 3 أكتوبر 2026 · اتعمل سكان 4 أكتوبر بواسطة مي سمير" },
-  { id: "us", name: "سونار", count: "1", label: "سونار حوض", meta: "14 مايو 2024 · تقرير قديم جابته المريضة" },
-  { id: "rad", name: "أشعة تانية", count: "1", label: "ماموجرام للناحيتين", meta: "22 يوليو 2022" },
-  { id: "path", name: "باثولوجي", count: "0", label: "مفيش تقارير باثولوجي", meta: "لسه مفيش سكان" },
-  { id: "paper", name: "ملاحظات ورق قديمة", count: "3", label: "ملاحظات العيادة القديمة، صفحة 1 من 3", meta: "2019–2023 · اتعمل سكان 11 أكتوبر" },
-  { id: "letter", name: "جوابات", count: "1", label: "جواب تحويل من الممارس العام", meta: "2 أكتوبر 2026" },
+  { id: "lab", name: "Lab results", count: "2", label: "Blood results · baseline panel", meta: "Sample 3 Oct 2026 · scanned 4 Oct by Mai Samir", origin: "Visit 2 · scanned at clinic" },
+  { id: "us", name: "Ultrasound", count: "1", label: "Pelvic ultrasound", meta: "14 May 2024 · old report brought by the patient", origin: "Visit 1 · brought in by patient" },
+  { id: "rad", name: "Other imaging", count: "1", label: "Bilateral mammogram", meta: "22 Jul 2022", origin: "Visit 1 · by email" },
+  { id: "path", name: "Pathology", count: "0", label: "No pathology reports", meta: "Nothing scanned yet", origin: "—" },
+  { id: "paper", name: "Old paper notes", count: "3", label: "Old clinic notes, page 1 of 3", meta: "2019–2023 · scanned 11 Oct", origin: "Doctor's old files · bulk scan" },
+  { id: "letter", name: "Letters", count: "1", label: "GP referral letter", meta: "2 Oct 2026", origin: "First contact · by email" },
 ];
 
 export type KvId = "ferr" | "e2" | "testo" | "hba1c" | "ldl" | "tsh";
@@ -32,10 +34,10 @@ export interface KeyValueDef {
 
 export const keyValues: KeyValueDef[] = [
   { id: "ferr", name: "Ferritin", unit: "ng/mL", lo: 50, hi: 150, optimal: "50–150", lab: "13–150" },
-  { id: "e2", name: "Estradiol", unit: "pg/mL", lo: null, hi: null, optimal: "مش منطبق", lab: "<30 بعد الانقطاع" },
-  { id: "testo", name: "Testosterone, total", unit: "ng/dL", lo: null, hi: 50, optimal: "<50 مع العلاج", lab: "8–60" },
+  { id: "e2", name: "Estradiol", unit: "pg/mL", lo: null, hi: null, optimal: "N/A", lab: "<30 postmenopausal" },
+  { id: "testo", name: "Testosterone, total", unit: "ng/dL", lo: null, hi: 50, optimal: "<50 on treatment", lab: "8–60" },
   { id: "hba1c", name: "HbA1c", unit: "%", lo: null, hi: 5.4, optimal: "<5.4", lab: "4.0–5.6" },
-  { id: "ldl", name: "LDL", unit: "mmol/L", lo: null, hi: null, optimal: "حسب خطر القلب", lab: "<3.0" },
+  { id: "ldl", name: "LDL", unit: "mmol/L", lo: null, hi: null, optimal: "Per cardiovascular risk", lab: "<3.0" },
   { id: "tsh", name: "TSH", unit: "mIU/L", lo: 1, hi: 2.5, optimal: "1–2.5", lab: "0.4–4.0" },
 ];
 

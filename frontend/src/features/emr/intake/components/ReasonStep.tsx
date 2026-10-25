@@ -18,13 +18,13 @@ const textareaClass =
 /** B: reason picker; the chosen reasons add question modules to the form. */
 export function ReasonStep({ selected, onToggle, modules, totalSteps }: ReasonStepProps) {
   return (
-    <PhoneFrame label="ب · سبب الزيارة">
-      <StepHeader title="V-Clinic" stepText={`خطوة 2 من ${totalSteps}`} progress={progressPct(2, totalSteps)} />
+    <PhoneFrame label="B · Reason for visit">
+      <StepHeader title="V-Clinic" stepText={`Step 2 of ${totalSteps}`} progress={progressPct(2, totalSteps)} />
       <PhoneBody className="gap-[18px] p-6">
         <div className="flex flex-col gap-2">
-          <h2 className="m-0 text-[26px] font-bold leading-[1.4]">إيه اللي جايبك النهارده؟</h2>
+          <h2 className="m-0 text-[26px] font-bold leading-[1.4]">What brings you in today?</h2>
           <p className="m-0 text-[15px] leading-[1.7] text-ink-3">
-            اختاري كل اللي ينطبق عليكي. هنسألك بس الأسئلة اللي تهمّك.
+            Choose all that apply. We will only ask the questions that matter to you.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -35,7 +35,7 @@ export function ReasonStep({ selected, onToggle, modules, totalSteps }: ReasonSt
           ))}
         </div>
         <div className="flex flex-col gap-2 rounded-[18px] border border-line bg-white px-4 py-3.5">
-          <span className="text-[13px] font-semibold text-muted">اتضاف لاستمارتك</span>
+          <span className="text-[13px] font-semibold text-muted">Added to your form</span>
           {modules.map((m) => (
             <div key={m.name} className="flex text-[15px]">
               <span>{m.name}</span>
@@ -43,23 +43,23 @@ export function ReasonStep({ selected, onToggle, modules, totalSteps }: ReasonSt
             </div>
           ))}
           {modules.length === 0 ? (
-            <span className="text-sm text-muted">الاستمارة الأساسية بس</span>
+            <span className="text-sm text-muted">Core form only</span>
           ) : null}
         </div>
         <label className="flex flex-col gap-2 text-[15px] font-semibold">
-          بكلامك، إيه أكتر حاجة مضايقاكي؟
-          <textarea rows={3} defaultValue="عرق بالليل ومش عارفة أنام. وكمان شوية هرش." className={textareaClass} />
+          In your own words, what bothers you most?
+          <textarea rows={3} defaultValue="Night sweats and I can't sleep. Also some itching." className={textareaClass} />
         </label>
         <label className="flex flex-col gap-2 text-[15px] font-semibold">
-          نفسك تطلعي من الزيارة دي بإيه؟
+          What would you like to get from this visit?
           <textarea
             rows={2}
-            defaultValue="أنام الليل كله وأرجع أحس إني أنا في الشغل."
+            defaultValue="To sleep through the night and feel like myself at work again."
             className={textareaClass}
           />
         </label>
       </PhoneBody>
-      <PhoneFooter backHref={emrRoutes.intake} next={{ label: "كمّلي", href: emrRoutes.intake }} />
+      <PhoneFooter backHref={emrRoutes.intake} next={{ label: "Continue", href: emrRoutes.intake }} />
     </PhoneFrame>
   );
 }

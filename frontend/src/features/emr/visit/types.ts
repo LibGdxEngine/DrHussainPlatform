@@ -39,7 +39,6 @@ export interface KeyValueRow {
   result: string;
   ideal: string;
   out?: boolean;
-  idealLtr?: boolean;
 }
 
 export interface SentOrder {

@@ -10,21 +10,21 @@ export function RulesHeader({ changes }: { changes: number }) {
     <Panel className="flex flex-col gap-[18px] p-6">
       <div className="flex items-start gap-4">
         <div className="flex max-w-[720px] flex-col gap-1.5">
-          <span className="text-[13px] text-muted">إعدادات العيادة</span>
-          <h1 className="m-0 text-3xl font-bold">قواعد التنبيهات</h1>
+          <span className="text-[13px] text-muted">Clinic settings</span>
+          <h1 className="m-0 text-3xl font-bold">Alert rules</h1>
           <p className="m-0 text-sm leading-[1.7] text-muted">
-            كل قاعدة بتطابق سطر في ملف الاستمارات (R1–R40). غيّر الحد هنا لما الإرشادات تتغير، من غير ما تحتاج
-            مبرمج. كل تغيير بيتحفظ له نسخة وبيتسجل.
+            Each rule maps to a line in the forms spec (R1–R40). Change a threshold here when guidelines change, with
+            no developer needed. Every change is versioned and logged.
           </p>
         </div>
         <div className="ms-auto flex items-center gap-3">
           <span className="text-[13px] font-semibold text-warn-ink" aria-live="polite">
-            {changes ? `${changes} تغيير مش محفوظ` : ""}
+            {changes ? `${changes} unsaved ${changes === 1 ? "change" : "changes"}` : ""}
           </span>
-          <ActionButton>احفظ التغييرات</ActionButton>
+          <ActionButton>Save changes</ActionButton>
         </div>
       </div>
-      <nav aria-label="أقسام الإعدادات" className="flex flex-wrap gap-1.5">
+      <nav aria-label="Settings sections" className="flex flex-wrap gap-1.5">
         {settingsTabs.map((t) => (
           <Link
             key={t.label}

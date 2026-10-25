@@ -27,15 +27,15 @@ export function InviteScreen() {
       <section className="flex flex-wrap items-center gap-4 rounded-3xl bg-white p-6">
         <div className="flex flex-col gap-1.5">
           <Link href={emrRoutes.audit} className="text-[13px] text-muted no-underline">
-            المستخدمين والصلاحيات ←
+            ← Users and permissions
           </Link>
-          <h1 className="m-0 text-[30px] font-bold">ادعُ مستخدم جديد</h1>
+          <h1 className="m-0 text-[30px] font-bold">Invite a new user</h1>
         </div>
         <div className="ms-auto flex gap-2.5">
           <ActionLink href={emrRoutes.audit} variant="quiet">
-            إلغاء
+            Cancel
           </ActionLink>
-          <ActionButton>ابعت الدعوة</ActionButton>
+          <ActionButton>Send invite</ActionButton>
         </div>
       </section>
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">

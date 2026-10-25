@@ -21,7 +21,7 @@ export function TestSetButton({ name, count, selected, onAdd }: TestSetButtonPro
     >
       <strong className="text-[13px] font-semibold">{name}</strong>
       <span className={cn("text-xs", selected ? "text-ok-ink" : "text-muted")}>
-        {count} تحاليل{selected ? " ✓" : ""}
+        {count} tests{selected ? " ✓" : ""}
       </span>
     </button>
   );

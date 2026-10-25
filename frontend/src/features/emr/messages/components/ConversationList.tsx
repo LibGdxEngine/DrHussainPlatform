@@ -35,7 +35,7 @@ function ConversationItem({ c }: { c: Conversation }) {
         <span className={cn("text-[13px]", c.unread ? "text-ink-2" : "text-muted")}>{c.preview}</span>
         {c.unread ? (
           <span className="self-start rounded-full bg-brand px-2 py-px text-[11px] font-semibold text-white">
-            رد جديد
+            New reply
           </span>
         ) : null}
       </span>
@@ -45,8 +45,8 @@ function ConversationItem({ c }: { c: Conversation }) {
 
 export function ConversationList() {
   return (
-    <Panel aria-label="المحادثات" className="flex flex-col gap-1 px-3.5 py-5">
-      <h1 className="m-0 mb-3 px-2 text-[26px] font-bold">الرسائل</h1>
+    <Panel aria-label="Conversations" className="flex flex-col gap-1 px-3.5 py-5">
+      <h1 className="m-0 mb-3 px-2 text-[26px] font-bold">Messages</h1>
       {conversations.map((c) => (
         <ConversationItem key={c.name} c={c} />
       ))}

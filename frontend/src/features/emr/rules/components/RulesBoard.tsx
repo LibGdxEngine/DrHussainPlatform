@@ -10,7 +10,7 @@ import { MrsBandsRow } from "./MrsBandsRow";
 import { RuleRow } from "./RuleRow";
 import { RulesHeader } from "./RulesHeader";
 
-const headers = ["ID", "الحقل", "القاعدة (الحد قابل للتعديل)", "المستوى", "الرسالة للدكتور", "شغّال"];
+const headers = ["ID", "Field", "Rule (editable threshold)", "Level", "Message to doctor", "On"];
 
 /** Client container: owns filter, edited thresholds, disabled rules and the unsaved-changes count. */
 export function RulesBoard() {
@@ -34,9 +34,9 @@ export function RulesBoard() {
   return (
     <>
       <RulesHeader changes={changes} />
-      <Panel aria-label="القواعد" className="overflow-hidden">
+      <Panel aria-label="Rules" className="overflow-hidden">
         <ChipGroup
-          label="فلاتر"
+          label="Filters"
           options={filterOptions}
           value={filter}
           onChange={setFilter}
@@ -76,8 +76,8 @@ export function RulesBoard() {
           </tbody>
         </table>
         <p className="m-0 px-5 py-3.5 text-xs text-muted">
-          معروض {shown.length} من {ruleTotal} قاعدة. درجات المقاييس (زي MRS بسيط 5، متوسط 9، شديد 16) موجودة في
-          &quot;درجات المقاييس&quot; وبتظهر كتسميات مش كتنبيهات.
+          Showing {shown.length} of {ruleTotal} rules. Score bands (e.g. MRS mild 5, moderate 9, severe 16) live in
+          &quot;Score bands&quot; and appear as labels, not alerts.
         </p>
       </Panel>
     </>

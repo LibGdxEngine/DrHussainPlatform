@@ -20,11 +20,11 @@ export function MrsStep({ totalSteps }: MrsStepProps) {
     setScores((prev) => prev.map((s, i) => (i === index ? value : s)));
 
   return (
-    <PhoneFrame label="د · مقياس الأعراض MRS">
-      <StepHeader title="أسئلة سن اليأس" stepText={`خطوة 4 من ${totalSteps}`} progress={progressPct(4, totalSteps)} />
+    <PhoneFrame label="D · MRS symptom scale">
+      <StepHeader title="Menopause questions" stepText={`Step 4 of ${totalSteps}`} progress={progressPct(4, totalSteps)} />
       <PhoneBody className="gap-4 px-5 py-[22px]">
-        <h2 className="m-0 text-[22px] font-bold leading-normal">أنهي من الأعراض دي عندك دلوقتي؟</h2>
-        <div dir="ltr" className="grid grid-cols-5 gap-1.5 text-center text-[11px] text-muted">
+        <h2 className="m-0 text-[22px] font-bold leading-normal">Which of these symptoms do you have right now?</h2>
+        <div className="grid grid-cols-5 gap-1.5 text-center text-[11px] text-muted">
           {mrsScale.map((s) => (
             <span key={s}>{s}</span>
           ))}
@@ -34,7 +34,7 @@ export function MrsStep({ totalSteps }: MrsStepProps) {
             <span className="text-[15px] font-semibold">
               {i + 1}. {label}
             </span>
-            <div dir="ltr" role="radiogroup" aria-label={label} className="grid grid-cols-5 gap-1.5">
+            <div role="radiogroup" aria-label={label} className="grid grid-cols-5 gap-1.5">
               {mrsScores.map((v) => {
                 const on = scores[i] === v;
                 return (
@@ -59,7 +59,7 @@ export function MrsStep({ totalSteps }: MrsStepProps) {
           </div>
         ))}
         <div className="flex flex-col gap-1.5 rounded-[18px] border border-dashed border-hatch bg-white px-4 py-3.5">
-          <span className="text-xs font-semibold text-muted">للعرض على الدكتور بس: الدرجة لايف</span>
+          <span className="text-xs font-semibold text-muted">Doctor view only: live score</span>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl font-bold leading-none">{summary.total}</span>
             <span className="text-sm text-muted">/ {mrsMax}</span>
@@ -68,24 +68,24 @@ export function MrsStep({ totalSteps }: MrsStepProps) {
             </span>
           </div>
           <span className="text-[13px] text-ink-3">
-            جسدي {summary.somatic} · نفسي {summary.psychological} · بولي تناسلي {summary.urogenital}
+            Somatic {summary.somatic} · Psychological {summary.psychological} · Urogenital {summary.urogenital}
           </span>
           {summary.heartFlag ? (
             <span className="rounded-[10px] bg-warn-tint px-2.5 py-1.5 text-xs text-warn-ink">
-              أصفر · R30: تعب القلب ≥3، اتقيّم قبل ما تنسبه لسن اليأس
+              Amber · R30: heart discomfort ≥3, assess before attributing to menopause
             </span>
           ) : null}
           {summary.sexualFlag ? (
             <span className="rounded-[10px] bg-brand-tint px-2.5 py-1.5 text-xs text-ok-ink">
-              بند 8 ≥2 ← قسم الصحة الجنسية اتفتح
+              Item 8 ≥2 → sexual health section opened
             </span>
           ) : null}
         </div>
         <p className="m-0 text-[11px] leading-[1.6] text-subtle">
-          النص النهائي لازم يكون الترجمة العربي الرسمية من موقع MRS.
+          Final wording must use the official licensed MRS translation.
         </p>
       </PhoneBody>
-      <PhoneFooter backHref={emrRoutes.intake} next={{ label: "كمّلي", href: emrRoutes.intake }} />
+      <PhoneFooter backHref={emrRoutes.intake} next={{ label: "Continue", href: emrRoutes.intake }} />
     </PhoneFrame>
   );
 }

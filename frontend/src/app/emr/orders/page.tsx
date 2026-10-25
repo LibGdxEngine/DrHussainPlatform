@@ -7,7 +7,7 @@ export default function OrdersPage() {
     <AppShell active="patients" showPromo={false}>
       <PatientHeader
         tab="orders"
-        meta="الرحم موجود · حساسية: بنسلين · حساسية فول سوداني: لا · صداع نصفي مع أورة"
+        meta="Uterus present · Allergy: penicillin · Peanut allergy: no · Migraine with aura"
       />
       <OrdersWorkspace />
     </AppShell>

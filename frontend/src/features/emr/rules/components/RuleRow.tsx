@@ -35,11 +35,11 @@ export function RuleRow({ rule, a, b, enabled, onChangeA, onChangeB, onToggle }:
         <div className="flex flex-wrap items-center gap-1.5 text-ink-2">
           {rule.pre}
           {a !== null ? (
-            <ThresholdInput value={a} onChange={(e) => onChangeA(e.target.value)} aria-label="الحد" />
+            <ThresholdInput value={a} onChange={(e) => onChangeA(e.target.value)} aria-label="Threshold" />
           ) : null}
           {rule.mid}
           {b !== null ? (
-            <ThresholdInput value={b} onChange={(e) => onChangeB(e.target.value)} aria-label="الحد التاني" />
+            <ThresholdInput value={b} onChange={(e) => onChangeB(e.target.value)} aria-label="Second threshold" />
           ) : null}
           {rule.post}
         </div>
@@ -51,7 +51,7 @@ export function RuleRow({ rule, a, b, enabled, onChangeA, onChangeB, onToggle }:
       </td>
       <td className={cn(cell, "text-ink-2")}>{rule.msg}</td>
       <td className={cn(cell, "pe-5")}>
-        <Switch checked={enabled} onChange={onToggle} label="تشغيل القاعدة" />
+        <Switch checked={enabled} onChange={onToggle} label="Enable rule" />
       </td>
     </tr>
   );

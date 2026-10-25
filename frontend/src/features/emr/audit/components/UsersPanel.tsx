@@ -61,10 +61,10 @@ export function UsersPanel() {
     <Panel aria-labelledby="us" className="flex flex-col gap-3 p-5">
       <div className="flex items-center">
         <h2 id="us" className="m-0 text-lg font-semibold">
-          المستخدمين
+          Users
         </h2>
         <ActionLink href={emrRoutes.invite} size="sm" className="ms-auto min-h-[38px] px-4">
-          + ادعُ مستخدم
+          + Invite user
         </ActionLink>
       </div>
       {clinicUsers.map((u) => (

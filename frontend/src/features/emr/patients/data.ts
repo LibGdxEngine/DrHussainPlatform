@@ -1,13 +1,14 @@
+import type { ContactChannel } from "@/features/emr/journey/data";
 import type { AlertCounts, FormStatus } from "@/features/emr/ui/StatusPills";
 
 export type PatientFilter = "all" | "today" | "red" | "meno" | "noform";
 
 export const patientFilters: { id: PatientFilter; label: string }[] = [
-  { id: "all", label: "الكل" },
-  { id: "today", label: "اتشافوا النهارده" },
-  { id: "red", label: "تنبيهات حمراء مفتوحة" },
-  { id: "meno", label: "قسم سن اليأس" },
-  { id: "noform", label: "الاستمارة مش مكتملة" },
+  { id: "all", label: "All" },
+  { id: "today", label: "Seen today" },
+  { id: "red", label: "Open red alerts" },
+  { id: "meno", label: "Menopause module" },
+  { id: "noform", label: "Form incomplete" },
 ];
 
 export interface PatientRowData {
@@ -20,18 +21,19 @@ export interface PatientRowData {
   mrs: string;
   next: string;
   form: FormStatus;
+  channel: ContactChannel;
   tags: Exclude<PatientFilter, "all">[];
 }
 
 export const patients: PatientRowData[] = [
-  { name: "ليلى أحمد", age: 52, phone: "•••• 4821", mrn: "VC-000142", modules: "سن اليأس، إفرازات", alerts: { red: 1, amber: 2, reminder: 2 }, mrs: "18 شديد", next: "النهارده 09:30", form: "complete", tags: ["red", "meno", "today"] },
-  { name: "نور صالح", age: 47, phone: "•••• 3310", mrn: "VC-000118", modules: "سن اليأس", alerts: { amber: 1 }, mrs: "9 متوسط", next: "النهارده 10:15", form: "complete", tags: ["meno", "today"] },
-  { name: "دينا فاروق", age: 34, phone: "•••• 9902", mrn: "VC-000097", modules: "نزيف، منع الحمل", alerts: { red: 2 }, mrs: "—", next: "النهارده 11:00", form: "complete", tags: ["red", "today"] },
-  { name: "سلمى نبيل", age: 29, phone: "•••• 1187", mrn: "VC-000174", modules: "تكيس المبايض، حبوب أو شعر", alerts: {}, mrs: "—", next: "النهارده 11:45", form: "inProgress", tags: ["today", "noform"] },
-  { name: "هبة يوسف", age: 58, phone: "•••• 5520", mrn: "VC-000131", modules: "سن اليأس (مراجعة HRT)", alerts: { amber: 1, reminder: 2 }, mrs: "7 بسيط", next: "النهارده 12:30", form: "notStarted", tags: ["meno", "today", "noform"] },
-  { name: "منى عادل", age: 41, phone: "•••• 7004", mrn: "VC-000156", modules: "كشف دوري", alerts: { reminder: 1 }, mrs: "—", next: "النهارده 13:15", form: "complete", tags: ["today"] },
-  { name: "ليلى أحمد", age: 44, phone: "•••• 7730", mrn: "VC-000203", modules: "نزيف غزير", alerts: {}, mrs: "—", next: "21 أكتوبر", form: "sent", tags: ["noform"] },
-  { name: "رانيا مصطفى", age: 49, phone: "•••• 2266", mrn: "VC-000189", modules: "سن اليأس، المثانة", alerts: { amber: 3, reminder: 1 }, mrs: "14 متوسط", next: "27 أكتوبر", form: "complete", tags: ["meno"] },
+  { name: "Laila Ahmed", age: 52, phone: "•••• 4821", mrn: "VC-000142", modules: "Menopause, discharge", alerts: { red: 1, amber: 2, reminder: 2 }, mrs: "18 severe", next: "Today 09:30", form: "complete", channel: "whatsapp", tags: ["red", "meno", "today"] },
+  { name: "Nour Saleh", age: 47, phone: "•••• 3310", mrn: "VC-000118", modules: "Menopause", alerts: { amber: 1 }, mrs: "9 moderate", next: "Today 10:15", form: "complete", channel: "email", tags: ["meno", "today"] },
+  { name: "Dina Farouk", age: 34, phone: "•••• 9902", mrn: "VC-000097", modules: "Bleeding, contraception", alerts: { red: 2 }, mrs: "—", next: "Today 11:00", form: "complete", channel: "whatsapp", tags: ["red", "today"] },
+  { name: "Salma Nabil", age: 29, phone: "•••• 1187", mrn: "VC-000174", modules: "PCOS, acne or hair", alerts: {}, mrs: "—", next: "Today 11:45", form: "inProgress", channel: "whatsapp", tags: ["today", "noform"] },
+  { name: "Heba Youssef", age: 58, phone: "•••• 5520", mrn: "VC-000131", modules: "Menopause (HRT review)", alerts: { amber: 1, reminder: 2 }, mrs: "7 mild", next: "Today 12:30", form: "notStarted", channel: "email", tags: ["meno", "today", "noform"] },
+  { name: "Mona Adel", age: 41, phone: "•••• 7004", mrn: "VC-000156", modules: "Routine check-up", alerts: { reminder: 1 }, mrs: "—", next: "Today 13:15", form: "complete", channel: "phone", tags: ["today"] },
+  { name: "Laila Ahmed", age: 44, phone: "•••• 7730", mrn: "VC-000203", modules: "Heavy bleeding", alerts: {}, mrs: "—", next: "21 Oct", form: "sent", channel: "whatsapp", tags: ["noform"] },
+  { name: "Rania Mostafa", age: 49, phone: "•••• 2266", mrn: "VC-000189", modules: "Menopause, bladder", alerts: { amber: 3, reminder: 1 }, mrs: "14 moderate", next: "27 Oct", form: "complete", channel: "email", tags: ["meno"] },
 ];
 
 export const totalPatients = 412;

@@ -22,14 +22,14 @@ export function OtpInput({ length = 6, initial = "" }: OtpInputProps) {
   };
 
   return (
-    <div dir="ltr" className="flex justify-between gap-2">
+    <div className="flex justify-between gap-2">
       {digits.map((d, i) => (
         <input
           key={i}
           ref={(el) => {
             refs.current[i] = el;
           }}
-          aria-label={`رقم ${i + 1}`}
+          aria-label={`Digit ${i + 1}`}
           maxLength={1}
           inputMode="numeric"
           value={d}

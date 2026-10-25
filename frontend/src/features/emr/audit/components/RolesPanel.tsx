@@ -31,17 +31,17 @@ export function RolesPanel() {
   return (
     <Panel aria-labelledby="rl" className="overflow-hidden">
       <h2 id="rl" className="m-0 px-5 pb-3 pt-5 text-lg font-semibold">
-        كل دور يقدر يعمل إيه
+        What each role can do
       </h2>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>
-              <th className={cn(th, "ps-5 text-start")}>الإجراء</th>
-              <th className={th}>دكتور</th>
-              <th className={th}>ممرضة</th>
-              <th className={th}>موظف</th>
-              <th className={cn(th, "pe-5")}>مريضة</th>
+              <th className={cn(th, "ps-5 text-start")}>Action</th>
+              <th className={th}>Doctor</th>
+              <th className={th}>Nurse</th>
+              <th className={th}>Staff</th>
+              <th className={cn(th, "pe-5")}>Patient</th>
             </tr>
           </thead>
           <tbody>

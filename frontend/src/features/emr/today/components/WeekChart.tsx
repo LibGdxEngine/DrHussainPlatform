@@ -15,8 +15,8 @@ export function WeekChart({ days, total }: { days: WeekDay[]; total: number }) {
   const max = Math.max(...days.map((d) => d.count));
   return (
     <Panel variant="outline" aria-labelledby="wk" className="flex flex-col gap-3.5 p-5">
-      <PanelHeading id="wk" aside={`${total} زيارة`}>
-        زيارات الأسبوع
+      <PanelHeading id="wk" aside={`${total} visits`}>
+        This week&apos;s visits
       </PanelHeading>
       <div className="flex min-h-[190px] flex-1 items-end justify-between gap-2.5">
         {days.map((d) => (

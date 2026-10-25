@@ -10,8 +10,8 @@ interface RolePickerProps {
 export function RolePicker({ value, onChange }: RolePickerProps) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[13px] font-medium text-ink-2">الدور</span>
-      <div role="radiogroup" aria-label="الدور" className="grid grid-cols-3 gap-2">
+      <span className="text-[13px] font-medium text-ink-2">Role</span>
+      <div role="radiogroup" aria-label="Role" className="grid grid-cols-3 gap-2">
         {roleDefs.map((r) => {
           const on = r.id === value;
           return (

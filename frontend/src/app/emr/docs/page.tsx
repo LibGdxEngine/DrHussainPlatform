@@ -7,7 +7,7 @@ export default function DocsPage() {
     <AppShell active="docs" showPromo={false}>
       <PatientHeader
         tab="docs"
-        meta="الموظفين يقدروا يعملوا سكان ويسمّوا الملفات ويكتبوا القيم الأساسية. الملاحظات الطبية للدكتور بس."
+        meta="Staff can scan, name files and enter key values. Medical notes are doctor-only."
       />
       <DocumentsWorkspace />
     </AppShell>

@@ -12,7 +12,7 @@ export function MenuPreview({ roleLabel, menu, shift }: MenuPreviewProps) {
       className="flex flex-col gap-3 rounded-3xl bg-linear-to-br from-mint-1 to-mint-2 p-5"
     >
       <h2 id="sw" className="m-0 text-[17px] font-semibold">
-        {roleLabel} هتشوف في القائمة
+        Menu for {roleLabel}
       </h2>
       <div className="flex flex-wrap gap-2">
         {menu.map((m) => (
@@ -25,7 +25,7 @@ export function MenuPreview({ roleLabel, menu, shift }: MenuPreviewProps) {
         ))}
       </div>
       <span className="text-xs text-ink-2">
-        ورديات الشغل: <strong>{shift}</strong>
+        Shifts: <strong>{shift}</strong>
       </span>
     </section>
   );

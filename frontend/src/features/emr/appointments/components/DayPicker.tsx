@@ -5,7 +5,7 @@ import { days } from "../data";
 export function DayPicker() {
   return (
     <div className="flex items-center gap-4">
-      <h1 className="m-0 text-3xl font-bold">المواعيد</h1>
+      <h1 className="m-0 text-3xl font-bold">Appointments</h1>
       <div className="ms-auto flex gap-2">
         {days.map((d, i) => {
           const on = i === 0;

@@ -18,28 +18,28 @@ export interface Metric {
 }
 
 export const metrics: Metric[] = [
-  { id: "mrs", name: "MRS الكلي", title: "MRS الكلي: 21 ← 9 في 3 شهور", values: [21, 14, 9], min: 0, max: 44, band: [16, 44], bandTone: "danger", note: "المتظلل: درجة شديدة (16+)." },
-  { id: "bp", name: "الضغط الانقباضي", title: "الضغط الانقباضي مستقر", values: [132, 128, 126], min: 100, max: 160, band: [140, 160], bandTone: "warn", note: "المتظلل: أصفر R20 (140+)." },
-  { id: "wt", name: "الوزن", title: "الوزن نزل 2 كيلو", values: [74, 73.5, 72], min: 60, max: 90, band: [60, 60], bandTone: "none", note: "" },
-  { id: "e2", name: "Estradiol", title: "Estradiol مع العلاج", values: [22, 68, 85], min: 0, max: 200, band: [60, 150], bandTone: "ok", note: "المتظلل: المدى المستهدف للعيادة مع HRT." },
+  { id: "mrs", name: "MRS total", title: "MRS total: 21 → 9 in 3 months", values: [21, 14, 9], min: 0, max: 44, band: [16, 44], bandTone: "danger", note: "Shaded: severe score (16+)." },
+  { id: "bp", name: "Systolic BP", title: "Systolic BP stable", values: [132, 128, 126], min: 100, max: 160, band: [140, 160], bandTone: "warn", note: "Shaded: amber R20 (140+)." },
+  { id: "wt", name: "Weight", title: "Weight down 2 kg", values: [74, 73.5, 72], min: 60, max: 90, band: [60, 60], bandTone: "none", note: "" },
+  { id: "e2", name: "Estradiol", title: "Estradiol on treatment", values: [22, 68, 85], min: 0, max: 200, band: [60, 150], bandTone: "ok", note: "Shaded: clinic target range on HRT." },
 ];
 
-export const xLabels = ["البداية", "6 أسابيع", "3 شهور"] as const;
+export const xLabels = ["Baseline", "6 weeks", "3 months"] as const;
 
 export type PlanId = "continue" | "dose" | "route" | "stop" | "inv";
 
 export const planOptions: { id: PlanId; label: string }[] = [
-  { id: "continue", label: "نكمّل" },
-  { id: "dose", label: "نعدّل الجرعة" },
-  { id: "route", label: "نغيّر الطريقة" },
-  { id: "stop", label: "نوقف" },
-  { id: "inv", label: "نفحص" },
+  { id: "continue", label: "Continue" },
+  { id: "dose", label: "Adjust dose" },
+  { id: "route", label: "Change route" },
+  { id: "stop", label: "Stop" },
+  { id: "inv", label: "Investigate" },
 ];
 
 export const mrsRows: { label: string; from: number; fromBand: string; fromTone: PillTone; to: number; toBand: string; toTone: PillTone }[] = [
-  { label: "جسدي", from: 9, fromBand: "شديد", fromTone: "danger", to: 4, toBand: "بسيط", toTone: "ok" },
-  { label: "نفسي", from: 8, fromBand: "شديد", fromTone: "danger", to: 3, toBand: "بسيط", toTone: "ok" },
-  { label: "بولي تناسلي", from: 4, fromBand: "شديد", fromTone: "danger", to: 2, toBand: "متوسط", toTone: "amber" },
+  { label: "Somatic", from: 9, fromBand: "Severe", fromTone: "danger", to: 4, toBand: "Mild", toTone: "ok" },
+  { label: "Psychological", from: 8, fromBand: "Severe", fromTone: "danger", to: 3, toBand: "Mild", toTone: "ok" },
+  { label: "Urogenital", from: 4, fromBand: "Severe", fromTone: "danger", to: 2, toBand: "Moderate", toTone: "amber" },
 ];
 
 export interface Answer {
@@ -52,13 +52,13 @@ export interface Answer {
 }
 
 export const answers: Answer[] = [
-  { label: "عموماً من آخر زيارة", value: "أحسن", emphasis: "good" },
-  { label: "ملتزمة بالعلاج", value: "أحياناً" },
-  { label: "ليه", value: "\"اللزقة بتقع بالليل على طول.\"", wide: true, emphasis: "warn", quote: true },
-  { label: "أعراض جانبية", value: "ألم في الثدي" },
-  { label: "نزيف أو تبقيع", value: "لا" },
+  { label: "Overall since last visit", value: "Better", emphasis: "good" },
+  { label: "Taking treatment as prescribed", value: "Sometimes" },
+  { label: "Why", value: "\"The patch keeps falling off at night.\"", wide: true, emphasis: "warn", quote: true },
+  { label: "Side effects", value: "Breast tenderness" },
+  { label: "Bleeding or spotting", value: "No" },
 ];
 
 export const currentTreatment = ["Estradiol patch 50 mcg twice weekly", "Micronised progesterone 100 mg nightly"];
 
-export const initialNotes = "نغيّر اللزقة لـ estradiol gel (مشكلة في اللزق). نكمّل البروجسترون. ألم الثدي متوقع يهدى.";
+export const initialNotes = "Switch patch to estradiol gel (adhesion problems). Continue progesterone. Breast tenderness expected to settle.";
