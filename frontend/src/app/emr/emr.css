@@ -1,0 +1,40 @@
+/* V-Clinic EMR design tokens. Scoped to Tailwind utilities (bg-brand, text-muted, ...). */
+@theme {
+  --color-brand: #1c6b45;
+  --color-brand-deep: #145a3a;
+  --color-brand-ink: #0e3b27;
+  --color-brand-mid: #2f8a5c;
+  --color-brand-tint: #e3f1e8;
+  --color-brand-wash: #f4faf6;
+  --color-mint-1: #e4f2e9;
+  --color-mint-2: #cfe6d8;
+  --color-hatch: #9cc3ac;
+
+  --color-ink: #14231b;
+  --color-ink-2: #3a4a42;
+  --color-ink-3: #45524b;
+  --color-muted: #5e6b64;
+  --color-subtle: #8a968f;
+
+  --color-line: #e3e8e4;
+  --color-line-soft: #eef1ef;
+  --color-line-strong: #c9d3cd;
+  --color-field: #dde3df;
+  --color-canvas: #f2f4f1;
+  --color-canvas-2: #f8faf8;
+
+  --color-danger: #c2362b;
+  --color-danger-ink: #a3271d;
+  --color-danger-tint: #fce5e2;
+  --color-warn-tint: #fbefd6;
+  --color-warn-wash: #fdf5e4;
+  --color-warn-ink: #7a4e00;
+  --color-warn-line: #e2b65e;
+  --color-ok-tint: #e2f2e8;
+  --color-ok-ink: #17603d;
+
+  --font-emr: var(--font-alexandria), system-ui, sans-serif;
+  --font-emr-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --shadow-frame: 0 30px 60px -30px rgb(14 59 39 / 0.25);
+}
