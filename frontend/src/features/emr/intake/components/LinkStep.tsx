@@ -38,13 +38,6 @@ export function LinkStep() {
             Resend code
           </button>
         </div>
-        <label className="flex flex-col gap-2 text-[15px] font-semibold">
-          Form language
-          <select className="min-h-[54px] w-full rounded-2xl border-[1.5px] border-field bg-white px-3.5 text-base">
-            <option>English</option>
-            <option>Arabic</option>
-          </select>
-        </label>
         <div className="mt-auto flex items-start gap-2.5 rounded-2xl bg-brand-tint p-3.5 text-[13px] leading-[1.7] text-brand-deep">
           <Icon name="lock" size={18} className="mt-0.5 flex-none" />
           This link is for you only. You will only see your own forms, results and emails.

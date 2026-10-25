@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dockerized Full-Stack Template",
-  description: "Next.js & Django starter boilerplate with Postgres, Redis, Celery, and Caddy",
+  title: "V-Clinic EMR",
+  description: "Medical record for the V-Clinic care team",
 };
 
 export default function RootLayout({

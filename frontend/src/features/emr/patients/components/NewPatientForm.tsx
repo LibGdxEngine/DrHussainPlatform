@@ -5,7 +5,7 @@ import { contactChannels, type ContactChannel } from "@/features/emr/journey/dat
 import { emrRoutes } from "@/features/emr/routes";
 import { ActionLink } from "@/features/emr/ui/Action";
 import { ChipGroup } from "@/features/emr/ui/ChipGroup";
-import { Field, SelectInput, TextInput } from "@/features/emr/ui/Fields";
+import { Field, TextInput } from "@/features/emr/ui/Fields";
 import { Panel } from "@/features/emr/ui/Panel";
 
 export function NewPatientForm() {
@@ -40,12 +40,6 @@ export function NewPatientForm() {
       </Field>
       <Field label="Email">
         <TextInput />
-      </Field>
-      <Field label="Form language">
-        <SelectInput defaultValue="en">
-          <option value="ar">Arabic</option>
-          <option value="en">English</option>
-        </SelectInput>
       </Field>
       <Field label="Referring doctor (optional)">
         <TextInput />
