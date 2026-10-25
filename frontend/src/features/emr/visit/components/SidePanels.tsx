@@ -107,7 +107,7 @@ export function EmailsPanel() {
           {m.text}
         </div>
       ))}
-      <ActionLink href={emrRoutes.msgs} variant="white" size="sm" className="min-h-10 self-start px-4">
+      <ActionLink href={`${emrRoutes.msgs}?patient=VC-000142`} variant="white" size="sm" className="min-h-10 self-start px-4">
         Reply in thread
       </ActionLink>
     </Panel>

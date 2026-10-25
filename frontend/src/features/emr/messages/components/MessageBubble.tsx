@@ -80,13 +80,14 @@ function IncomingAttachment({ name }: { name: string }) {
   );
 }
 
-export function MessageBubble({ message }: { message: Message }) {
+/** canFile: the thread is linked to a patient, so incoming attachments can be saved to her file. */
+export function MessageBubble({ message, canFile = true }: { message: Message; canFile?: boolean }) {
   const fromDoctor = message.from === "doc";
   return (
     <li
       className={cn(
         "flex max-w-[78%] flex-col gap-1.5 rounded-[20px] border px-4 py-3.5",
-        fromDoctor ? "self-start border-brand-tint bg-brand-tint" : "self-end border-field bg-white",
+        fromDoctor ? "self-end border-brand-tint bg-brand-tint" : "self-start border-field bg-white",
       )}
     >
       <span className="text-xs text-muted">
@@ -104,8 +105,15 @@ export function MessageBubble({ message }: { message: Message }) {
               >
                 📎 {a}
               </Link>
-            ) : (
+            ) : canFile ? (
               <IncomingAttachment key={a} name={a} />
+            ) : (
+              <span
+                key={a}
+                className="inline-flex items-center gap-1.5 rounded-full border border-field bg-white px-3 py-1 text-xs font-semibold text-ink"
+              >
+                📎 {a}
+              </span>
             ),
           )}
         </div>

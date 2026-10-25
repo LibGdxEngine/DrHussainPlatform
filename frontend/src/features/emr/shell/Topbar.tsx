@@ -61,7 +61,7 @@ export function Topbar({ start, showMessages, doctorSubtitle = "Doctor", doctorM
     <header className="flex items-center gap-3 rounded-[22px] bg-white px-4 py-3">
       {start}
       <div className="ms-auto flex items-center gap-2.5">
-        {showMessages ? <RoundIconLink href={emrRoutes.visit} label="Messages" icon="msgs" /> : null}
+        {showMessages ? <RoundIconLink href={emrRoutes.msgs} label="Inbox" icon="msgs" /> : null}
         <RoundIconLink href={emrRoutes.today} label="Alerts" icon="bell" dot />
         <DoctorBadge subtitle={doctorSubtitle} mono={doctorMono} />
       </div>

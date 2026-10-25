@@ -21,7 +21,7 @@ const mainNav: NavItem[] = [
   { key: "appts", label: "Appointments", href: emrRoutes.appts, icon: "appts" },
   { key: "docs", label: "Documents", href: emrRoutes.docs, icon: "docs", badge: "3" },
   { key: "scan", label: "Scanning", href: emrRoutes.scan, icon: "scan", badge: "86" },
-  { key: "msgs", label: "Messages", href: emrRoutes.msgs, icon: "msgs", badge: "2" },
+  { key: "msgs", label: "Inbox", href: emrRoutes.msgs, icon: "msgs", badge: "2" },
 ];
 
 const generalNav: NavItem[] = [

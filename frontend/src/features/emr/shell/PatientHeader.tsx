@@ -63,7 +63,7 @@ export function PatientHeader({
           return (
             <Link
               key={t.id}
-              href={t.href}
+              href={t.id === "emails" ? `${t.href}?patient=${mrn}` : t.href}
               aria-current={on ? "page" : undefined}
               className={cn(
                 "border-b-[3px] px-4 py-3 text-sm no-underline",
