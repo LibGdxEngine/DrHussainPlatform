@@ -51,4 +51,5 @@ urlpatterns = [
     path('api/product/records/', include('product.records.urls', namespace='records')),
     path('api/product/results/', include('product.results.urls', namespace='results')),
     path('api/product/content/', include('product.content.urls', namespace='content')),
+    path('api/product/review/', include('product.review.urls', namespace='review')),
 ]

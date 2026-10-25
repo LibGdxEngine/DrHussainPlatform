@@ -136,6 +136,10 @@ class InvestigationReportViewSet(
         report.refresh_history_eligibility()
         report.save(update_fields=['status', 'confirmed_by', 'in_history', 'updated_at'])
         audit(request, 'report.confirmed', report, flag_reasons=report.flag_reasons)
+        # With the patient settled, the review case is routed again and may now get a draft.
+        from product.review.services import route_report
+
+        route_report(report, actor=request.user)
         return Response(self.get_serializer(report).data)
 
 

@@ -7,6 +7,7 @@ export const emrRoutes = {
   exam: "/emr/exam",
   orders: "/emr/orders",
   docs: "/emr/docs",
+  results: "/emr/results",
   scan: "/emr/scan",
   msgs: "/emr/msgs",
   followup: "/emr/followup",

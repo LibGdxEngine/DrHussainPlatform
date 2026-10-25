@@ -1110,6 +1110,168 @@ export interface paths {
         patch: operations["product_results_tests_partial_update"];
         trace?: never;
     };
+    "/api/product/review/cases/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The review queue. Each case shows the report, the values read from it and the draft. Every
+         *     action below is the doctor's, logged with its time; approving is the only way an email is sent.
+         */
+        get: operations["product_review_cases_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/review/cases/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The review queue. Each case shows the report, the values read from it and the draft. Every
+         *     action below is the doctor's, logged with its time; approving is the only way an email is sent.
+         */
+        get: operations["product_review_cases_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/review/cases/{id}/approve/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Approve and send the current draft to the patient. The only route out of the clinic. */
+        post: operations["product_review_cases_approve_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/review/cases/{id}/draft/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description The doctor's edits to the wording or attachments. A blank left open blocks sending. */
+        patch: operations["product_review_cases_draft_partial_update"];
+        trace?: never;
+    };
+    "/api/product/review/cases/{id}/draft-anyway/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The doctor has looked at a flagged report and wants a draft anyway. Abnormal smears still need a plan. */
+        post: operations["product_review_cases_draft_anyway_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/review/cases/{id}/options/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Choose the prescription, follow-up, language or attachments; the draft is rebuilt. */
+        post: operations["product_review_cases_options_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/review/cases/{id}/plan/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Abnormal smear: the doctor picks the plan (a smear section), then the draft is built. */
+        post: operations["product_review_cases_plan_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/review/cases/{id}/reject/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description The review queue. Each case shows the report, the values read from it and the draft. Every
+         *     action below is the doctor's, logged with its time; approving is the only way an email is sent.
+         */
+        post: operations["product_review_cases_reject_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/review/cases/counts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description How many cases are in each queue, for the sidebar badge. */
+        get: operations["product_review_cases_counts_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/status/": {
         parameters: {
             query?: never;
@@ -1527,6 +1689,23 @@ export interface components {
         AccountDeletionInitiateRequest: {
             password: string;
         };
+        /**
+         * @description * `opened` - Case opened
+         *     * `flagged` - Flagged for the doctor
+         *     * `drafted` - Draft built
+         *     * `plan_chosen` - Plan chosen
+         *     * `options_chosen` - Prescription or follow-up chosen
+         *     * `edited` - Draft edited
+         *     * `drafted_anyway` - Drafted despite flags
+         *     * `arabic_drafted` - Arabic draft built
+         *     * `approved` - Approved and sent
+         *     * `sent` - Delivered to the mail server
+         *     * `send_failed` - Sending failed
+         *     * `rejected` - Rejected
+         *     * `rerouted` - Report read again
+         * @enum {string}
+         */
+        ActionEnum: "opened" | "flagged" | "drafted" | "plan_chosen" | "options_chosen" | "edited" | "drafted_anyway" | "arabic_drafted" | "approved" | "sent" | "send_failed" | "rejected" | "rerouted";
         AlertRule: {
             /** Format: uuid */
             readonly id: string;
@@ -1618,6 +1797,25 @@ export interface components {
         };
         /** @enum {unknown} */
         BlankEnum: "";
+        CasePatient: {
+            /** Format: uuid */
+            id: string;
+            file_number: string;
+            full_name: string;
+            email: string;
+            preferred_language: string;
+        };
+        CaseReportSummary: {
+            /** Format: uuid */
+            id: string;
+            report_type: string;
+            /** Format: date */
+            collected_on: string | null;
+            lab_name: string;
+            /** Format: uuid */
+            document: string;
+            document_title: string;
+        };
         /**
          * @description * `first` - first
          *     * `up` - up
@@ -1694,6 +1892,56 @@ export interface components {
             source?: components["schemas"]["DocumentSourceEnum"];
             /** Format: binary */
             file: string;
+        };
+        Draft: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly language: components["schemas"]["LanguageEnum"];
+            readonly subject: string;
+            readonly body: string;
+            readonly open_slots: string[];
+            readonly template_versions: components["schemas"]["DraftTemplate"][];
+            readonly prescriptions: components["schemas"]["DraftPrescription"][];
+            readonly leaflets: components["schemas"]["DraftLeaflet"][];
+            readonly follow_up: string;
+            readonly attach_report: boolean;
+            readonly edited: boolean;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        DraftLeaflet: {
+            /** Format: uuid */
+            leaflet: string;
+            title: string;
+            number: number;
+        };
+        /**
+         * @description * `en` - en
+         *     * `ar` - ar
+         * @enum {string}
+         */
+        DraftOptionsLanguageEnum: "en" | "ar";
+        /** @description Choices that rebuild the draft from the templates. Rebuilding replaces typed edits. */
+        DraftOptionsRequest: {
+            prescriptions?: string[];
+            follow_up?: string;
+            language?: components["schemas"]["DraftOptionsLanguageEnum"];
+            leaflets?: string[];
+            attach_report?: boolean;
+        };
+        DraftPrescription: {
+            /** Format: uuid */
+            item: string;
+            number: number;
+            drug: string;
+            dose: string;
+            directions: string;
+        };
+        DraftTemplate: {
+            key: string;
+            name: string;
+            language: string;
+            number: number;
         };
         EmailChangeRequest: {
             /** Format: email */
@@ -2088,6 +2336,12 @@ export interface components {
             document_date?: string | null;
             source?: components["schemas"]["DocumentSourceEnum"];
         };
+        PatchedDraftEditRequest: {
+            subject?: string;
+            body?: string;
+            leaflets?: string[];
+            attach_report?: boolean;
+        };
         PatchedEmailTemplateRequest: {
             name?: string;
             /** Format: int64 */
@@ -2210,6 +2464,10 @@ export interface components {
             features?: unknown;
             is_active?: boolean;
         };
+        PlanRequestRequest: {
+            /** @description The cervical smear section, e.g. smear_section_5. */
+            template: string;
+        };
         /** @description The item with its current wording flattened in; saving changed wording adds a version. */
         Prescription: {
             /** Format: uuid */
@@ -2272,6 +2530,15 @@ export interface components {
             message: string;
             purpose: components["schemas"]["VerificationPurposeEnum"];
         };
+        QueueCounts: {
+            needs_doctor: number;
+            ready: number;
+            sent: number;
+            rejected: number;
+        };
+        ReasonRequest: {
+            reason: string;
+        };
         ReportIdentifiers: {
             name?: string;
             /** Format: date */
@@ -2320,6 +2587,58 @@ export interface components {
             source?: components["schemas"]["ResultSourceEnum"];
             readonly comparison: components["schemas"]["Comparison"];
         };
+        ResultsCase: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly patient: components["schemas"]["CasePatient"];
+            readonly report: components["schemas"]["CaseReportSummary"];
+            readonly status: components["schemas"]["ResultsCaseStatusEnum"];
+            readonly route: string;
+            readonly flag_reasons: string[];
+            readonly plan_template: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        ResultsCaseDetail: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly patient: components["schemas"]["CasePatient"];
+            readonly report: components["schemas"]["CaseReportSummary"];
+            readonly status: components["schemas"]["ResultsCaseStatusEnum"];
+            readonly route: string;
+            readonly flag_reasons: string[];
+            readonly plan_template: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+            readonly report_detail: components["schemas"]["InvestigationReport"];
+            readonly draft: components["schemas"]["Draft"] | null;
+            readonly actions: components["schemas"]["ReviewAction"][];
+            readonly sent_emails: components["schemas"]["SentEmail"][];
+            readonly smear_plans: components["schemas"]["SmearPlan"][];
+        };
+        /**
+         * @description * `flagged` - Needs the doctor
+         *     * `awaiting_plan` - Doctor to choose the plan
+         *     * `drafted` - Draft ready for review
+         *     * `sending` - Approved, sending
+         *     * `sent` - Sent
+         *     * `rejected` - Rejected
+         * @enum {string}
+         */
+        ResultsCaseStatusEnum: "flagged" | "awaiting_plan" | "drafted" | "sending" | "sent" | "rejected";
+        ReviewAction: {
+            /** Format: uuid */
+            readonly id: string;
+            action: components["schemas"]["ActionEnum"];
+            readonly actor_name: string;
+            details?: unknown;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
         ScoreBand: {
             label: string;
             min: number;
@@ -2352,6 +2671,32 @@ export interface components {
             /** Format: date-time */
             readonly created_at: string;
         };
+        SentEmail: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: email */
+            to_address: string;
+            /** Format: email */
+            from_address: string;
+            subject: string;
+            body: string;
+            attachments?: unknown;
+            status?: components["schemas"]["SentEmailStatusEnum"];
+            message_id?: string;
+            error?: string;
+            readonly approved_by_name: string;
+            /** Format: date-time */
+            sent_at?: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        /**
+         * @description * `queued` - Queued
+         *     * `sent` - Sent
+         *     * `failed` - Failed
+         * @enum {string}
+         */
+        SentEmailStatusEnum: "queued" | "sent" | "failed";
         SignupRequest: {
             /** Format: email */
             email: string;
@@ -2378,6 +2723,11 @@ export interface components {
          * @enum {string}
          */
         SlotEnum: "lab" | "us" | "rad" | "path" | "paper" | "letter";
+        SmearPlan: {
+            key: string;
+            name: string;
+            approved: boolean;
+        };
         SocialAuthRequest: {
             token: string;
         };
@@ -12270,6 +12620,1043 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LabTest"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_list: {
+        parameters: {
+            query?: {
+                /** @description needs_doctor, ready, sent or rejected. */
+                group?: string;
+                /** @description Only this patient's cases (id). */
+                patient?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCase"][];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCaseDetail"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_approve_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCaseDetail"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_draft_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDraftEditRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDraftEditRequest"];
+                "multipart/form-data": components["schemas"]["PatchedDraftEditRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCaseDetail"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_draft_anyway_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReasonRequest"];
+                "multipart/form-data": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCaseDetail"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_options_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DraftOptionsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DraftOptionsRequest"];
+                "multipart/form-data": components["schemas"]["DraftOptionsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCaseDetail"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_plan_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PlanRequestRequest"];
+                "multipart/form-data": components["schemas"]["PlanRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCaseDetail"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_reject_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReasonRequest"];
+                "multipart/form-data": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCaseDetail"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_counts_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueCounts"];
                 };
             };
             /** @description Invalid request or validation error. */

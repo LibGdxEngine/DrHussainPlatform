@@ -30,6 +30,11 @@ def read_report(self, document_id: str, nonce: str = ''):
         if guard.is_duplicate:
             return guard.result
         report = process_document(document)
-        result = {'report_id': str(report.pk), 'status': report.status}
+        # Open the review case: a draft, or a flag for the doctor. Nothing is sent from here.
+        from product.review.services import route_report
+
+        case = route_report(report)
+        result = {'report_id': str(report.pk), 'status': report.status,
+                  'case_status': case.status if case else None}
         guard.record(result)
         return result

@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'product.records.apps.RecordsConfig',
     'product.results.apps.ResultsConfig',
     'product.content.apps.ContentConfig',
+    'product.review.apps.ReviewConfig',
 ]
 
 MIDDLEWARE = [
@@ -164,6 +165,7 @@ SPECTACULAR_SETTINGS = {
         'LabTestKindEnum': 'product.results.models.LabTest.Kind',
         'TemplateKindEnum': 'product.content.models.TemplateKind',
         'LanguageEnum': 'product.patients.models.Language',
+        'ResultsCaseStatusEnum': 'product.review.models.ResultsCase.Status',
     },
 }
 

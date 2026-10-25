@@ -22,6 +22,7 @@ export interface DocumentUpload {
 const FILE_TIMEOUT_MS = 120_000;
 
 export const documentsApi = {
+  get: (id: string) => apiClient.get<PatientDocument>(`/product/records/documents/${id}/`),
   list: (patient: string, slot?: DocumentSlot) =>
     apiClient.get<PatientDocument[]>("/product/records/documents/", { query: { patient, slot } }),
   /** Rejects with DUPLICATE_DOCUMENT, DOCUMENT_TOO_LARGE or UNSUPPORTED_DOCUMENT_TYPE. */
