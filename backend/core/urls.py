@@ -45,4 +45,10 @@ urlpatterns = [
     path('api/billing/', include('apps.billing.urls', namespace='billing')),
     path('api/notifications/', include('apps.notifications.urls', namespace='notifications')),
     path('api/audit/', include('apps.audit.urls', namespace='audit')),
+
+    # Product App Routes
+    path('api/product/patients/', include('product.patients.urls', namespace='patients')),
+    path('api/product/records/', include('product.records.urls', namespace='records')),
+    path('api/product/results/', include('product.results.urls', namespace='results')),
+    path('api/product/content/', include('product.content.urls', namespace='content')),
 ]

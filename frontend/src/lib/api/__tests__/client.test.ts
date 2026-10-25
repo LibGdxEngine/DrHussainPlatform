@@ -157,3 +157,31 @@ it("supports JSON bodies on DELETE for account confirmation", async () => {
   await client.delete("/me/", { password: "confirmation" });
   expect(mockFetch.mock.calls[0][1]?.body).toBe('{"password":"confirmation"}');
 });
+
+describe("file transport", () => {
+  it("sends FormData as multipart without forcing a content type", async () => {
+    mockFetch.mockResolvedValue(response({ id: "doc" }, 201));
+    const form = new FormData();
+    form.append("file", new Blob(["%PDF-"], { type: "application/pdf" }), "report.pdf");
+    expect(await client.upload("records/documents/", form)).toEqual({ id: "doc" });
+    const [, init] = mockFetch.mock.calls[0];
+    expect(init?.method).toBe("POST");
+    expect(init?.body).toBe(form);
+    const headers = new Headers(init?.headers);
+    expect(headers.get("Content-Type")).toBeNull();
+    expect(headers.get("Authorization")).toBe("Bearer access");
+  });
+
+  it("returns binary responses as a Blob", async () => {
+    mockFetch.mockResolvedValue(new Response("%PDF-1.4", { status: 200, headers: { "Content-Type": "application/pdf" } }));
+    const blob = await client.blob("records/documents/1/file/");
+    expect(blob).toBeInstanceOf(Blob);
+    expect(await blob.text()).toBe("%PDF-1.4");
+    expect(new Headers(mockFetch.mock.calls[0][1]?.headers).get("Accept")).toBeNull();
+  });
+
+  it("still reads the error envelope when a download fails", async () => {
+    mockFetch.mockResolvedValue(response({ error: { code: "not_found", message: "Not found.", fields: {} } }, 404));
+    await expect(client.blob("records/documents/x/file/")).rejects.toMatchObject({ status: 404, code: "not_found" });
+  });
+});

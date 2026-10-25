@@ -14,6 +14,9 @@ phonenumbers>=8.13.0
 httpx>=0.27.0
 google-auth>=2.30.0
 requests>=2.32.0
+# Results PDFs are read on the server: text layer first, OCR for scans.
+pdfplumber>=0.11
+pytesseract>=0.3.13
 
 
 # Keep the SDK and contrib instrumentation on the same release train.

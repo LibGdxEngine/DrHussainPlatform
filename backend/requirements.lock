@@ -50,7 +50,10 @@ opentelemetry-sdk==1.38.0
 opentelemetry-semantic-conventions==0.59b0
 opentelemetry-util-http==0.59b0
 packaging==26.3
+pdfminer.six==20260107
+pdfplumber==0.11.10
 phonenumbers==9.0.38
+pillow==13.0.0
 prompt_toolkit==3.0.53
 protobuf==6.33.6
 psutil==7.2.2
@@ -60,6 +63,8 @@ pyasn1==0.6.4
 pyasn1_modules==0.4.2
 pycparser==3.0
 PyJWT==2.13.0
+pypdfium2==5.14.0
+pytesseract==0.3.13
 python-crontab==3.4.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.3

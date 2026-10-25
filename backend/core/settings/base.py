@@ -29,6 +29,12 @@ INSTALLED_APPS = [
     'apps.billing.apps.BillingConfig',
     'apps.notifications.apps.NotificationsConfig',
     'apps.audit.apps.AuditConfig',
+
+    # Product apps
+    'product.patients.apps.PatientsConfig',
+    'product.records.apps.RecordsConfig',
+    'product.results.apps.ResultsConfig',
+    'product.content.apps.ContentConfig',
 ]
 
 MIDDLEWARE = [
@@ -111,6 +117,11 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
+    # Patient documents: outside MEDIA_ROOT and only served through authenticated views.
+    "private": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": BASE_DIR / 'private_media'},
+    },
 }
 
 MEDIA_URL = '/media/'
@@ -148,6 +159,11 @@ SPECTACULAR_SETTINGS = {
         'UserStatusEnum': 'apps.accounts.models.UserStatus.choices',
         'VerificationPurposeEnum': 'apps.accounts.models.VerificationPurpose.choices',
         'SubscriptionStatusEnum': 'apps.billing.models.Subscription.Status',
+        'DocumentSourceEnum': 'product.records.models.DocumentSource',
+        'ResultSourceEnum': 'product.results.models.ResultValue.Source',
+        'LabTestKindEnum': 'product.results.models.LabTest.Kind',
+        'TemplateKindEnum': 'product.content.models.TemplateKind',
+        'LanguageEnum': 'product.patients.models.Language',
     },
 }
 
@@ -310,6 +326,12 @@ VERIFICATION_CHALLENGE_RETENTION_DAYS = int(os.environ.get('VERIFICATION_CHALLEN
 EXPIRED_TOKEN_RETENTION_DAYS = int(os.environ.get('EXPIRED_TOKEN_RETENTION_DAYS', 1))
 INVITATION_EXPIRY_DAYS = int(os.environ.get('INVITATION_EXPIRY_DAYS', 7))
 TEMP_UPLOAD_RETENTION_HOURS = int(os.environ.get('TEMP_UPLOAD_RETENTION_HOURS', 24))
+DOCUMENT_MAX_UPLOAD_BYTES = int(os.environ.get('DOCUMENT_MAX_UPLOAD_BYTES', 25 * 1024 * 1024))
+# Investigation reports are read on this server (PDF text layer, else Tesseract OCR). Adding 'ara'
+# reads Arabic too but makes Tesseract misread Latin letters such as the H/L flags, so it is opt-in.
+RESULTS_OCR_LANGUAGES = os.environ.get('RESULTS_OCR_LANGUAGES', 'eng')
+RESULTS_OCR_DPI = int(os.environ.get('RESULTS_OCR_DPI', 300))
+RESULTS_MAX_PAGES = int(os.environ.get('RESULTS_MAX_PAGES', 15))
 SUBSCRIPTION_PAST_DUE_GRACE_HOURS = int(os.environ.get('SUBSCRIPTION_PAST_DUE_GRACE_HOURS', 24))
 SCHEDULED_REPORT_PERIOD_DAYS = int(os.environ.get('SCHEDULED_REPORT_PERIOD_DAYS', 7))
 

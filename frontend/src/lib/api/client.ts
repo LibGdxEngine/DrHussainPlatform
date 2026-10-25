@@ -70,7 +70,14 @@ function httpError(data: unknown, status: number): ApiError {
 }
 
 export function createApiClient(config: ClientOptions) {
-  async function request<T>(method: string, endpoint: string, body: unknown, options: RequestOptions = {}): Promise<T> {
+  /** `body` is sent as JSON unless it is FormData; `binary` returns the response as a Blob. */
+  async function request<T>(
+    method: string,
+    endpoint: string,
+    body: unknown,
+    options: RequestOptions = {},
+    binary = false,
+  ): Promise<T> {
     const controller = new AbortController();
     let timedOut = false;
     const cancel = () => controller.abort();
@@ -92,17 +99,20 @@ export function createApiClient(config: ClientOptions) {
       if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
       const headers = new Headers(options.headers);
       new Headers(await config.getHeaders?.()).forEach((value, key) => headers.set(key, value));
-      headers.set("Accept", "application/json");
-      if (body !== undefined) headers.set("Content-Type", "application/json");
+      const multipart = body instanceof FormData;
+      if (!binary) headers.set("Accept", "application/json");
+      // The browser sets the multipart boundary itself.
+      if (body !== undefined && !multipart) headers.set("Content-Type", "application/json");
       if (token) headers.set("Authorization", `Bearer ${token}`);
       response = await fetch(requestUrl(config.baseUrl, endpoint, options.query), {
         method,
         headers,
-        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        ...(body !== undefined ? { body: multipart ? body : JSON.stringify(body) } : {}),
         signal: controller.signal,
         cache: "no-store",
       });
       if (response.status === 204) return undefined as T;
+      if (binary && response.ok) return await response.blob() as T;
       const text = await response.text();
       let data: unknown;
       try {
@@ -134,5 +144,7 @@ export function createApiClient(config: ClientOptions) {
     put: <T>(endpoint: string, body?: unknown, options?: RequestOptions) => request<T>("PUT", endpoint, body, options),
     patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) => request<T>("PATCH", endpoint, body, options),
     delete: <T = void>(endpoint: string, body?: unknown, options?: RequestOptions) => request<T>("DELETE", endpoint, body, options),
+    upload: <T>(endpoint: string, form: FormData, options?: RequestOptions) => request<T>("POST", endpoint, form, options),
+    blob: (endpoint: string, options?: RequestOptions) => request<Blob>("GET", endpoint, undefined, options, true),
   };
 }

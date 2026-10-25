@@ -1,19 +1,12 @@
-export type RuleLevel = "red" | "amb" | "rem";
+import type { AlertRule } from "@/lib/api/emr/content";
+
+export type RuleLevel = AlertRule["level"];
 
 export type RuleFilter = "all" | RuleLevel;
 
-/** One alert rule (R1-R40). Text/threshold slots render as: pre [a] mid [b] post. */
-export interface Rule {
-  id: string;
-  field: string;
-  pre: string;
-  /** Editable first threshold, or null when the rule has none. */
-  a: string | null;
-  mid: string;
-  /** Editable second threshold, or null when the rule has none. */
-  b: string | null;
-  post: string;
-  level: RuleLevel;
-  /** Message shown to the doctor. */
-  msg: string;
+/** An unsaved edit to one rule: changed cut-offs and/or on/off. */
+export interface RuleEdit {
+  threshold_a?: string;
+  threshold_b?: string;
+  enabled?: boolean;
 }

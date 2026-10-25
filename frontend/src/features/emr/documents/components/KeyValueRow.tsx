@@ -14,7 +14,7 @@ export function KeyValueHeader() {
     <div className={cn(cols, "px-1 text-xs text-muted")}>
       <span>Test</span>
       <span>Value</span>
-      <span>Optimal · lab</span>
+      <span>Optimal target</span>
     </div>
   );
 }
@@ -37,11 +37,7 @@ export function KeyValueRow({ def, value, onChange }: KeyValueRowProps) {
           out ? "border-warn-line bg-warn-tint" : "border-field bg-white",
         )}
       />
-      <span className="text-xs leading-normal text-ink-2">
-        {def.optimal}
-        <br />
-        <span className="text-subtle">Lab {def.lab}</span>
-      </span>
+      <span className="text-xs leading-normal text-ink-2">{def.optimal || "—"}</span>
     </div>
   );
 }

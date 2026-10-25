@@ -9,6 +9,8 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 *.log
+backend/media/
+backend/private_media/
 .venv/
 venv/
 .omc/

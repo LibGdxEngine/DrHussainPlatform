@@ -1,0 +1,25 @@
+import { getToken } from "next-auth/jwt";
+import { NextResponse, type NextRequest } from "next/server";
+
+/** EMR screens that do not need a staff session: sign-in itself and the patient's own form. */
+const PUBLIC_EMR_PATHS = ["/emr/signin", "/emr/intake"];
+
+/**
+ * Optimistic gate: send signed-out visitors to sign-in before a staff screen renders.
+ * The backend still authorises every API call; this only avoids showing an empty record.
+ */
+export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  if (PUBLIC_EMR_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+    return NextResponse.next();
+  }
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  if (token?.accessToken && !token.sessionExpired) return NextResponse.next();
+  const signin = new URL("/emr/signin", request.url);
+  signin.searchParams.set("callbackUrl", `${pathname}${search}`);
+  return NextResponse.redirect(signin);
+}
+
+export const config = {
+  matcher: ["/emr/:path*"],
+};

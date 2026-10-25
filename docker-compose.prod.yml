@@ -46,6 +46,7 @@ services:
     restart: always
     volumes:
       - django_prod_media:/app/media
+      - django_prod_records:/app/private_media
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
       - OTEL_SERVICE_NAME=mobser-backend
@@ -91,6 +92,7 @@ services:
     restart: always
     volumes:
       - django_prod_media:/app/media
+      - django_prod_records:/app/private_media
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
       - OTEL_SERVICE_NAME=mobser-worker
@@ -368,6 +370,7 @@ volumes:
   postgres_prod_data:
   redis_prod_data:
   django_prod_media:
+  django_prod_records:
   caddy_prod_data:
   caddy_prod_config:
   otel_offsets:

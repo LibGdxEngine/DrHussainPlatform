@@ -4,11 +4,12 @@ import { emrRoutes } from "../routes";
 import { Icon, type IconName } from "../ui/icons";
 import { ActionLink } from "../ui/Action";
 import { Logo } from "./Logo";
+import { SignOutButton } from "./SignOutButton";
 
 export type SidebarKey = "today" | "patients" | "appts" | "docs" | "scan" | "msgs" | "rules" | "audit";
 
 interface NavItem {
-  key: SidebarKey | "logout";
+  key: SidebarKey;
   label: string;
   href: string;
   icon: IconName;
@@ -27,7 +28,6 @@ const mainNav: NavItem[] = [
 const generalNav: NavItem[] = [
   { key: "rules", label: "Clinic settings", href: emrRoutes.rules, icon: "settings" },
   { key: "audit", label: "Audit log", href: emrRoutes.audit, icon: "audit" },
-  { key: "logout", label: "Sign out", href: emrRoutes.signin, icon: "logout" },
 ];
 
 function NavLink({ item, active }: { item: NavItem; active: boolean }) {
@@ -73,6 +73,7 @@ export function Sidebar({ active, showPromo = true }: SidebarProps) {
       {generalNav.map((i) => (
         <NavLink key={i.key} item={i} active={i.key === active} />
       ))}
+      <SignOutButton />
       {showPromo ? (
         <div className="mt-auto flex flex-col gap-2 rounded-[20px] bg-[radial-gradient(120%_90%_at_85%_0%,var(--color-brand-mid)_0%,var(--color-brand-ink)_70%)] px-[18px] py-5 text-white">
           <strong className="text-[17px] font-semibold leading-snug">Patient intake form link</strong>
