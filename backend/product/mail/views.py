@@ -239,8 +239,10 @@ class MailAttachmentViewSet(OrganizationScopedMixin, mixins.RetrieveModelMixin, 
     def file(self, request, pk=None):
         attachment = self.get_object()
         audit(request, 'mail_attachment.opened', attachment)
+        # Always a download: the sender chose the content type, so an HTML or SVG attachment must never
+        # render on the API origin.
         response = FileResponse(attachment.file.open('rb'), content_type=attachment.content_type,
-                                filename=attachment.filename)
+                                filename=attachment.filename, as_attachment=True)
         response['Cache-Control'] = 'private, no-store'
         response['X-Content-Type-Options'] = 'nosniff'
         return response

@@ -16899,7 +16899,7 @@
         "/api/token/": {
             "post": {
                 "operationId": "token_create",
-                "description": "Takes a set of user credentials and returns an access and refresh JSON web\ntoken pair to prove the authentication of those credentials.",
+                "description": "The backward-compatible /api/token/ sign-in, rate-limited like the main login.",
                 "tags": [
                     "token"
                 ],

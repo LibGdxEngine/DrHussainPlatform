@@ -5,11 +5,8 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenVerifyView,
-)
-from apps.accounts.api.views.auth import SessionTokenRefreshView
+from rest_framework_simplejwt.views import TokenVerifyView
+from apps.accounts.api.views.auth import LegacyTokenObtainPairView, SessionTokenRefreshView
 from apps.common.views import hello_world, system_status
 from apps.common.observability import health_live, health_ready, observability_auth
 
@@ -32,7 +29,7 @@ urlpatterns = [
     # Backward-compatible API roots
     path('api/hello/', hello_world, name='api_hello'),
     path('api/status/', system_status, name='api_status'),
-    path('api/token/', TokenObtainPairView.as_view(), name='api_token_obtain_pair'),
+    path('api/token/', LegacyTokenObtainPairView.as_view(), name='api_token_obtain_pair'),
     path('api/token/refresh/', SessionTokenRefreshView.as_view(), name='api_token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='api_token_verify'),
 

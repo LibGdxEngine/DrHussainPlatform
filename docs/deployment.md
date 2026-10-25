@@ -186,6 +186,14 @@ docker compose --env-file runtime.env -f compose.yml exec -T db sh -ec 'psql -U 
 docker compose --env-file runtime.env -f compose.yml exec -T db sh -ec 'dropdb -U "$POSTGRES_USER" mobser_restore_check'
 ```
 
+Each deployment also archives the `private_media` volume (patient files, encrypted at rest) as
+`backups/RUN_ID-ATTEMPT-private-media.tar`, taken with a throwaway backend container. A database
+dump alone cannot restore patient files, and neither can be read without the
+`MEDIA_ENCRYPTION_KEYS` and `MAIL_CREDENTIALS_KEY` values from `runtime.env`: keep those keys
+with the off-VPS copies. Production settings refuse to start when either key, `OTP_SECRET` or
+`SECRET_KEY` is missing or still a placeholder, so fill them in `runtime.env` before installing
+the reviewed `compose.yml` that mounts the volume.
+
 Backups currently remain on the VPS without automatic expiry. Archive verified
 copies off the VPS before deleting selected old dumps. Retain the current and
 previous application images for rollback. Monitor free space: deployments stop

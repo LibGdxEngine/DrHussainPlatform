@@ -1577,10 +1577,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * @description Takes a set of user credentials and returns an access and refresh JSON web
-         *     token pair to prove the authentication of those credentials.
-         */
+        /** @description The backward-compatible /api/token/ sign-in, rate-limited like the main login. */
         post: operations["token_create"];
         delete?: never;
         options?: never;

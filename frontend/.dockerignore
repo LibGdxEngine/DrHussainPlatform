@@ -8,3 +8,6 @@ README.md
 Dockerfile*
 docker-compose*
 .env*.local
+
+# Design handoff bundle (prototypes, PDFs, photos): not part of the build.
+v-clinic-emr

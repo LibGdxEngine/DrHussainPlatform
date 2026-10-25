@@ -23,3 +23,10 @@ test-results/
 *.key
 deploy/runtime.env
 deploy/config.json
+
+# Design handoff bundles and local agent config stay out of the repository.
+frontend/v-clinic-emr/
+.claude/
+*.tsbuildinfo
+backups/
+*.dump

@@ -69,6 +69,8 @@ services:
     <<: *backend
     volumes:
       - media_data:/app/media
+      # Patient files (encrypted at rest) live outside MEDIA_ROOT; without this they vanish on redeploy.
+      - private_media_data:/app/private_media
     command: [gunicorn, --config, gunicorn.conf.py, --bind, "0.0.0.0:8000", --workers, "1", --threads, "2", --access-logfile, "-", core.wsgi:application]
     depends_on:
       db:
@@ -112,6 +114,8 @@ services:
     <<: *backend
     volumes:
       - media_data:/app/media
+      # Patient files (encrypted at rest) live outside MEDIA_ROOT; without this they vanish on redeploy.
+      - private_media_data:/app/private_media
     command: [celery, -A, core, worker, -l, info, -Q, "celery,maintenance", --concurrency=1]
     mem_limit: 256m
     depends_on:
@@ -152,6 +156,7 @@ volumes:
   postgres_data:
   redis_data:
   media_data:
+  private_media_data:
 
 networks:
   default:

@@ -6,13 +6,25 @@ from django.core.mail import EmailMessage
 from django.core.mail.message import make_msgid
 from django.utils import timezone
 
-from apps.common.tasks import idempotent
+from apps.common.tasks import BaseTask, idempotent
 from apps.notifications.tasks.email import EMAIL_RETRYABLE_EXCEPTIONS
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, name='product.review.tasks.send_case_email', autoretry_for=EMAIL_RETRYABLE_EXCEPTIONS)
+class SendCaseEmailTask(BaseTask):
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        """Retries ran out (or the error was never retryable): the case must not stay in SENDING."""
+        from .models import SentEmail
+
+        sent = SentEmail.objects.filter(pk=(args or [kwargs.get('sent_email_id')])[0]).first()
+        if sent is not None and sent.status != SentEmail.Status.SENT:
+            _failed(sent, type(exc).__name__, str(exc)[:255])
+        super().on_failure(exc, task_id, args, kwargs, einfo)
+
+
+@shared_task(bind=True, base=SendCaseEmailTask, name='product.review.tasks.send_case_email',
+             autoretry_for=EMAIL_RETRYABLE_EXCEPTIONS)
 def send_case_email(self, sent_email_id: str):
     """
     Deliver an email the doctor approved. Only `approve_and_send` queues this task. Keyed on the
@@ -37,8 +49,12 @@ def send_case_email(self, sent_email_id: str):
             connection, from_email = outgoing(case.organization)
         except MailboxNotReady as exc:
             return _failed(sent, 'MailboxNotReady', str(exc))
-        # Set the Message-ID ourselves: the patient's reply is matched to this thread by it.
-        message_id = make_msgid(domain=parseaddr(from_email)[1].rpartition('@')[2] or None)
+        # Set the Message-ID ourselves: the patient's reply is matched to this thread by it. It is
+        # saved before sending so a retry after a partial failure reuses it instead of minting a new one.
+        if not sent.message_id:
+            sent.message_id = make_msgid(domain=parseaddr(from_email)[1].rpartition('@')[2] or None)
+            sent.save(update_fields=['message_id', 'updated_at'])
+        message_id = sent.message_id
         headers = {'Message-ID': message_id}
         thread = case.inbound_message.thread if case.inbound_message_id else None
         in_reply_to = references = ''
@@ -63,8 +79,8 @@ def send_case_email(self, sent_email_id: str):
         except Exception as exc:  # noqa: BLE001 - the case goes back to the doctor with the reason
             return _failed(sent, type(exc).__name__)
         sent.status, sent.sent_at = SentEmail.Status.SENT, timezone.now()
-        sent.from_address, sent.message_id = parseaddr(from_email)[1], message_id
-        sent.save(update_fields=['status', 'sent_at', 'from_address', 'message_id', 'updated_at'])
+        sent.from_address = parseaddr(from_email)[1]
+        sent.save(update_fields=['status', 'sent_at', 'from_address', 'updated_at'])
         ResultsCase.objects.filter(pk=sent.case_id).update(status=ResultsCase.Status.SENT, updated_at=timezone.now())
         ReviewAction.objects.create(case=sent.case, action=ReviewAction.Action.SENT,
                                     details={'message_id': sent.message_id})

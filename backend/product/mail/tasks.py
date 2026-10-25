@@ -5,7 +5,7 @@ from django.core.cache import cache
 from django.core.mail import EmailMessage
 from django.utils import timezone
 
-from apps.common.tasks import idempotent
+from apps.common.tasks import BaseTask, idempotent
 from apps.notifications.tasks.email import EMAIL_RETRYABLE_EXCEPTIONS
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,19 @@ def poll_mailbox(self, mailbox_id: str):
         cache.delete(lock)
 
 
-@shared_task(bind=True, name='product.mail.tasks.send_thread_reply', autoretry_for=EMAIL_RETRYABLE_EXCEPTIONS)
+class SendThreadReplyTask(BaseTask):
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        """Retries ran out: show the failure on the message instead of leaving it 'Sending' forever."""
+        from .models import MailMessage
+
+        MailMessage.objects.filter(pk=(args or [kwargs.get('message_id')])[0]).exclude(
+            status=MailMessage.Status.SENT,
+        ).update(status=MailMessage.Status.FAILED, error=type(exc).__name__[:255], updated_at=timezone.now())
+        super().on_failure(exc, task_id, args, kwargs, einfo)
+
+
+@shared_task(bind=True, base=SendThreadReplyTask, name='product.mail.tasks.send_thread_reply',
+             autoretry_for=EMAIL_RETRYABLE_EXCEPTIONS)
 def send_thread_reply(self, message_id: str):
     """Deliver a reply the doctor wrote in the inbox. Keyed on the queued message, so it goes once."""
     from .models import MailMessage, MailThread

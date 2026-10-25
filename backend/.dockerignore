@@ -14,3 +14,8 @@ venv/
 .venv/
 Dockerfile*
 docker-compose*
+
+# Patient files are encrypted on the private_media volume and must never be baked into an image.
+private_media/
+_testout.txt
+test-run-output.txt

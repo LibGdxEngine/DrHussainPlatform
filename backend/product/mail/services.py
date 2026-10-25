@@ -19,6 +19,9 @@ from .transport import imap_connection
 logger = logging.getLogger(__name__)
 
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
+# Messages taken in per poll. A first sync of a full inbox then spreads over several beats instead of
+# running into the task time limit and losing all its progress.
+MAX_MESSAGES_PER_POLL = 50
 _FILE_NUMBER = re.compile(r'\bVC-\d{6}\b', re.IGNORECASE)
 _MESSAGE_ID = re.compile(r'<[^<>\s]+>')
 
@@ -215,9 +218,17 @@ def is_prescription_question(message: MailMessage) -> bool:
 
 
 def poll(mailbox) -> int:
-    """Take in new mail since the last poll. Returns how many messages were added."""
+    """
+    Take in new mail since the last poll. Returns how many messages were added.
+
+    The cursor (`last_uid`) is saved after every message, so a time limit or an error part-way
+    through keeps what was done. A message that cannot be read is skipped and noted in `last_error`
+    rather than blocking everything behind it; at most MAX_MESSAGES_PER_POLL are read per call, the
+    rest wait for the next beat.
+    """
     client = imap_connection(mailbox)
     added = 0
+    skipped = []
     try:
         status, data = client.select(f'"{mailbox.imap_folder}"', readonly=True)
         if status != 'OK':
@@ -229,19 +240,27 @@ def poll(mailbox) -> int:
         mailbox.uid_validity = validity
         status, data = client.uid('SEARCH', None, f'UID {mailbox.last_uid + 1}:*')
         uids = sorted(int(u) for u in (data[0] or b'').split() if int(u) > mailbox.last_uid)
-        for uid in uids:
+        for uid in uids[:MAX_MESSAGES_PER_POLL]:
             status, fetched = client.uid('FETCH', str(uid), '(RFC822)')
             raw = next((part[1] for part in fetched or [] if isinstance(part, tuple)), None)
-            if raw and ingest(mailbox.organization, raw, imap_uid=uid):
-                added += 1
+            try:
+                if raw and ingest(mailbox.organization, raw, imap_uid=uid):
+                    added += 1
+            except Exception:  # noqa: BLE001 - one unreadable message must not block the mailbox
+                logger.exception('Mailbox %s: message UID %s could not be taken in', mailbox.pk, uid)
+                skipped.append(uid)
             mailbox.last_uid = uid
+            mailbox.save(update_fields=['last_uid', 'uid_validity', 'updated_at'])
     finally:
         try:
             client.logout()
         except Exception:  # noqa: BLE001 - the session is closing anyway
             pass
     mailbox.last_synced_at = timezone.now()
-    mailbox.last_error = ''
+    mailbox.last_error = (
+        f'{len(skipped)} message(s) could not be read and were skipped (IMAP UID {", ".join(map(str, skipped))})'[:255]
+        if skipped else ''
+    )
     mailbox.save(update_fields=['last_uid', 'uid_validity', 'last_synced_at', 'last_error', 'updated_at'])
     return added
 

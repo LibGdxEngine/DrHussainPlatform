@@ -40,6 +40,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Claude Design handoff bundle: generated prototypes, not application code.
+    "v-clinic-emr/**",
   ]),
 ]);
 

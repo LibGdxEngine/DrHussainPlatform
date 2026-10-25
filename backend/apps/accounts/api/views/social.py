@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.api.throttles import LoginThrottle
 from apps.accounts.api.serializers import SocialAuthSerializer
 from apps.accounts.services import (
     authenticate_with_social_provider,
@@ -22,6 +23,7 @@ class SocialProvidersView(APIView):
 
 class SocialAuthView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginThrottle]
 
     def post(self, request, provider):
         serializer = SocialAuthSerializer(data=request.data)

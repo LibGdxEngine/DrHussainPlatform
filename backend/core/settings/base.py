@@ -137,9 +137,26 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # DRF settings
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'core.api_errors.exception_handler',
+    # Deny by default: a view opens itself up explicitly (AllowAny) when it is meant to be public.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ],
+    # A ceiling against abuse; the sign-in, OTP and password-reset views carry much tighter scoped rates.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.environ.get('THROTTLE_ANON', '120/min'),
+        'user': os.environ.get('THROTTLE_USER', '1000/min'),
+        'auth_login': os.environ.get('THROTTLE_LOGIN', '10/min'),
+        'auth_otp': os.environ.get('THROTTLE_OTP', '10/min'),
+        'auth_password': os.environ.get('THROTTLE_PASSWORD', '5/min'),
+        'auth_signup': os.environ.get('THROTTLE_SIGNUP', '10/min'),
+    },
+    # Reverse proxies in front of Django (the gateway Caddy, plus the host's), so throttling keys on
+    # the real client address. Unset, the whole X-Forwarded-For chain is the identity.
+    'NUM_PROXIES': int(os.environ['REST_NUM_PROXIES']) if os.environ.get('REST_NUM_PROXIES') else None,
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'apps.accounts.authentication.VersionedJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
@@ -183,7 +200,8 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': os.environ.get('SECRET_KEY', 'django-insecure-dev-secret-key-template-project-1234'),
+    # Each settings module sets this to its SECRET_KEY; there is deliberately no built-in default.
+    'SIGNING_KEY': os.environ.get('SECRET_KEY', ''),
     'AUTH_HEADER_TYPES': ('Bearer',),
     'TOKEN_OBTAIN_SERIALIZER': 'apps.accounts.api.serializers.auth.CustomTokenObtainPairSerializer',
 }
@@ -191,7 +209,8 @@ SIMPLE_JWT = {
 # ------------------------------------------------------------------------------
 # Messaging & WhatsApp Integration Settings (HireAgents)
 # ------------------------------------------------------------------------------
-OTP_SECRET = os.environ.get('OTP_SECRET', 'dev-otp-secret-key-32-chars-minimum-mobser')
+# Keys OTP code digests. Development fills a fixed value in dev.py; production refuses to start without it.
+OTP_SECRET = os.environ.get('OTP_SECRET', '')
 WHATSAPP_AUTH_TEMPLATE = os.environ.get('WHATSAPP_AUTH_TEMPLATE', 'auth_verification_otp')
 HIREAGENTS_BASE_URL = os.environ.get('HIREAGENTS_BASE_URL', 'https://hireagents.blinksolutions.tech')
 
@@ -199,13 +218,13 @@ HIREAGENTS_CONNECTIONS = {
     'auth': {
         'channel_id': os.environ.get('HIREAGENTS_AUTH_CHANNEL_ID', ''),
         'api_key': os.environ.get('HIREAGENTS_AUTH_API_KEY', ''),
-        'webhook_api_key': os.environ.get('HIREAGENTS_AUTH_WEBHOOK_API_KEY', 'dev-hireagents-auth-webhook-key'),
+        'webhook_api_key': os.environ.get('HIREAGENTS_AUTH_WEBHOOK_API_KEY', ''),
         'webhook_signing_secret': os.environ.get('HIREAGENTS_AUTH_WEBHOOK_SIGNING_SECRET', ''),
     },
     'support': {
         'channel_id': os.environ.get('HIREAGENTS_SUPPORT_CHANNEL_ID', ''),
         'api_key': os.environ.get('HIREAGENTS_SUPPORT_API_KEY', ''),
-        'webhook_api_key': os.environ.get('HIREAGENTS_SUPPORT_WEBHOOK_API_KEY', 'dev-hireagents-support-webhook-key'),
+        'webhook_api_key': os.environ.get('HIREAGENTS_SUPPORT_WEBHOOK_API_KEY', ''),
         'webhook_signing_secret': os.environ.get('HIREAGENTS_SUPPORT_WEBHOOK_SIGNING_SECRET', ''),
     },
 }
@@ -371,8 +390,17 @@ CACHES = {
 # ------------------------------------------------------------------------------
 # Email
 # ------------------------------------------------------------------------------
+# Platform email: invitations, password resets, weekly reports. Development prints to the console;
+# production defaults to SMTP with the EMAIL_* settings below (see prod.py).
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@mobser.local')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 30))
 
 # ------------------------------------------------------------------------------
 # Logging

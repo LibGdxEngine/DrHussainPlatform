@@ -4,7 +4,8 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from apps.accounts.api.throttles import LoginThrottle, OTPThrottle, PasswordThrottle, SignupThrottle
 from apps.accounts.api.serializers.auth import SessionTokenRefreshSerializer
 
 from apps.accounts.api.serializers import (
@@ -35,8 +36,14 @@ class SessionTokenRefreshView(TokenRefreshView):
     serializer_class = SessionTokenRefreshSerializer
 
 
+class LegacyTokenObtainPairView(TokenObtainPairView):
+    """The backward-compatible /api/token/ sign-in, rate-limited like the main login."""
+    throttle_classes = [LoginThrottle]
+
+
 class SignupView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [SignupThrottle]
 
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
@@ -57,6 +64,7 @@ class SignupView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginThrottle]
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -105,6 +113,7 @@ class LogoutView(APIView):
 
 class PasswordForgotView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [PasswordThrottle]
 
     def post(self, request):
         serializer = PasswordForgotSerializer(data=request.data)
@@ -116,6 +125,7 @@ class PasswordForgotView(APIView):
 
 class PasswordResetVerifyView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [OTPThrottle]
 
     def post(self, request):
         serializer = PasswordResetVerifySerializer(data=request.data)
@@ -136,6 +146,7 @@ class PasswordResetVerifyView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [PasswordThrottle]
 
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
