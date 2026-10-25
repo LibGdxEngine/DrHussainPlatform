@@ -15,7 +15,11 @@ export default async function MessagesPage({
   const sp = await searchParams;
   return (
     <AppShell active="msgs" showPromo={false}>
-      <InboxScreen patientMrn={one(sp.patient)} compose={one(sp.compose) === "case" ? "case" : undefined} />
+      <InboxScreen
+        patientMrn={one(sp.patient)}
+        threadId={one(sp.thread)}
+        compose={one(sp.compose) === "case" ? "case" : undefined}
+      />
     </AppShell>
   );
 }

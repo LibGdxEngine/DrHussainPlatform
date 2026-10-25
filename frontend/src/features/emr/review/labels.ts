@@ -25,10 +25,12 @@ export const routeLabel: Record<string, string> = {
   infection: "STI results email",
   pathology: "Pathology results email",
   smear: "Cervical smear email",
+  reply: "Reply about a prescription",
 };
 
 const caseFlagText: Record<string, string> = {
   template_not_approved: "The template for this email has no approved wording yet (Clinic settings → Email templates).",
+  mailbox_not_set_up: "The clinic mailbox is not set up yet (Inbox → Mailbox settings).",
 };
 
 export function caseFlag(code: string): string {

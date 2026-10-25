@@ -39,7 +39,9 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       (detail) => {
         if (cancelled) return;
         setLoaded({ id: caseId, detail });
-        documentsApi.get(detail.report.document).then((d) => !cancelled && setDocument(d), () => undefined);
+        if (detail.report) {
+          documentsApi.get(detail.report.document).then((d) => !cancelled && setDocument(d), () => undefined);
+        }
       },
       (err: unknown) => {
         if (!cancelled) setLoaded({ id: caseId, error: apiErrorMessage(err, "Could not open the case.") });
@@ -89,9 +91,9 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             <span className="font-emr-mono text-sm font-medium text-muted">· {detail.patient.file_number}</span>
           </h1>
           <p className="m-0 text-[13px] text-muted">
-            {reportTypeLabel[report.report_type]}
-            {report.lab_name ? ` · ${report.lab_name}` : ""}
-            {report.collected_on ? ` · sample ${formatDay(report.collected_on)}` : ""}
+            {report ? reportTypeLabel[report.report_type] : "Reply to the patient's email"}
+            {report?.lab_name ? ` · ${report.lab_name}` : ""}
+            {report?.collected_on ? ` · sample ${formatDay(report.collected_on)}` : ""}
             {detail.route ? ` · ${routeLabel[detail.route] ?? detail.route}` : ""}
           </p>
         </div>
@@ -99,21 +101,39 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       </Panel>
       <Notice notice={notice} />
       <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1.1fr)] xl:grid-cols-2">
-        <Panel aria-label="Original report" className="flex flex-col gap-3 p-5">
-          <h2 className="m-0 text-lg font-semibold">Original report</h2>
-          {document ? <DocumentPreview document={document} /> : <p className="m-0 text-[13px] text-muted">Loading…</p>}
-          <Link href={`${emrRoutes.docs}?patient=${encodeURIComponent(detail.patient.file_number)}`} className="text-[13px] text-brand">
-            Open the patient&apos;s documents
-          </Link>
-        </Panel>
-        <Panel aria-label="Values" className="flex flex-col gap-3 p-5">
-          <h2 className="m-0 text-lg font-semibold">Values read from the report</h2>
-          {report.values.length ? (
-            <ResultValuesTable values={report.values} />
-          ) : (
-            <p className="m-0 text-[13px] text-muted">No values were read.</p>
-          )}
-        </Panel>
+        {report ? (
+          <>
+            <Panel aria-label="Original report" className="flex flex-col gap-3 p-5">
+              <h2 className="m-0 text-lg font-semibold">Original report</h2>
+              {document ? <DocumentPreview document={document} /> : <p className="m-0 text-[13px] text-muted">Loading…</p>}
+              <Link href={`${emrRoutes.docs}?patient=${encodeURIComponent(detail.patient.file_number)}`} className="text-[13px] text-brand">
+                Open the patient&apos;s documents
+              </Link>
+            </Panel>
+            <Panel aria-label="Values" className="flex flex-col gap-3 p-5">
+              <h2 className="m-0 text-lg font-semibold">Values read from the report</h2>
+              {report.values.length ? (
+                <ResultValuesTable values={report.values} />
+              ) : (
+                <p className="m-0 text-[13px] text-muted">No values were read.</p>
+              )}
+            </Panel>
+          </>
+        ) : detail.question ? (
+          <Panel aria-label="Patient's question" className="flex flex-col gap-3 p-5 xl:col-span-2 2xl:col-span-2">
+            <h2 className="m-0 text-lg font-semibold">The patient asked</h2>
+            <span className="text-xs text-muted">
+              {detail.question.from_address} · {new Date(detail.question.sent_at).toLocaleString("en-GB")}
+            </span>
+            <strong className="text-[13px] font-semibold" dir="auto">{detail.question.subject}</strong>
+            <p className="m-0 whitespace-pre-wrap rounded-2xl border border-line bg-canvas-2 p-4 text-[13px] leading-[1.7] text-ink-2" dir="auto">
+              {detail.question.body_text}
+            </p>
+            <Link href={`${emrRoutes.msgs}?thread=${detail.question.thread}`} className="text-[13px] text-brand">
+              Open the whole email thread
+            </Link>
+          </Panel>
+        ) : null}
         <div className="flex flex-col gap-4 xl:col-span-2 2xl:col-span-1">
           <DecisionPanel detail={detail} busy={busy} act={act} />
           <ActionLog detail={detail} />
@@ -137,7 +157,7 @@ function DecisionPanel({ detail, busy, act }: { detail: ResultsCaseDetail; busy:
 function FlaggedPanel({ detail, busy, act }: { detail: ResultsCaseDetail; busy: boolean; act: Act }) {
   const [reason, setReason] = useState("");
   const patientDoubt = detail.flag_reasons.some((r) => r.startsWith("patient_"));
-  const smear = detail.report_detail.report_type === "smear_abnormal";
+  const smear = detail.report_detail?.report_type === "smear_abnormal";
   return (
     <Panel aria-label="Needs the doctor" className="flex flex-col gap-3 p-5">
       <h2 className="m-0 text-lg font-semibold">Needs the doctor</h2>
@@ -151,7 +171,7 @@ function FlaggedPanel({ detail, busy, act }: { detail: ResultsCaseDetail; busy: 
           className="self-start"
           onClick={() =>
             void act(async () => {
-              await resultsApi.confirm(detail.report.id);
+              if (detail.report) await resultsApi.confirm(detail.report.id);
               return reviewApi.get(detail.id);
             }, "Confirmed as this patient's report. The case was routed again.")
           }
@@ -305,15 +325,17 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
 
       <div className="flex flex-col gap-1.5">
         <span className="text-[13px] font-medium text-ink-2">Attachments</span>
-        <label className="flex items-center gap-2 text-[13px]">
-          <input
-            type="checkbox"
-            checked={Boolean(draft.attach_report)}
-            disabled={busy}
-            onChange={(e) => void act(() => reviewApi.edit(detail.id, { attach_report: e.target.checked }), "Attachments saved.")}
-          />
-          The report itself ({detail.report.document_title})
-        </label>
+        {detail.report ? (
+          <label className="flex items-center gap-2 text-[13px]">
+            <input
+              type="checkbox"
+              checked={Boolean(draft.attach_report)}
+              disabled={busy}
+              onChange={(e) => void act(() => reviewApi.edit(detail.id, { attach_report: e.target.checked }), "Attachments saved.")}
+            />
+            The report itself ({detail.report.document_title})
+          </label>
+        ) : null}
         {leaflets.map((l) => (
           <label key={l.id} className="flex items-center gap-2 text-[13px]">
             <input

@@ -39,6 +39,17 @@ services:
       timeout: 5s
       retries: 5
 
+  # Local test mail server for the clinic mailbox (development only). It accepts any login and
+  # keeps every message locally; nothing is relayed to the outside world.
+  mailserver:
+    logging: *service-logging
+    image: greenmail/standalone:2.0.1
+    environment:
+      - GREENMAIL_OPTS=-Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled
+    ports:
+      - "127.0.0.1:3025:3025"
+      - "127.0.0.1:3143:3143"
+
   backend:
     logging: *service-logging
     networks: [default, telemetry-ingest]

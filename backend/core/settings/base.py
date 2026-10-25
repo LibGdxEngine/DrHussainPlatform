@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'product.results.apps.ResultsConfig',
     'product.content.apps.ContentConfig',
     'product.review.apps.ReviewConfig',
+    'product.mail.apps.MailConfig',
 ]
 
 MIDDLEWARE = [
@@ -166,6 +167,8 @@ SPECTACULAR_SETTINGS = {
         'TemplateKindEnum': 'product.content.models.TemplateKind',
         'LanguageEnum': 'product.patients.models.Language',
         'ResultsCaseStatusEnum': 'product.review.models.ResultsCase.Status',
+        'ResultsCaseKindEnum': 'product.review.models.ResultsCase.Kind',
+        'MailSecurityEnum': 'product.mail.models.Security',
     },
 }
 
@@ -281,8 +284,20 @@ TASK_RECORD_RETENTION_DAYS = int(os.environ.get('TASK_RECORD_RETENTION_DAYS', 30
 
 # DatabaseScheduler syncs these defaults into the django_celery_beat tables on
 # startup, after which they can be retimed from the Django admin without a deploy.
+# The clinic's own mailbox (product.mail). Patient email goes only through the clinic's server; the
+# platform address is a development fallback and is off unless explicitly enabled.
+MAIL_CREDENTIALS_KEY = os.environ.get('MAIL_CREDENTIALS_KEY', '')
+MAIL_ALLOW_PLATFORM_FALLBACK = os.environ.get('MAIL_ALLOW_PLATFORM_FALLBACK', 'false').lower() == 'true'
+MAIL_SMTP_BACKEND = os.environ.get('MAIL_SMTP_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+MAIL_TIMEOUT_SECONDS = int(os.environ.get('MAIL_TIMEOUT_SECONDS', 30))
+MAIL_POLL_SECONDS = int(os.environ.get('MAIL_POLL_SECONDS', 120))
+
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BEAT_SCHEDULE = {
+    'poll-clinic-mailboxes': {
+        'task': 'product.mail.tasks.poll_mailboxes',
+        'schedule': float(MAIL_POLL_SECONDS),
+    },
     'beat-heartbeat': {
         'task': 'apps.common.tasks.beat_heartbeat',
         'schedule': 60.0,

@@ -52,4 +52,5 @@ urlpatterns = [
     path('api/product/results/', include('product.results.urls', namespace='results')),
     path('api/product/content/', include('product.content.urls', namespace='content')),
     path('api/product/review/', include('product.review.urls', namespace='review')),
+    path('api/product/mail/', include('product.mail.urls', namespace='mail')),
 ]

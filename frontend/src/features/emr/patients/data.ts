@@ -1,7 +1,7 @@
 import type { ContactChannel } from "@/features/emr/journey/data";
 import type { AlertCounts, FormStatus } from "@/features/emr/ui/StatusPills";
 
-/** Demo files used by the inbox until mail is connected to real patient records. */
+/** Demo files used by the scan station mock-up until it is connected to real patient records. */
 export interface PatientRowData {
   name: string;
   age: number;

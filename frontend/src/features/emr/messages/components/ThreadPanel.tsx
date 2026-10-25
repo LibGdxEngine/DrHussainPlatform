@@ -1,98 +1,117 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { caseRequestText } from "@/features/emr/journey/data";
-import { patients } from "@/features/emr/patients/data";
 import { emrRoutes } from "@/features/emr/routes";
 import { ActionButton } from "@/features/emr/ui/Action";
 import { SelectInput, TextArea } from "@/features/emr/ui/Fields";
 import { Panel } from "@/features/emr/ui/Panel";
 import { Pill } from "@/features/emr/ui/Pill";
-import {
-  attachmentOptions, initialAttachments, initialDraft, SENT_WHEN,
-  type AttachmentId, type EmailThread, type PatientRef,
-} from "../data";
+import { documentsApi, type PatientDocument } from "@/lib/api/emr/documents";
+import { ApiError, apiErrorMessage } from "@/lib/api/emr/errors";
+import { mailApi, type MailThreadDetail } from "@/lib/api/emr/mail";
+import { patientsApi, type Patient } from "@/lib/api/emr/patients";
 import { MessageBubble } from "./MessageBubble";
 
 interface ThreadPanelProps {
-  thread: EmailThread;
+  thread: MailThreadDetail;
   compose?: "case";
   fromAddress: string;
-  onMatch: (patient: PatientRef | undefined) => void;
-  onArchive: () => void;
+  onChanged: (thread: MailThreadDetail) => void;
 }
 
 function firstName(name: string) {
   return name.split(" ")[0];
 }
 
-/** One email thread from the synced mailbox, with reply, templates and patient linking. */
-export function ThreadPanel({ thread, compose, fromAddress, onMatch, onArchive }: ThreadPanelProps) {
+/** One email thread: patient link, the messages, and the doctor's reply. */
+export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadPanelProps) {
   const patient = thread.patient;
-  const caseRequest = caseRequestText(firstName(patient?.name ?? thread.contact.name), patient?.mrn ?? "(your file number)");
-  const [messages, setMessages] = useState(thread.messages);
-  const [draft, setDraft] = useState(
-    compose === "case" ? caseRequest : thread.id === "t-laila" ? initialDraft : "",
-  );
-  const [attached, setAttached] = useState(thread.id === "t-laila" ? initialAttachments : {});
-  const [pick, setPick] = useState(thread.suggestion?.mrn ?? "");
+  const caseRequest = caseRequestText(firstName(patient?.full_name ?? thread.contact_name ?? ""), patient?.file_number ?? "(your file number)");
+  const [draft, setDraft] = useState(compose === "case" ? caseRequest : "");
+  const [documents, setDocuments] = useState<PatientDocument[]>([]);
+  const [attached, setAttached] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [matches, setMatches] = useState<Patient[]>([]);
+  const [pick, setPick] = useState(thread.suggested_patient?.id ?? "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const toggle = (id: AttachmentId) => setAttached((a) => ({ ...a, [id]: !a[id] }));
+  useEffect(() => {
+    if (!patient) return;
+    let cancelled = false;
+    documentsApi.list(patient.id).then((list) => !cancelled && setDocuments(list), () => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [patient]);
 
-  const send = () => {
-    if (!draft.trim()) return;
-    const att = patient ? attachmentOptions.filter((o) => attached[o.id]).map((o) => `${o.name}.pdf`) : [];
-    const who = `Dr. Gohar → ${firstName(patient?.name ?? thread.contact.name)}`;
-    setMessages((m) => [...m, { from: "doc", who, when: SENT_WHEN, text: draft, att }]);
-    setDraft("");
-    setAttached({});
-  };
+  useEffect(() => {
+    if (patient || !query.trim()) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      patientsApi.list({ q: query.trim(), page_size: 8 }).then((page) => !cancelled && setMatches(page.results), () => undefined);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, patient]);
 
-  const match = () => {
-    const p = patients.find((x) => x.mrn === pick);
-    if (p) onMatch({ mrn: p.mrn, name: p.name });
-  };
+  async function run(action: () => Promise<MailThreadDetail>) {
+    setBusy(true);
+    setError(null);
+    try {
+      onChanged(await action());
+      return true;
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 403 ? "Only the doctor can send from the clinic mailbox." : apiErrorMessage(err, "Could not do that."));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const options = [
+    ...(thread.suggested_patient ? [thread.suggested_patient] : []),
+    ...matches.filter((m) => m.id !== thread.suggested_patient?.id),
+  ];
 
   return (
     <Panel aria-labelledby="th" className="flex flex-col gap-4 p-6">
       <div className="flex flex-wrap items-start gap-3 border-b border-line-soft pb-4">
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 id="th" className="m-0 text-xl font-semibold">
-            {thread.subject}
-          </h2>
+          <h2 id="th" className="m-0 text-xl font-semibold" dir="auto">{thread.subject || "(no subject)"}</h2>
           <span className="text-[13px] text-muted">
-            {thread.contact.name} · <span className="font-emr-mono">{thread.contact.email}</span>
+            {thread.contact_name ? `${thread.contact_name} · ` : ""}
+            <span className="font-emr-mono">{thread.contact_email}</span>
           </span>
         </div>
         <div className="ms-auto flex flex-wrap gap-2">
           {patient ? (
             <Link
-              href={emrRoutes.visit}
+              href={`${emrRoutes.docs}?patient=${encodeURIComponent(patient.file_number)}`}
               className="inline-flex min-h-[38px] flex-none items-center rounded-full border border-line-strong px-3.5 text-[13px] font-semibold text-ink no-underline"
             >
               Open file
             </Link>
           ) : null}
-          {thread.folder !== "archive" ? (
-            <ActionButton variant="quiet" size="sm" onClick={onArchive}>
-              Archive
-            </ActionButton>
-          ) : null}
+          <ActionButton variant="quiet" size="sm" disabled={busy} onClick={() => void run(() => mailApi.threads.state(thread.id, { archived: !thread.archived }))}>
+            {thread.archived ? "Move to inbox" : "Archive"}
+          </ActionButton>
         </div>
       </div>
 
       {patient ? (
         <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
-          Linked to
-          <Pill tone="brand" size="sm">
-            {patient.name} · {patient.mrn}
-          </Pill>
-          · Logged in her file
+          Filed in
+          <Pill tone="brand" size="sm">{patient.full_name} · {patient.file_number}</Pill>
           <button
             type="button"
-            onClick={() => onMatch(undefined)}
+            disabled={busy}
+            onClick={() => void run(() => mailApi.threads.link(thread.id, null))}
             className="ms-auto cursor-pointer border-0 bg-transparent p-0 text-xs font-semibold text-ink-2"
           >
             Unlink
@@ -100,53 +119,40 @@ export function ThreadPanel({ thread, compose, fromAddress, onMatch, onArchive }
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2 rounded-[18px] bg-warn-wash px-4 py-3 text-[13px] text-[#5a3d00]">
-          {thread.suggestion ? (
+          {thread.suggested_patient ? (
             <span>
-              This address isn&apos;t in any file. It looks like <strong>{thread.suggestion.name}</strong>.
+              This address isn&apos;t in any file. The email mentions <strong>{thread.suggested_patient.full_name}</strong>.
             </span>
           ) : (
-            <span>Not linked to a patient. Link it if this email belongs in a file.</span>
+            <span>Not filed with a patient. Link it if this email belongs in a file.</span>
           )}
-          <SelectInput
-            aria-label="Patient"
-            value={pick}
-            onChange={(e) => setPick(e.target.value)}
-            className="ms-auto min-h-9 w-auto min-w-[200px] text-[13px]"
-          >
+          <input
+            aria-label="Find patient"
+            placeholder="Find patient…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="ms-auto min-h-9 rounded-[14px] border border-field bg-white px-3 text-[13px]"
+          />
+          <SelectInput aria-label="Patient" value={pick} onChange={(e) => setPick(e.target.value)} className="min-h-9 w-auto min-w-[200px] text-[13px]">
             <option value="">Choose patient…</option>
-            {patients.map((p) => (
-              <option key={p.mrn} value={p.mrn}>
-                {p.name} · {p.mrn}
-              </option>
-            ))}
+            {options.map((p) => <option key={p.id} value={p.id}>{p.full_name} · {p.file_number}</option>)}
           </SelectInput>
-          <ActionButton size="sm" onClick={match} disabled={!pick}>
+          <ActionButton size="sm" onClick={() => void run(() => mailApi.threads.link(thread.id, pick))} disabled={!pick || busy}>
             Link to file
           </ActionButton>
         </div>
       )}
 
-      {messages.length === 0 ? (
-        <p className="m-0 rounded-2xl bg-canvas px-4 py-6 text-center text-[13px] text-muted">
-          Draft not sent yet. Write it below.
-        </p>
-      ) : (
-        <ol className="m-0 flex flex-1 list-none flex-col gap-3.5 p-0">
-          {messages.map((m, i) => (
-            <MessageBubble key={i} message={m} canFile={!!patient} />
-          ))}
-        </ol>
-      )}
+      <ol className="m-0 flex flex-1 list-none flex-col gap-3.5 p-0">
+        {thread.messages.map((m) => <MessageBubble key={m.id} message={m} fileNumber={patient?.file_number} />)}
+      </ol>
 
       <div className="flex flex-col gap-2.5 rounded-[20px] border border-line bg-canvas-2 p-3.5">
         <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
           Templates:
           <button
             type="button"
-            onClick={() => {
-              setDraft(caseRequest);
-              setAttached({});
-            }}
+            onClick={() => setDraft(caseRequest)}
             className="min-h-[34px] cursor-pointer rounded-full border border-brand bg-white px-3 text-xs font-semibold text-brand"
           >
             Request case by email
@@ -154,34 +160,27 @@ export function ThreadPanel({ thread, compose, fromAddress, onMatch, onArchive }
         </div>
         <label className="flex flex-col gap-1.5 text-[13px] font-medium text-ink-2">
           Reply
-          <TextArea
-            rows={3}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="resize-y leading-[1.7]"
-          />
+          <TextArea rows={3} value={draft} onChange={(e) => setDraft(e.target.value)} className="resize-y leading-[1.7]" dir="auto" />
         </label>
         <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
-          {patient ? (
+          {patient && documents.length ? (
             <>
               Attach from file:
-              {attachmentOptions.map((o) => {
-                const on = !!attached[o.id];
+              {documents.slice(0, 6).map((d) => {
+                const on = attached.includes(d.id);
                 return (
                   <button
-                    key={o.id}
+                    key={d.id}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => toggle(o.id)}
+                    onClick={() => setAttached((a) => (on ? a.filter((x) => x !== d.id) : [...a, d.id]))}
                     className={cn(
                       "min-h-[34px] cursor-pointer rounded-full border px-3 text-xs",
-                      on
-                        ? "border-brand bg-brand-tint font-semibold text-brand-ink"
-                        : "border-field bg-white text-ink",
+                      on ? "border-brand bg-brand-tint font-semibold text-brand-ink" : "border-field bg-white text-ink",
                     )}
                   >
                     {on ? "✓ " : ""}
-                    {o.name}
+                    {d.title}
                   </button>
                 );
               })}
@@ -189,15 +188,22 @@ export function ThreadPanel({ thread, compose, fromAddress, onMatch, onArchive }
           ) : null}
           <button
             type="button"
-            onClick={send}
-            className="ms-auto min-h-11 cursor-pointer rounded-full bg-brand px-6 text-sm font-semibold text-white hover:bg-brand-ink"
+            disabled={busy || !draft.trim()}
+            onClick={async () => {
+              if (await run(() => mailApi.threads.reply(thread.id, draft, attached))) {
+                setDraft("");
+                setAttached([]);
+              }
+            }}
+            className="ms-auto min-h-11 cursor-pointer rounded-full bg-brand px-6 text-sm font-semibold text-white hover:bg-brand-ink disabled:cursor-not-allowed disabled:opacity-60"
           >
             Send
           </button>
         </div>
+        {error ? <p role="alert" className="m-0 text-xs text-danger-ink">{error}</p> : null}
         <span className="text-xs text-muted">
-          Sent from <span className="font-emr-mono">{fromAddress}</span>. Replies come back to this thread
-          {patient ? " and are logged in her file; use “Save to file” to file her attachments." : "."}
+          Sent from <span className="font-emr-mono">{fromAddress}</span>. Replies come back to this thread. Results
+          emails are sent from the results review queue, not from here.
         </span>
       </div>
     </Panel>

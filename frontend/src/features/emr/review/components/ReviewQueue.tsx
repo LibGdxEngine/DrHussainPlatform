@@ -79,10 +79,21 @@ export function ReviewQueue() {
                     <span className="block font-emr-mono text-xs text-muted">{c.patient.file_number}</span>
                   </Td>
                   <Td className="text-[13px]">
-                    {reportTypeLabel[c.report.report_type as keyof typeof reportTypeLabel] ?? c.report.report_type}
-                    <span className="block text-xs text-muted">{c.report.document_title}</span>
+                    {c.report ? (
+                      <>
+                        {reportTypeLabel[c.report.report_type as keyof typeof reportTypeLabel] ?? c.report.report_type}
+                        <span className="block text-xs text-muted">{c.report.document_title}</span>
+                      </>
+                    ) : (
+                      <>
+                        Question about a prescription
+                        <span className="block text-xs text-muted">{c.question?.subject}</span>
+                      </>
+                    )}
                   </Td>
-                  <Td className="whitespace-nowrap text-[13px]">{formatDay(c.report.collected_on)}</Td>
+                  <Td className="whitespace-nowrap text-[13px]">
+                    {formatDay(c.report ? c.report.collected_on : c.question?.sent_at)}
+                  </Td>
                   <Td><Pill tone={s.tone} size="xs">{s.label}</Pill></Td>
                   <Td className="max-w-[360px] text-[13px] text-ink-2">
                     {c.status === "awaiting_plan"

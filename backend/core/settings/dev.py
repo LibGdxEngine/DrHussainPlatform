@@ -13,6 +13,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-secret-key-templa
 
 DEBUG = True
 
+# Without a clinic mailbox, development email prints to the console instead of being refused.
+MAIL_ALLOW_PLATFORM_FALLBACK = os.environ.get('MAIL_ALLOW_PLATFORM_FALLBACK', 'true').lower() == 'true'
+
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 # Default to SQLite for easy non-docker runs, but swap to Postgres when available in environment

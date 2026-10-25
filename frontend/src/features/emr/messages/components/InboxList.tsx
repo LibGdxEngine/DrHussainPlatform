@@ -1,26 +1,27 @@
 import { cn } from "@/lib/utils";
+import type { MailFilter, MailFolder, MailThread } from "@/lib/api/emr/mail";
 import { SearchBox } from "../../shell/SearchBox";
 import { ChipGroup } from "../../ui/ChipGroup";
 import { Panel } from "../../ui/Panel";
 import { Pill } from "../../ui/Pill";
-import { folders, inboxFilters, type EmailThread, type FolderId, type InboxFilter, type PatientRef } from "../data";
+import { folders, inboxFilters, initialOf, mailDate } from "../data";
 
 interface InboxListProps {
-  threads: EmailThread[];
-  folder: FolderId;
-  folderUnread: Record<FolderId, number>;
-  filter: InboxFilter;
+  threads: MailThread[] | null;
+  folder: MailFolder;
+  unread: number;
+  filter: MailFilter;
   query: string;
   selectedId?: string;
-  patientFilter?: PatientRef;
-  onFolder: (f: FolderId) => void;
-  onFilter: (f: InboxFilter) => void;
+  patientFilter?: string;
+  onFolder: (f: MailFolder) => void;
+  onFilter: (f: MailFilter) => void;
   onQuery: (q: string) => void;
   onSelect: (id: string) => void;
   onClearPatient: () => void;
 }
 
-function ThreadItem({ t, active, onSelect }: { t: EmailThread; active: boolean; onSelect: () => void }) {
+function ThreadItem({ t, active, onSelect }: { t: MailThread; active: boolean; onSelect: () => void }) {
   return (
     <button
       type="button"
@@ -37,51 +38,45 @@ function ThreadItem({ t, active, onSelect }: { t: EmailThread; active: boolean; 
           t.patient ? "bg-white text-brand-deep" : "bg-line-soft text-ink-3",
         )}
       >
-        {t.contact.initial}
+        {initialOf(t.contact_name ?? "", t.contact_email ?? "")}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
         <span className="flex items-center gap-2">
-          <strong className={cn("truncate text-sm", t.unread ? "font-bold" : "font-semibold")}>{t.contact.name}</strong>
+          <strong className={cn("truncate text-sm", t.unread ? "font-bold" : "font-semibold")}>
+            {t.contact_name || t.contact_email}
+          </strong>
           {t.unread ? <span className="size-2 flex-none rounded-full bg-brand" aria-label="Unread" /> : null}
-          <span className="ms-auto flex-none text-xs text-muted">{t.date}</span>
+          <span className="ms-auto flex-none text-xs text-muted">{mailDate(t.last_message_at)}</span>
         </span>
-        <span className={cn("truncate text-[13px]", t.unread ? "font-semibold text-ink" : "text-ink-2")}>{t.subject}</span>
-        <span className="truncate text-xs text-muted">{t.preview}</span>
+        <span className={cn("truncate text-[13px]", t.unread ? "font-semibold text-ink" : "text-ink-2")} dir="auto">
+          {t.subject || "(no subject)"}
+        </span>
+        <span className="truncate text-xs text-muted" dir="auto">{t.preview}</span>
         <span className="mt-0.5 flex flex-wrap gap-1.5">
           {t.patient ? (
-            <Pill tone="brand" size="xs">
-              {t.patient.name} · {t.patient.mrn}
-            </Pill>
-          ) : t.suggestion ? (
-            <Pill tone="amber" size="xs">
-              Possible match: {t.suggestion.name}
-            </Pill>
+            <Pill tone="brand" size="xs">{t.patient.full_name} · {t.patient.file_number}</Pill>
+          ) : t.suggested_patient ? (
+            <Pill tone="amber" size="xs">Possible match: {t.suggested_patient.full_name}</Pill>
           ) : (
-            <Pill tone="neutral" size="xs">
-              Not a patient
-            </Pill>
+            <Pill tone="neutral" size="xs">Not matched</Pill>
           )}
-          {t.messages.some((m) => m.att.length > 0) ? (
-            <Pill tone="neutral" size="xs">
-              📎 Attachments
-            </Pill>
-          ) : null}
+          {t.has_attachments ? <Pill tone="neutral" size="xs">📎 Attachments</Pill> : null}
         </span>
       </span>
     </button>
   );
 }
 
-/** Folder tabs, search, filters and the thread list of the synced mailbox. */
+/** Folder tabs, search, filters and the thread list of the clinic mailbox. */
 export function InboxList(props: InboxListProps) {
-  const { threads, folder, folderUnread, filter, query, selectedId, patientFilter } = props;
+  const { threads, folder, unread, filter, query, selectedId, patientFilter } = props;
 
   return (
     <Panel aria-label="Mailbox" className="flex flex-col gap-3 px-3.5 py-4">
       <nav aria-label="Folders" className="flex flex-wrap gap-1 border-b border-line-soft px-1 pb-2">
         {folders.map((f) => {
           const on = f.id === folder;
-          const n = folderUnread[f.id];
+          const n = f.id === "inbox" ? unread : 0;
           return (
             <button
               key={f.id}
@@ -113,7 +108,7 @@ export function InboxList(props: InboxListProps) {
       <ChipGroup label="Filter" options={inboxFilters} value={filter} onChange={props.onFilter} className="px-1" />
       {patientFilter ? (
         <div className="mx-1 flex items-center gap-2 rounded-[14px] bg-brand-wash px-3 py-2 text-[13px] text-brand-ink">
-          Showing emails for <strong>{patientFilter.name}</strong>
+          Showing emails for <strong>{patientFilter}</strong>
           <button
             type="button"
             onClick={props.onClearPatient}
@@ -124,7 +119,9 @@ export function InboxList(props: InboxListProps) {
         </div>
       ) : null}
       <div className="flex flex-col gap-1">
-        {threads.length === 0 ? (
+        {threads === null ? (
+          <p className="m-0 px-4 py-8 text-center text-[13px] text-muted">Loading…</p>
+        ) : threads.length === 0 ? (
           <p className="m-0 rounded-2xl bg-canvas px-4 py-8 text-center text-[13px] text-muted">No emails here.</p>
         ) : (
           threads.map((t) => (

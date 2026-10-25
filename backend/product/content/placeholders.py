@@ -24,6 +24,7 @@ AUTOMATIC = {
     'clinic.phone': 'The number patients phone to book.',
     'doctor.name': "The doctor's name.",
     'today': "Today's date.",
+    'patient.question': "In a reply: the patient's own words, without the quoted earlier email.",
 }
 CHOSEN_IN_REVIEW = {
     'prescription': 'The prescription the doctor picks from the list in review.',

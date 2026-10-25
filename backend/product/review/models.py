@@ -25,7 +25,16 @@ class ResultsCase(BaseModel):
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='results_cases')
     patient = models.ForeignKey(Patient, on_delete=models.PROTECT, related_name='results_cases')
-    report = models.OneToOneField(InvestigationReport, on_delete=models.PROTECT, related_name='case')
+    class Kind(models.TextChoices):
+        REPORT = 'report', 'Investigation report'
+        REPLY = 'reply', "Patient's question about a prescription"
+
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.REPORT)
+    report = models.OneToOneField(InvestigationReport, on_delete=models.PROTECT, null=True, blank=True,
+                                  related_name='case')
+    # For a reply case: the patient's email being answered.
+    inbound_message = models.OneToOneField('mail.MailMessage', on_delete=models.PROTECT, null=True, blank=True,
+                                           related_name='reply_case')
     status = models.CharField(max_length=20, choices=Status.choices, db_index=True)
     # Which email the router chose: a template kind such as 'infection', or '' while flagged.
     route = models.CharField(max_length=20, blank=True, default='')

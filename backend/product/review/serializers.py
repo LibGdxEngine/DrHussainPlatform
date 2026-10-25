@@ -28,16 +28,27 @@ class CaseReportSummarySerializer(serializers.Serializer):
     document_title = serializers.CharField(source='document.title')
 
 
+class CaseQuestionSerializer(serializers.Serializer):
+    """For a reply case: the patient's email being answered."""
+    id = serializers.UUIDField()
+    thread = serializers.UUIDField(source='thread_id')
+    from_address = serializers.CharField()
+    subject = serializers.CharField()
+    body_text = serializers.CharField()
+    sent_at = serializers.DateTimeField()
+
+
 class ResultsCaseSerializer(serializers.ModelSerializer):
     patient = CasePatientSerializer(read_only=True)
-    report = CaseReportSummarySerializer(read_only=True)
+    report = CaseReportSummarySerializer(read_only=True, allow_null=True)
+    question = CaseQuestionSerializer(source='inbound_message', read_only=True, allow_null=True)
     flag_reasons = serializers.ListField(child=serializers.CharField(), read_only=True)
     plan_template = serializers.SlugRelatedField(slug_field='key', read_only=True, allow_null=True)
 
     class Meta:
         model = ResultsCase
-        fields = ['id', 'patient', 'report', 'status', 'route', 'flag_reasons', 'plan_template', 'created_at',
-                  'updated_at']
+        fields = ['id', 'kind', 'patient', 'report', 'question', 'status', 'route', 'flag_reasons', 'plan_template',
+                  'created_at', 'updated_at']
         read_only_fields = fields
 
 
@@ -115,7 +126,7 @@ class SmearPlanSerializer(serializers.Serializer):
 
 
 class ResultsCaseDetailSerializer(ResultsCaseSerializer):
-    report_detail = InvestigationReportSerializer(source='report', read_only=True)
+    report_detail = InvestigationReportSerializer(source='report', read_only=True, allow_null=True)
     draft = DraftSerializer(source='current_draft', read_only=True, allow_null=True)
     actions = ReviewActionSerializer(many=True, read_only=True)
     sent_emails = SentEmailSerializer(many=True, read_only=True)

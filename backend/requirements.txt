@@ -17,6 +17,8 @@ requests>=2.32.0
 # Results PDFs are read on the server: text layer first, OCR for scans.
 pdfplumber>=0.11
 pytesseract>=0.3.13
+# Mailbox passwords are encrypted at rest.
+cryptography>=42
 
 
 # Keep the SDK and contrib instrumentation on the same release train.

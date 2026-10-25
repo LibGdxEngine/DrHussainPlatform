@@ -46,8 +46,10 @@ def _doctor_flags(report: InvestigationReport) -> list[str]:
     return list(report.flag_reasons)
 
 
-def decide(report: InvestigationReport, case: ResultsCase | None = None, *, ignore_flags: bool = False) -> Decision:
+def decide(report: InvestigationReport | None, case: ResultsCase | None = None, *, ignore_flags: bool = False) -> Decision:
     """The spec's routing table. Anything unclear goes to the doctor with no draft."""
+    if case is not None and case.kind == ResultsCase.Kind.REPLY:
+        return Decision(ResultsCase.Status.DRAFTED, route='reply', keys=['prescription_reply'])
     flags = [] if ignore_flags else _doctor_flags(report)
     if flags:
         return Decision(ResultsCase.Status.FLAGGED, flags=flags)
@@ -93,7 +95,7 @@ def route_report(report: InvestigationReport, *, actor=None) -> ResultsCase | No
     if report.method == InvestigationReport.Method.MANUAL or report.status == InvestigationReport.Status.PENDING:
         return None
     case, created = ResultsCase.objects.select_for_update().get_or_create(
-        report=report,
+        report=report, kind=ResultsCase.Kind.REPORT,
         defaults={'organization': report.organization, 'patient': report.patient,
                   'status': ResultsCase.Status.FLAGGED},
     )
@@ -163,9 +165,20 @@ def _comparison_line(v) -> str | None:
     return f'{name}: {before} on {when_before} → {now} on {when_now} ({_CHANGE_WORDS[result.change]})'
 
 
+def last_prescriptions(patient):
+    """What the patient was last prescribed in a results email: the starting point for answering a question."""
+    from .models import SentEmail
+
+    sent = (SentEmail.objects.filter(case__patient=patient, status=SentEmail.Status.SENT, draft__prescriptions__isnull=False)
+            .select_related('draft').order_by('-sent_at').first())
+    return list(sent.draft.prescriptions.all()) if sent else []
+
+
 def draft_values(case: ResultsCase, *, prescriptions=(), follow_up: str = '') -> dict[str, str]:
+    from product.mail.services import visible_text
+
     report, patient = case.report, case.patient
-    values = list(report.values.select_related('lab_test').order_by('position'))
+    values = list(report.values.select_related('lab_test').order_by('position')) if report else []
     profile = ClinicProfile.objects.filter(organization=case.organization).first()
     abnormal = [v for v in values if v.is_abnormal]
     comparisons = [line for line in (_comparison_line(v) for v in values if v.lab_test_id) if line]
@@ -173,8 +186,9 @@ def draft_values(case: ResultsCase, *, prescriptions=(), follow_up: str = '') ->
         'patient.first_name': patient.full_name.split()[0] if patient.full_name else '',
         'patient.full_name': patient.full_name,
         'patient.file_number': patient.file_number,
-        'report.date': _day(report.collected_on),
-        'report.lab': report.lab_name,
+        'report.date': _day(report.collected_on) if report else '',
+        'report.lab': report.lab_name if report else '',
+        'patient.question': visible_text(case.inbound_message.body_text) if case.inbound_message_id else '',
         'results.table': '\n'.join(_value_line(v) for v in values),
         'results.abnormal': '\n'.join(_value_line(v) for v in abnormal) or 'All results are within the reference range.',
         'comparison.table': '\n'.join(comparisons),
@@ -305,7 +319,7 @@ def edit_draft(case, *, user, subject=None, body=None, leaflets=None, attach_rep
 
 
 def choose_plan(case, template: EmailTemplate, *, user) -> ResultsCase:
-    if case.report.report_type != ReportType.SMEAR_ABNORMAL:
+    if case.report is None or case.report.report_type != ReportType.SMEAR_ABNORMAL:
         raise ReviewError('not_a_smear', 'Only an abnormal smear needs a plan.', status=409)
     if case.status not in {ResultsCase.Status.AWAITING_PLAN, ResultsCase.Status.DRAFTED, ResultsCase.Status.FLAGGED}:
         raise ReviewError('not_editable', 'This case is closed.', status=409)
@@ -329,6 +343,24 @@ def reject(case, *, user, reason: str) -> ResultsCase:
 
 
 @transaction.atomic
+def open_reply_case(message):
+    """
+    A patient asked about a prescription: open a case drafted from the prescription reply template,
+    starting from what they were last prescribed. It is reviewed and approved like any other draft.
+    """
+    if ResultsCase.objects.filter(inbound_message=message).exists():
+        return None
+    patient = message.thread.patient
+    case = ResultsCase.objects.create(
+        organization=message.organization, patient=patient, kind=ResultsCase.Kind.REPLY, inbound_message=message,
+        status=ResultsCase.Status.FLAGGED,
+    )
+    _log(case, ReviewAction.Action.OPENED, None, message=str(message.pk))
+    _apply(case, decide(None, case), prescriptions=last_prescriptions(patient))
+    return case
+
+
+@transaction.atomic
 def approve_and_send(case, *, user):
     """
     The only way a results email leaves the clinic: the doctor approves the current draft. There
@@ -343,14 +375,19 @@ def approve_and_send(case, *, user):
         raise ReviewError('not_ready', 'There is no draft waiting for approval.', status=409)
     if draft.open_slots:
         raise ReviewError('open_slots', 'Fill in every highlighted blank first: ' + ', '.join(draft.open_slots) + '.')
-    if not case.patient.email:
+    from product.mail.transport import can_send
+
+    to_address = case.inbound_message.from_address if case.inbound_message_id else case.patient.email
+    if not to_address:
         raise ReviewError('no_patient_email', "The patient's file has no email address.")
+    if not can_send(case.organization):
+        raise ReviewError('mailbox_not_set_up', 'Set up the clinic mailbox before sending (Inbox → Mailbox settings).')
     sent = SentEmail.objects.create(
-        case=case, draft=draft, to_address=case.patient.email, from_address='', subject=draft.subject,
+        case=case, draft=draft, to_address=to_address, from_address='', subject=draft.subject,
         body=draft.body, approved_by=user,
         attachments=[{'kind': 'leaflet', 'id': str(v.pk), 'name': v.original_filename} for v in draft.leaflets.all()]
         + ([{'kind': 'report', 'id': str(case.report.document_id), 'name': case.report.document.original_filename}]
-           if draft.attach_report else []),
+           if draft.attach_report and case.report_id else []),
     )
     case.status = ResultsCase.Status.SENDING
     case.save(update_fields=['status', 'updated_at'])

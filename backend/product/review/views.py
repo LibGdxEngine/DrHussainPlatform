@@ -48,7 +48,7 @@ class ResultsCaseViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
     The review queue. Each case shows the report, the values read from it and the draft. Every
     action below is the doctor's, logged with its time; approving is the only way an email is sent.
     """
-    queryset = ResultsCase.objects.select_related('patient', 'report__document', 'plan_template')
+    queryset = ResultsCase.objects.select_related('patient', 'report__document', 'plan_template', 'inbound_message')
     serializer_class = ResultsCaseSerializer
 
     def get_permissions(self):
@@ -78,7 +78,7 @@ class ResultsCaseViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
     def _detail(self, case, status=200):
         case = self.get_queryset().get(pk=case.pk)
         context = self.get_serializer_context()
-        if case.report.report_type == 'smear_abnormal':
+        if case.report_id and case.report.report_type == 'smear_abnormal':
             templates = EmailTemplate.objects.filter(organization=case.organization, key__in=SMEAR_PLAN_KEYS,
                                                      language='en', archived=False)
             context['smear_plans'] = [
