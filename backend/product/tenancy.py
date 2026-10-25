@@ -50,11 +50,22 @@ class IsClinicLead(IsOrganizationMember):
     def has_permission(self, request, view):
         if not super().has_permission(request, view):
             return False
-        return OrganizationMember.objects.filter(
-            organization=get_request_organization(request),
+        organization = get_request_organization(request)
+        allowed = OrganizationMember.objects.filter(
+            organization=organization,
             user=request.user,
             role__in=[OrganizationMember.Role.OWNER, OrganizationMember.Role.ADMIN],
         ).exists()
+        if not allowed:
+            from apps.audit.services import client_ip, record_audit_log
+
+            record_audit_log(
+                'access.denied', 'product.action', actor=request.user,
+                metadata={'organization_id': str(organization.pk), 'method': request.method,
+                          'path': request.path[:255], 'action': getattr(view, 'action', '') or ''},
+                ip_address=client_ip(request),
+            )
+        return allowed
 
 
 class OrganizationScopedMixin:

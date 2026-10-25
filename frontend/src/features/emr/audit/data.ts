@@ -1,5 +1,4 @@
 import type {
-  AuditRow,
   AuditTab,
   ClinicUser,
   PermissionCell,
@@ -11,20 +10,51 @@ export const auditTabs: { id: AuditTab; label: string }[] = [
   { id: "users", label: "Users and permissions" },
 ];
 
-export const periodOptions = ["Last 7 days", "Today", "Last 30 days"];
-export const userFilterOptions = ["All users", "Dr. H. Gohar", "Mai Samir", "Patients"];
-export const actionFilterOptions = ["All actions", "View", "Edit", "Acknowledge alert", "Send", "Denied"];
+/** Plain-English names for logged actions; anything not listed is shown as its code. */
+const actionNames: Record<string, string> = {
+  "auth.signin": "Signed in",
+  "auth.signin_failed": "Sign-in failed",
+  "auth.signin_blocked": "Sign-in blocked",
+  "access.denied": "Refused: doctor only",
+  "patient.created": "Created patient file",
+  "patient.opened": "Opened patient file",
+  "patient.updated": "Edited patient file",
+  "patient.searched": "Searched patients",
+  "document.uploaded": "Uploaded document",
+  "document.opened": "Opened document",
+  "document.updated": "Edited document details",
+  "document.listed": "Viewed documents",
+  "report.opened": "Opened results",
+  "report.values_entered": "Entered key values",
+  "report.confirmed": "Confirmed report belongs to patient",
+  "report.reread": "Read report again",
+  "results.history_viewed": "Viewed results history",
+  "review_case.opened": "Opened results case",
+  "review_case.edited": "Edited draft",
+  "review_case.options_chosen": "Chose prescription or follow-up",
+  "review_case.plan_chosen": "Chose smear plan",
+  "review_case.drafted_anyway": "Drafted despite flags",
+  "review_case.approved": "Approved and sent results email",
+  "review_case.rejected": "Rejected results email",
+  "patient_alert.acknowledged": "Acknowledged alert",
+  "mail_thread.opened": "Opened email",
+  "mail_thread.linked": "Filed email with patient",
+  "mail_thread.replied": "Replied by email",
+  "mail_attachment.opened": "Opened email attachment",
+  "mail_attachment.saved": "Saved email attachment to file",
+  "mailbox.updated": "Changed mailbox settings",
+  "template.version_saved": "Saved email template",
+  "template.approved": "Approved email template",
+  "alert_rule.updated": "Edited alert rule",
+  "prescription.created": "Added prescription",
+  "prescription.updated": "Edited prescription",
+  "lab_test.updated": "Edited lab test",
+  "clinic_profile.updated": "Edited clinic details",
+};
 
-export const auditRows: AuditRow[] = [
-  { time: "13 Oct 09:41", who: "Dr. H. Gohar", role: "Doctor", action: "Acknowledged alert", patient: "VC-000142", details: 'R7 · Reason: "TVUS booked before treatment"', outcome: "success" },
-  { time: "13 Oct 09:38", who: "Dr. H. Gohar", role: "Doctor", action: "Opened visit summary", patient: "VC-000142", details: "Summary, Menopause tab", outcome: "success" },
-  { time: "13 Oct 09:20", who: "Mai Samir", role: "Clinic staff", action: "Opened alerts", patient: "VC-000142", details: "Staff role is not allowed to view clinical alerts", outcome: "denied" },
-  { time: "13 Oct 09:12", who: "Mai Samir", role: "Clinic staff", action: "Entered key values", patient: "VC-000142", details: "Ferritin 32, HbA1c 5.3, TSH 1.8 · from 3 Oct scan", outcome: "success" },
-  { time: "12 Oct 21:04", who: "Laila Ahmed", role: "Patient", action: "Replied to email", patient: "VC-000142", details: 'Thread "Blood results" · saved to record', outcome: "success" },
-  { time: "12 Oct 18:30", who: "Nour Saleh", role: "Patient", action: "Submitted follow-up form", patient: "VC-000118", details: "MRS 9 · signed in with link + code", outcome: "success" },
-  { time: "12 Oct 11:02", who: "Dr. H. Gohar", role: "Doctor", action: "Edited alert rule", patient: "Clinic settings", details: "Mammogram interval set for R36 · R16 unchanged", outcome: "success" },
-  { time: "11 Oct 09:52", who: "Dr. H. Gohar", role: "Doctor", action: "Sent lab request", patient: "VC-000142", details: "Baseline – full panel + hormones · emailed to lab", outcome: "success" },
-];
+export function actionText(action: string): string {
+  return actionNames[action] ?? action;
+}
 
 export const outcomeLabel = { success: "Success", denied: "Denied" } as const;
 

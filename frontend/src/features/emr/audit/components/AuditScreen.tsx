@@ -18,7 +18,7 @@ export function AuditScreen() {
         <div className="flex flex-col gap-2">
           <h1 className="m-0 text-[30px] font-bold">Audit log and users</h1>
           <Pill tone="ok" size="sm" className="self-start font-normal">
-            ✓ Append-only · integrity check passed 13 Oct 06:00
+            ✓ Append-only: rows cannot be edited or deleted from the platform
           </Pill>
         </div>
         <div role="tablist" className="ms-auto flex gap-1 rounded-full bg-canvas p-[5px]">

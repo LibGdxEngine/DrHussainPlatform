@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from apps.common.pagination import StandardResultsSetPagination
 from core.api_errors import error_response
-from product.audit import audit
+from product.audit import audit, audit_access
 from product.tenancy import OrganizationScopedMixin
 
 from .models import Patient
@@ -49,11 +49,19 @@ class PatientViewSet(
             queryset = queryset.filter(file_number=normalize_file_number(params['file_number']))
         query = params.get('q', '').strip()
         if query:
+            self._searched = query
             queryset = queryset.filter(
                 Q(full_name__icontains=query) | Q(file_number__icontains=query)
                 | Q(mobile__icontains=query) | Q(whatsapp__icontains=query) | Q(email__icontains=query)
             )
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        if getattr(self, '_searched', ''):
+            # Who looked up which patients is part of the record of access.
+            audit_access(request, 'patient.searched', query=self._searched[:100], results=response.data.get('count'))
+        return response
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

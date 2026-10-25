@@ -62,6 +62,12 @@ STARTER_ALERT_RULES = [
     ("R40", "Last annual review (12)", ">", "12", "months", None, "", "reminder", "Annual benefit/risk review"),
 ]
 
+# The starter rules that are about lab values, and how each is checked against results.
+STARTER_LAB_CHECKS = {
+    'R34': ('testosterone_total', 'gt'),
+    'R39': ('lpa', 'never_measured'),
+}
+
 # MRS total score bands, forms doc section 4.
 STARTER_MRS_BANDS = [{'label': 'Mild', 'min': 5}, {'label': 'Moderate', 'min': 9}, {'label': 'Severe', 'min': 16}]
 
@@ -131,9 +137,11 @@ def _load_starter_content(organization) -> None:
     if not AlertRule.objects.filter(organization=organization).exists():
         for position, (code, field, pre, a, mid, b, post, level, message) in enumerate(STARTER_ALERT_RULES):
             rule = AlertRule.objects.create(organization=organization, code=code, sort_order=position)
+            test_code, check = STARTER_LAB_CHECKS.get(code, ('', ''))
             AlertRuleVersion.objects.create(
                 rule=rule, number=1, field=field, pre=pre, threshold_a=a, mid=mid, threshold_b=b, post=post,
-                level=level, message=message, note='Starter list from the forms doc', created_by=None,
+                level=level, message=message, lab_test_code=test_code, lab_check=check,
+                note='Starter list from the forms doc', created_by=None,
             )
     if not ScoreBandSet.objects.filter(organization=organization, code='mrs').exists():
         band_set = ScoreBandSet.objects.create(organization=organization, code='mrs', name='MRS total score')

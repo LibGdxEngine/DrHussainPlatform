@@ -7,7 +7,7 @@ from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from product.audit import audit
+from product.audit import audit, audit_access
 from product.tenancy import IsClinicLead, OrganizationScopedMixin, get_request_organization
 
 from .catalog import ensure_catalog, normalize_test_name
@@ -164,6 +164,9 @@ class ManualEntryView(OrganizationScopedMixin, generics.GenericAPIView):
             user=request.user,
         )
         audit(request, 'report.values_entered', report, tests=[entry['test'] for entry in data['values']])
+        from product.alerts.services import evaluate_patient
+
+        evaluate_patient(document.patient)
         report = InvestigationReport.objects.prefetch_related('values__lab_test').get(pk=report.pk)
         return Response(InvestigationReportSerializer(report).data)
 
@@ -176,6 +179,13 @@ class ResultHistoryViewSet(OrganizationScopedMixin, mixins.ListModelMixin, views
     """A patient's results over time, oldest first. Only reports sure to be this patient's are included."""
     queryset = ResultValue.objects.select_related('lab_test', 'report')
     serializer_class = ResultValueSerializer
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        if request.query_params.get('patient'):
+            audit_access(request, 'results.history_viewed', patient_id=request.query_params['patient'],
+                         test=request.query_params.get('test', ''))
+        return response
 
     def get_queryset(self):
         queryset = super().get_queryset().filter(report__in_history=True)

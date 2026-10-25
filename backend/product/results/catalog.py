@@ -43,6 +43,8 @@ DEFAULT_TESTS = [
     ('glucose_fasting', 'Fasting glucose', NUMERIC, 'mmol/L', (None, None, ''), False,
      ['fasting blood sugar', 'fbs', 'fasting plasma glucose', 'glucose fasting']),
     ('free_t4', 'Free T4', NUMERIC, 'pmol/L', (None, None, ''), False, ['ft4', 'free thyroxine']),
+    ('lpa', 'Lp(a)', NUMERIC, 'nmol/L', (None, None, ''), False,
+     ['lp a', 'lipoprotein a', 'lipoprotein little a', 'lp little a']),
     ('chlamydia', 'Chlamydia trachomatis', QUALITATIVE, '', (None, None, ''), False,
      ['chlamydia', 'chlamydia trachomatis pcr', 'c trachomatis']),
     ('gonorrhoea', 'Neisseria gonorrhoeae', QUALITATIVE, '', (None, None, ''), False,
@@ -79,24 +81,35 @@ def normalize_test_name(name: str) -> str:
     return ' '.join(_PUNCTUATION.sub(' ', text).split())
 
 
+DEFAULT_CODES = frozenset(code for code, *_ in DEFAULT_TESTS)
+
+
 def ensure_catalog(organization) -> None:
-    """Load the starting catalog the first time a clinic needs it; later edits are never overwritten."""
-    if LabTest.objects.filter(organization=organization).exists():
+    """
+    Load the starting catalog the first time a clinic needs it, and add tests that later releases
+    introduced. Tests the clinic already has are never changed.
+    """
+    if DEFAULT_CODES <= set(LabTest.objects.filter(organization=organization).values_list('code', flat=True)):
         return
     with transaction.atomic():
         # Concurrent first requests would otherwise both load it; lock the clinic and look again.
         Organization.objects.select_for_update().get(pk=organization.pk)
-        if not LabTest.objects.filter(organization=organization).exists():
-            _load_catalog(organization)
+        existing = set(LabTest.objects.filter(organization=organization).values_list('code', flat=True))
+        _load_catalog(organization, skip=existing)
 
 
-def _load_catalog(organization) -> None:
+def _load_catalog(organization, *, skip=frozenset()) -> None:
+    taken = set(LabTestAlias.objects.filter(organization=organization).values_list('alias', flat=True))
     for position, (code, name, kind, unit, (low, high, text), tracked, aliases) in enumerate(DEFAULT_TESTS):
+        if code in skip:
+            continue
         test = LabTest.objects.create(
             organization=organization, code=code, name=name, kind=kind, default_unit=unit,
             optimal_low=low, optimal_high=high, optimal_text=text, tracked=tracked, sort_order=position * 10,
         )
-        names = {normalize_test_name(n) for n in [name, code.replace('_', ' '), *aliases]}
+        # Names the clinic already gave to another test stay with that test.
+        names = {normalize_test_name(n) for n in [name, code.replace('_', ' '), *aliases]} - taken
+        taken |= names
         LabTestAlias.objects.bulk_create(
             [LabTestAlias(lab_test=test, organization=organization, alias=n) for n in sorted(names)],
             ignore_conflicts=True,

@@ -34,6 +34,7 @@ const caseFlagText: Record<string, string> = {
 };
 
 export function caseFlag(code: string): string {
+  if (code.startsWith("red_alert_")) return `Red alert rule ${code.slice("red_alert_".length)} fired on these results. Acknowledge it to continue.`;
   return caseFlagText[code] ?? flagReason(code);
 }
 

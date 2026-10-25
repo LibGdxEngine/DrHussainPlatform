@@ -13,6 +13,7 @@ import type { PatientDocument } from "@/lib/api/emr/documents";
 import { ApiError, apiErrorMessage } from "@/lib/api/emr/errors";
 import { resultsApi, type InvestigationReport, type LabTest, type ResultValue } from "@/lib/api/emr/results";
 import { flagReason, reportTypeLabel, statusLabel } from "../labels";
+import { AlertsList } from "./AlertsList";
 import { ResultValuesTable } from "./ResultValuesTable";
 
 /** Lab results and pathology are read automatically; other files only take typed values. */
@@ -135,6 +136,8 @@ export function ResultsPanel({ document }: { document: PatientDocument }) {
           </Pill>
         ) : null}
       </div>
+
+      <AlertsList patient={document.patient} />
 
       {loaded?.error ? <p role="alert" className="m-0 text-sm text-danger-ink">{loaded.error}</p> : null}
       {!loaded ? <p className="m-0 text-[13px] text-muted">Loading…</p> : null}

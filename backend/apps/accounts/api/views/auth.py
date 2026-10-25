@@ -17,6 +17,7 @@ from apps.accounts.api.serializers import (
     PasswordChangeSerializer,
 )
 from apps.accounts.phone import mask_phone
+from apps.audit.services import client_ip, record_audit_log
 from apps.accounts.services import (
     signup_user,
     authenticate_user,
@@ -67,14 +68,21 @@ class LoginView(APIView):
         try:
             user = authenticate_user(identifier=identifier, password=password, request=request)
             tokens = issue_tokens_for_user(user)
+            record_audit_log('auth.signin', 'accounts.user', actor=user, resource_id=user.pk,
+                             ip_address=client_ip(request))
             return Response(tokens, status=status.HTTP_200_OK)
         except PhoneVerificationRequiredError as exc:
+            record_audit_log('auth.signin_blocked', 'accounts.user', resource_id=exc.user.pk,
+                             metadata={'reason': 'phone_verification_required'}, ip_address=client_ip(request))
             return error_response(
                 "PHONE_VERIFICATION_REQUIRED", exc.message,
                 context={"email": exc.user.email, "phone": mask_phone(exc.user.phone)},
                 status=status.HTTP_403_FORBIDDEN,
             )
         except ValidationError as exc:
+            # The typed identifier is kept (never the password) so repeated guessing is visible.
+            record_audit_log('auth.signin_failed', 'accounts.user', metadata={'identifier': identifier[:255]},
+                             ip_address=client_ip(request))
             return error_response(
                 "INVALID_CREDENTIALS", exc.message if hasattr(exc, "message") else str(exc),
                 status=status.HTTP_401_UNAUTHORIZED,

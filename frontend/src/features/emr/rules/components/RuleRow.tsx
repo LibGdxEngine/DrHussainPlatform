@@ -10,6 +10,10 @@ const levelTone: Record<RuleLevel, PillTone> = { red: "red", amber: "amber", rem
 
 export const cell = "border-b border-line-soft px-2 py-2.5";
 
+const checkText: Record<string, string> = {
+  gt: "above the cut-off", gte: "at or above", lt: "below the cut-off", lte: "at or below", never_measured: "never measured",
+};
+
 const thresholdInput =
   "min-h-8 rounded-[10px] border border-hatch bg-brand-wash text-center text-[13px] font-semibold outline-none focus:border-brand";
 
@@ -41,7 +45,14 @@ export function RuleRow({ rule, a, b, enabled, edited, onChangeA, onChangeB, onT
           v{rule.version}
         </span>
       </td>
-      <td className={cell}>{rule.field}</td>
+      <td className={cell}>
+        {rule.field}
+        {rule.lab_check ? (
+          <span className="mt-1 block text-[11px] text-brand-ink">
+            Checked on results ({checkText[rule.lab_check] ?? rule.lab_check} · {rule.lab_test_code})
+          </span>
+        ) : null}
+      </td>
       <td className={cell}>
         <div className="flex flex-wrap items-center gap-1.5 text-ink-2">
           {rule.pre}

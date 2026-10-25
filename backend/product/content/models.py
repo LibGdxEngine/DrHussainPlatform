@@ -179,6 +179,16 @@ class AlertRule(BaseModel):
         return self.versions.order_by('-number').first()
 
 
+class LabCheck(models.TextChoices):
+    """How a rule is checked against lab results. Rules about forms and history are not checked here."""
+    NONE = '', 'Not checked against results'
+    ABOVE = 'gt', 'Above the cut-off'
+    AT_OR_ABOVE = 'gte', 'At or above the cut-off'
+    BELOW = 'lt', 'Below the cut-off'
+    AT_OR_BELOW = 'lte', 'At or below the cut-off'
+    NEVER_MEASURED = 'never_measured', 'Never measured'
+
+
 class AlertRuleVersion(Version):
     rule = models.ForeignKey(AlertRule, on_delete=models.CASCADE, related_name='versions')
     field = models.CharField(max_length=255)
@@ -191,6 +201,10 @@ class AlertRuleVersion(Version):
     level = models.CharField(max_length=10, choices=AlertLevel.choices)
     message = models.CharField(max_length=255)
     enabled = models.BooleanField(default=True)
+    # When set, the rule is checked against the patient's results: the latest value of this catalog
+    # test compared with threshold_a, or "never measured".
+    lab_test_code = models.SlugField(max_length=64, blank=True, default='')
+    lab_check = models.CharField(max_length=16, choices=LabCheck.choices, blank=True, default='')
 
     class Meta(Version.Meta):
         constraints = [models.UniqueConstraint(fields=['rule', 'number'], name='content_alert_rule_version_number')]

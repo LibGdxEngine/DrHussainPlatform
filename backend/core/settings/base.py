@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'product.content.apps.ContentConfig',
     'product.review.apps.ReviewConfig',
     'product.mail.apps.MailConfig',
+    'product.alerts.apps.AlertsConfig',
+    'product.activity.apps.ActivityConfig',
 ]
 
 MIDDLEWARE = [
@@ -119,9 +121,9 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
-    # Patient documents: outside MEDIA_ROOT and only served through authenticated views.
+    # Patient documents: outside MEDIA_ROOT, encrypted at rest, and only served through authenticated views.
     "private": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "BACKEND": "product.storage.EncryptedFileSystemStorage",
         "OPTIONS": {"location": BASE_DIR / 'private_media'},
     },
 }
@@ -344,6 +346,8 @@ EXPIRED_TOKEN_RETENTION_DAYS = int(os.environ.get('EXPIRED_TOKEN_RETENTION_DAYS'
 INVITATION_EXPIRY_DAYS = int(os.environ.get('INVITATION_EXPIRY_DAYS', 7))
 TEMP_UPLOAD_RETENTION_HOURS = int(os.environ.get('TEMP_UPLOAD_RETENTION_HOURS', 24))
 DOCUMENT_MAX_UPLOAD_BYTES = int(os.environ.get('DOCUMENT_MAX_UPLOAD_BYTES', 25 * 1024 * 1024))
+# Fernet keys for patient files at rest, comma-separated: the first encrypts, all decrypt (rotation).
+MEDIA_ENCRYPTION_KEYS = os.environ.get('MEDIA_ENCRYPTION_KEYS', '')
 # Investigation reports are read on this server (PDF text layer, else Tesseract OCR). Adding 'ara'
 # reads Arabic too but makes Tesseract misread Latin letters such as the H/L flags, so it is opt-in.
 RESULTS_OCR_LANGUAGES = os.environ.get('RESULTS_OCR_LANGUAGES', 'eng')

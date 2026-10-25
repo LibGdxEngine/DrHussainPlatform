@@ -1,15 +1,3 @@
-export type AuditOutcome = "success" | "denied";
-
-export interface AuditRow {
-  time: string;
-  who: string;
-  role: string;
-  action: string;
-  patient: string;
-  details: string;
-  outcome: AuditOutcome;
-}
-
 export type PermissionTone = "yes" | "no" | "own" | "readOnly" | "na";
 
 export interface PermissionCell {

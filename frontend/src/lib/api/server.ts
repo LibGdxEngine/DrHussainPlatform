@@ -16,7 +16,12 @@ export function createServerApiClient(token?: string) {
       propagation.inject(context.active(), outgoing);
       let incomingId: string | undefined;
       try {
-        incomingId = validRequestId((await headers()).get("x-request-id"));
+        const incoming = await headers();
+        incomingId = validRequestId(incoming.get("x-request-id"));
+        // Calls made for a browser (sign-in) keep the browser's address for the audit log. The proxy
+        // appended it last, and the backend only trusts that last entry.
+        const forwarded = incoming.get("x-forwarded-for");
+        if (forwarded) outgoing["x-forwarded-for"] = forwarded;
       } catch {
         // Background server calls have no Next.js request context.
       }

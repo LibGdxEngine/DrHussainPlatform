@@ -11,6 +11,7 @@ import { reviewApi, type Draft, type ResultsCaseDetail } from "@/lib/api/emr/rev
 import { DocumentPreview } from "../../documents/components/DocumentPreview";
 import { formatDay } from "../../format";
 import { reportTypeLabel } from "../../results/labels";
+import { AlertsList } from "../../results/components/AlertsList";
 import { ResultValuesTable } from "../../results/components/ResultValuesTable";
 import { emrRoutes } from "../../routes";
 import { Notice, type NoticeState } from "../../settings/components/Notice";
@@ -135,6 +136,10 @@ export function CaseScreen({ caseId }: { caseId: string }) {
           </Panel>
         ) : null}
         <div className="flex flex-col gap-4 xl:col-span-2 2xl:col-span-1">
+          <AlertsList
+            patient={detail.patient.id}
+            onAcknowledged={() => void act(() => reviewApi.get(detail.id), "Alert acknowledged.")}
+          />
           <DecisionPanel detail={detail} busy={busy} act={act} />
           <ActionLog detail={detail} />
         </div>
@@ -267,6 +272,15 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
         {draft.edited ? <Pill tone="brand" size="xs">Edited</Pill> : null}
         <span className="ms-auto text-xs text-muted">To {detail.patient.email || "— no email on file"}</span>
       </div>
+
+      {detail.patient.preferred_language === "ar" && draft.language !== "ar" ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-brand-wash px-3 py-2.5 text-[13px] text-brand-ink">
+          This patient prefers Arabic. The draft is in English unless you ask for Arabic.
+          <ActionButton size="sm" className="ms-auto" disabled={busy} onClick={() => rebuild({ language: "ar" }, "Arabic draft built.")}>
+            Make an Arabic draft
+          </ActionButton>
+        </div>
+      ) : null}
 
       <fieldset className="m-0 flex flex-col gap-2 rounded-2xl border border-line p-3.5">
         <legend className="px-1 text-[13px] font-medium text-ink-2">Choices (rebuild the draft)</legend>

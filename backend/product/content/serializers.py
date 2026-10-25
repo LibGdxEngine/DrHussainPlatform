@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from .models import (
-    AlertLevel, AlertRule, AlertRuleVersion, ClinicProfile, EmailTemplate, EmailTemplateVersion, Leaflet,
+    AlertLevel, AlertRule, AlertRuleVersion, LabCheck, ClinicProfile, EmailTemplate, EmailTemplateVersion, Leaflet,
     LeafletVersion, PrescriptionItem, PrescriptionVersion, ScoreBandSet, ScoreBandVersion, TemplatePart,
 )
 from .placeholders import validate_text
@@ -158,10 +158,11 @@ class AlertRuleVersionSerializer(VersionMetaMixin, serializers.ModelSerializer):
     class Meta:
         model = AlertRuleVersion
         fields = ['id', 'number', 'field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message',
-                  'enabled', 'note', 'created_by_name', 'created_at']
+                  'enabled', 'lab_test_code', 'lab_check', 'note', 'created_by_name', 'created_at']
 
 
-_RULE_FIELDS = ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled')
+_RULE_FIELDS = ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled',
+               'lab_test_code', 'lab_check')
 
 
 class AlertRuleSerializer(serializers.ModelSerializer):
@@ -174,6 +175,9 @@ class AlertRuleSerializer(serializers.ModelSerializer):
     level = serializers.ChoiceField(choices=AlertLevel.choices)
     message = serializers.CharField(max_length=255)
     enabled = serializers.BooleanField(required=False)
+    lab_test_code = serializers.SlugField(max_length=64, allow_blank=True, required=False,
+                                          help_text='Catalog test the rule checks, e.g. testosterone_total.')
+    lab_check = serializers.ChoiceField(choices=LabCheck.choices, allow_blank=True, required=False)
     note = serializers.CharField(max_length=255, allow_blank=True, required=False, write_only=True)
     version = serializers.IntegerField(read_only=True)
     changed_at = serializers.DateTimeField(read_only=True)
@@ -191,6 +195,18 @@ class AlertRuleSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({name: ['This rule does not have that cut-off.']})
             if attrs.get(name) is not None and not attrs[name].strip():
                 raise serializers.ValidationError({name: ['Enter a cut-off.']})
+        check = attrs.get('lab_check', getattr(current, 'lab_check', ''))
+        code = attrs.get('lab_test_code', getattr(current, 'lab_test_code', ''))
+        cut_off = attrs.get('threshold_a', getattr(current, 'threshold_a', None))
+        if check and not code:
+            raise serializers.ValidationError({'lab_test_code': ['Choose the test this rule checks.']})
+        if code:
+            from product.results.models import LabTest
+
+            if not LabTest.objects.filter(organization=self.context['organization'], code=code).exists():
+                raise serializers.ValidationError({'lab_test_code': ['That test is not in the clinic catalog.']})
+        if check and check != LabCheck.NEVER_MEASURED and cut_off is None:
+            raise serializers.ValidationError({'lab_check': ['A comparison needs a cut-off.']})
         return attrs
 
     def to_representation(self, instance):

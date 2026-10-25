@@ -3,11 +3,10 @@ import shutil
 import tempfile
 from itertools import count
 
-from django.core.files.storage import FileSystemStorage
-
 from apps.accounts.models import User
 from apps.organizations.models import OrganizationMember
 from product.records.models import Document
+from product.storage import EncryptedFileSystemStorage
 
 _phones = count(1)
 
@@ -27,10 +26,14 @@ class PrivateStorageMixin:
 
     def setUp(self):
         super().setUp()
-        # The field resolves its storage once at import, so swap it rather than the setting.
+        # File fields resolve their storage once at import, so swap them rather than the setting.
+        from product.content.models import LeafletVersion
+        from product.mail.models import MailAttachment
+
         self.storage_dir = tempfile.mkdtemp()
-        field = Document._meta.get_field('file')
-        original_storage = field.storage
-        field.storage = FileSystemStorage(location=self.storage_dir)
-        self.addCleanup(setattr, field, 'storage', original_storage)
+        storage = EncryptedFileSystemStorage(location=self.storage_dir)
+        for model in (Document, LeafletVersion, MailAttachment):
+            field = model._meta.get_field('file')
+            self.addCleanup(setattr, field, 'storage', field.storage)
+            field.storage = storage
         self.addCleanup(shutil.rmtree, self.storage_dir, ignore_errors=True)

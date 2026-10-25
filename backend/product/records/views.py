@@ -7,7 +7,7 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from core.api_errors import error_response
-from product.audit import audit
+from product.audit import audit, audit_access
 from product.results.pipeline import schedule_reading
 from product.tenancy import OrganizationScopedMixin
 
@@ -63,6 +63,13 @@ class DocumentViewSet(
             if params.get('slot'):
                 queryset = queryset.filter(slot=params['slot'])
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        if request.query_params.get('patient'):
+            audit_access(request, 'document.listed', patient_id=request.query_params['patient'],
+                         count=len(response.data))
+        return response
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

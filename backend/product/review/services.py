@@ -51,6 +51,11 @@ def decide(report: InvestigationReport | None, case: ResultsCase | None = None, 
     if case is not None and case.kind == ResultsCase.Kind.REPLY:
         return Decision(ResultsCase.Status.DRAFTED, route='reply', keys=['prescription_reply'])
     flags = [] if ignore_flags else _doctor_flags(report)
+    if not ignore_flags:
+        from product.alerts.services import open_red_alerts
+
+        # A red alert rule fired on these results: the doctor sees it before any draft is made.
+        flags += [f'red_alert_{code}' for code in open_red_alerts(report)]
     if flags:
         return Decision(ResultsCase.Status.FLAGGED, flags=flags)
     values = list(report.values.select_related('lab_test'))
@@ -103,6 +108,9 @@ def route_report(report: InvestigationReport, *, actor=None) -> ResultsCase | No
                                        ResultsCase.Status.REJECTED}:
         return case
     _log(case, ReviewAction.Action.OPENED if created else ReviewAction.Action.REROUTED, actor)
+    from product.alerts.services import evaluate_patient
+
+    evaluate_patient(report.patient)
     # A new reading may bring new flags, so an earlier "draft anyway" no longer applies.
     case.flags_overridden = False
     _apply(case, decide(report, case), actor=actor)

@@ -226,7 +226,8 @@ class PrescriptionViewSet(
 
 # --- Alert rules ----------------------------------------------------------------------------------
 
-RULE_FIELDS = ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled')
+RULE_FIELDS = ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled',
+              'lab_test_code', 'lab_check')
 
 
 class AlertRuleViewSet(
