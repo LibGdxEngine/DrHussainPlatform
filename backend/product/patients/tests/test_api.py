@@ -68,6 +68,29 @@ class PatientApiTests(APITestCase):
         by_number = self.client.get(URL, {'file_number': 'vc-000002'})
         self.assertEqual([p['full_name'] for p in by_number.data['results']], ['Nour Saleh'])
 
+    def test_search_by_arabic_name_and_nearby_date_of_birth(self):
+        create_patient(self.clinic, full_name='Laila Ahmed', full_name_ar='ليلى أحمد', date_of_birth=date(1974, 3, 9))
+        create_patient(self.clinic, full_name='Nour Saleh', date_of_birth=date(1974, 9, 3))
+        create_patient(self.clinic, full_name='Salma Nabil', date_of_birth=date(1990, 1, 1))
+
+        arabic = self.client.get(URL, {'q': 'ليلي'})
+        self.assertEqual([p['full_name'] for p in arabic.data['results']], ['Laila Ahmed'])
+        self.assertEqual(arabic.data['results'][0]['full_name_ar'], 'ليلى أحمد')
+
+        nearby = self.client.get(URL, {'date_of_birth': '1974-03-10'})
+        self.assertEqual(nearby.data['count'], 2)
+        self.assertEqual([p['full_name'] for p in nearby.data['results']], ['Laila Ahmed', 'Nour Saleh'])
+        self.assertTrue(AuditLog.objects.filter(action='patient.searched').exists())
+
+        bad = self.client.get(URL, {'date_of_birth': '10/03/1974'})
+        self.assertEqual(bad.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('date_of_birth', bad.data['error']['fields'])
+
+    def test_create_stores_arabic_name(self):
+        response = self.client.post(URL, {**self.payload, 'full_name_ar': ' ليلى  أحمد '}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['full_name_ar'], 'ليلى أحمد')
+
     def test_other_clinic_patient_is_not_found(self):
         other = Organization.objects.create(name='Other', slug='other')
         stranger = create_patient(other, full_name='Laila Other', date_of_birth=date(1974, 3, 9))

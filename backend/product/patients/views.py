@@ -1,6 +1,8 @@
-from django.db.models import Q
+from datetime import date
+
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import mixins, status, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.common.pagination import StandardResultsSetPagination
@@ -10,12 +12,16 @@ from product.tenancy import OrganizationScopedMixin
 
 from .models import Patient
 from .serializers import PatientCreateSerializer, PatientSerializer, SimilarPatientSerializer
-from .services import create_patient, find_similar, normalize_file_number
+from .services import create_patient, find_similar, normalize_file_number, search_patients
 
 
 @extend_schema_view(
     list=extend_schema(parameters=[
-        OpenApiParameter('q', str, description='Search by name, file number, mobile or email.'),
+        OpenApiParameter('q', str, description='Search by name (English or Arabic), file number, mobile or email.'),
+        OpenApiParameter(
+            'date_of_birth', date,
+            description='Only patients born on or within a year of this day, nearest first (YYYY-MM-DD).',
+        ),
         OpenApiParameter('file_number', str, description='Exact file number, e.g. VC-000142.'),
     ]),
     create=extend_schema(
@@ -48,13 +54,19 @@ class PatientViewSet(
         if params.get('file_number'):
             queryset = queryset.filter(file_number=normalize_file_number(params['file_number']))
         query = params.get('q', '').strip()
-        if query:
-            self._searched = query
-            queryset = queryset.filter(
-                Q(full_name__icontains=query) | Q(file_number__icontains=query)
-                | Q(mobile__icontains=query) | Q(whatsapp__icontains=query) | Q(email__icontains=query)
-            )
-        return queryset
+        date_of_birth = self._date_param('date_of_birth')
+        if query or date_of_birth:
+            self._searched = ' '.join(filter(None, [query, date_of_birth and date_of_birth.isoformat()]))
+        return search_patients(queryset, query=query, date_of_birth=date_of_birth)
+
+    def _date_param(self, name: str) -> date | None:
+        value = self.request.query_params.get(name, '').strip()
+        if not value:
+            return None
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            raise ValidationError({name: ['Enter a date as YYYY-MM-DD.']})
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
@@ -69,7 +81,7 @@ class PatientViewSet(
         fields = dict(serializer.validated_data)
         confirm_duplicate = fields.pop('confirm_duplicate')
         organization = serializer.context['organization']
-        similar = find_similar(organization, fields['full_name'], fields['date_of_birth'])
+        similar = find_similar(organization, fields['full_name'], fields['date_of_birth'], fields.get('full_name_ar', ''))
         if not confirm_duplicate and similar.exists():
             return error_response(
                 'DUPLICATE_PATIENT',

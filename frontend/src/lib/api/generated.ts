@@ -1181,6 +1181,42 @@ export interface paths {
         patch: operations["product_patients_partial_update"];
         trace?: never;
     };
+    "/api/product/records/diagnoses/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Doctor-only diagnoses with versioned clinical content and no delete endpoint. */
+        get: operations["product_records_diagnoses_list"];
+        put?: never;
+        /** @description Doctor-only diagnoses with versioned clinical content and no delete endpoint. */
+        post: operations["product_records_diagnoses_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/records/diagnoses/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Doctor-only diagnoses with versioned clinical content and no delete endpoint. */
+        get: operations["product_records_diagnoses_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Doctor-only diagnoses with versioned clinical content and no delete endpoint. */
+        patch: operations["product_records_diagnoses_partial_update"];
+        trace?: never;
+    };
     "/api/product/records/documents/": {
         parameters: {
             query?: never;
@@ -2174,6 +2210,52 @@ export interface components {
             /** @description "ok" or what went wrong. */
             imap: string;
         };
+        Diagnosis: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            patient: string;
+            name: string;
+            status: components["schemas"]["DiagnosisStatusEnum"];
+            /** Format: date */
+            noted_on?: string | null;
+            notes?: string;
+            readonly version: number;
+            readonly revisions: components["schemas"]["DiagnosisRevision"][];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        DiagnosisRequest: {
+            /** Format: uuid */
+            patient: string;
+            name: string;
+            status: components["schemas"]["DiagnosisStatusEnum"];
+            /** Format: date */
+            noted_on?: string | null;
+            notes?: string;
+            expected_version?: number;
+        };
+        DiagnosisRevision: {
+            readonly number: number;
+            readonly name: string;
+            readonly status: components["schemas"]["DiagnosisStatusEnum"];
+            /** Format: date */
+            readonly noted_on: string | null;
+            readonly notes: string;
+            readonly author_name: string;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        /**
+         * @description * `suspected` - Suspected
+         *     * `confirmed` - Confirmed
+         *     * `resolved` - Resolved
+         *     * `ruled_out` - Ruled out
+         * @enum {string}
+         */
+        DiagnosisStatusEnum: "suspected" | "confirmed" | "resolved" | "ruled_out";
         /**
          * @description * `in` - Received
          *     * `out` - Sent
@@ -2301,6 +2383,7 @@ export interface components {
             /** Format: int64 */
             sort_order?: number;
             archived?: boolean;
+            pinned?: boolean;
             default_leaflets?: string[];
             readonly latest: components["schemas"]["EmailTemplateVersion"] | null;
             readonly approved: components["schemas"]["EmailTemplateVersion"] | null;
@@ -2804,6 +2887,16 @@ export interface components {
             /** @description Closing lines added under every email. */
             signature?: string;
         };
+        PatchedDiagnosisRequest: {
+            /** Format: uuid */
+            patient?: string;
+            name?: string;
+            status?: components["schemas"]["DiagnosisStatusEnum"];
+            /** Format: date */
+            noted_on?: string | null;
+            notes?: string;
+            expected_version?: number;
+        };
         PatchedDocumentRequest: {
             slot?: components["schemas"]["SlotEnum"];
             title?: string;
@@ -2825,6 +2918,7 @@ export interface components {
             /** Format: int64 */
             sort_order?: number;
             archived?: boolean;
+            pinned?: boolean;
             default_leaflets?: string[];
         };
         PatchedLabTestRequest: {
@@ -2875,6 +2969,8 @@ export interface components {
         };
         PatchedPatientRequest: {
             full_name?: string;
+            /** Arabic name */
+            full_name_ar?: string;
             /** Format: date */
             date_of_birth?: string;
             mobile?: string;
@@ -2909,6 +3005,8 @@ export interface components {
             readonly id: string;
             readonly file_number: string;
             full_name: string;
+            /** Arabic name */
+            full_name_ar?: string;
             /** Format: date */
             date_of_birth: string;
             readonly age: number;
@@ -2958,6 +3056,8 @@ export interface components {
         PatientAlertStatusEnum: "open" | "acknowledged" | "resolved";
         PatientCreateRequest: {
             full_name: string;
+            /** Arabic name */
+            full_name_ar?: string;
             /** Format: date */
             date_of_birth: string;
             mobile?: string;
@@ -10517,6 +10617,8 @@ export interface operations {
                 kind?: string;
                 /** @description en or ar. */
                 language?: string;
+                /** @description Only templates pinned to the home page. */
+                pinned?: boolean;
             };
             header?: never;
             path?: never;
@@ -12911,13 +13013,15 @@ export interface operations {
     product_patients_list: {
         parameters: {
             query?: {
+                /** @description Only patients born on or within a year of this day, nearest first (YYYY-MM-DD). */
+                date_of_birth?: string;
                 /** @description Exact file number, e.g. VC-000142. */
                 file_number?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description Number of results to return per page. */
                 page_size?: number;
-                /** @description Search by name, file number, mobile or email. */
+                /** @description Search by name (English or Arabic), file number, mobile or email. */
                 q?: string;
             };
             header?: never;
@@ -13284,6 +13388,463 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Patient"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_records_diagnoses_list: {
+        parameters: {
+            query: {
+                /** @description Patient whose diagnoses are requested. */
+                patient: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnosis"][];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_records_diagnoses_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiagnosisRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DiagnosisRequest"];
+                "multipart/form-data": components["schemas"]["DiagnosisRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnosis"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_records_diagnoses_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this diagnosis. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnosis"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_records_diagnoses_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this diagnosis. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDiagnosisRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDiagnosisRequest"];
+                "multipart/form-data": components["schemas"]["PatchedDiagnosisRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Diagnosis"];
                 };
             };
             /** @description Invalid request or validation error. */

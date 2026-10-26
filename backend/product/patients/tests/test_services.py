@@ -3,7 +3,10 @@ from datetime import date
 from django.test import TestCase
 
 from apps.organizations.models import Organization
-from product.patients.services import MatchStatus, create_patient, match_patient, normalize_name
+from product.patients.models import Patient
+from product.patients.services import (
+    MatchStatus, create_patient, find_similar, match_patient, normalize_name, search_patients,
+)
 
 DOB = date(1974, 3, 9)
 
@@ -12,8 +15,45 @@ class NormalizeNameTests(TestCase):
     def test_ignores_case_punctuation_spacing_and_titles(self):
         self.assertEqual(normalize_name('  Mrs. Laila   AHMED '), 'laila ahmed')
 
-    def test_keeps_arabic_names(self):
-        self.assertEqual(normalize_name('ليلى  أحمد'), 'ليلى أحمد')
+    def test_folds_arabic_spelling_variants(self):
+        # Hamza forms, taa marbuta, alef maqsura and diacritics vary by writer; all spell the same person.
+        self.assertEqual(normalize_name('ليلى  أحمد'), 'ليلي احمد')
+        self.assertEqual(normalize_name('د. فاطمة إبراهيم'), 'فاطمه ابراهيم')
+        self.assertEqual(normalize_name('مُحَمَّد عـلي'), 'محمد علي')
+        self.assertEqual(normalize_name('ليلي احمد'), normalize_name('ليلى أحمد'))
+
+
+class SearchPatientsTests(TestCase):
+    def setUp(self):
+        self.clinic = Organization.objects.create(name='V-Clinic', slug='v-clinic')
+        self.laila = create_patient(self.clinic, full_name='Laila Ahmed', full_name_ar='ليلى أحمد', date_of_birth=DOB)
+        self.nour = create_patient(self.clinic, full_name='Nour Saleh', date_of_birth=date(1974, 9, 3))
+        self.salma = create_patient(self.clinic, full_name='Salma Nabil', date_of_birth=date(1975, 3, 8))
+        self.far = create_patient(self.clinic, full_name='Laila Far', date_of_birth=date(1980, 3, 9))
+
+    def search(self, **kwargs):
+        return [p.full_name for p in search_patients(Patient.objects.filter(organization=self.clinic), **kwargs)]
+
+    def test_name_in_english_or_arabic(self):
+        self.assertEqual(self.search(query='laila'), ['Laila Ahmed', 'Laila Far'])
+        self.assertEqual(self.search(query='ليلي'), ['Laila Ahmed'])
+        self.assertEqual(self.search(query='أحمد'), ['Laila Ahmed'])
+
+    def test_date_of_birth_finds_nearby_birthdays_nearest_first(self):
+        # Exact day first, then a swapped day/month, then a day and a year off; 1980 is outside the window.
+        self.assertEqual(self.search(date_of_birth=DOB), ['Laila Ahmed', 'Nour Saleh', 'Salma Nabil'])
+
+    def test_name_and_date_of_birth_together(self):
+        self.assertEqual(self.search(query='laila', date_of_birth=date(1974, 3, 10)), ['Laila Ahmed'])
+
+
+class FindSimilarTests(TestCase):
+    def test_same_arabic_name_and_birthday_is_similar(self):
+        clinic = Organization.objects.create(name='V-Clinic', slug='v-clinic')
+        laila = create_patient(clinic, full_name='Laila Ahmed', full_name_ar='ليلى أحمد', date_of_birth=DOB)
+        self.assertEqual(list(find_similar(clinic, 'Layla A.', DOB, 'ليلي احمد')), [laila])
+        self.assertEqual(list(find_similar(clinic, 'ليلى أحمد', DOB)), [laila])
+        self.assertEqual(list(find_similar(clinic, 'Layla A.', DOB)), [])
 
 
 class FileNumberTests(TestCase):
@@ -39,6 +79,13 @@ class MatchPatientTests(TestCase):
 
     def test_date_of_birth_and_name_agree(self):
         result = self.match(date_of_birth=DOB, full_name='LAILA AHMED')
+        self.assertEqual(result.status, MatchStatus.MATCHED)
+        self.assertEqual(result.patient, self.laila)
+
+    def test_arabic_report_name_matches_the_arabic_name_on_file(self):
+        self.laila.full_name_ar = 'ليلى أحمد'
+        self.laila.save()
+        result = self.match(date_of_birth=DOB, full_name='ليلي احمد')
         self.assertEqual(result.status, MatchStatus.MATCHED)
         self.assertEqual(result.patient, self.laila)
 

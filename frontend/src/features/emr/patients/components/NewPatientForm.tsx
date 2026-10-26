@@ -12,7 +12,15 @@ import { Panel } from "@/features/emr/ui/Panel";
 import { ApiError } from "@/lib/api/emr/errors";
 import { patientsApi, type Patient, type SimilarPatient } from "@/lib/api/emr/patients";
 
-const emptyForm = { full_name: "", date_of_birth: "", mobile: "", whatsapp: "", email: "", referring_doctor: "" };
+const emptyForm = {
+  full_name: "",
+  full_name_ar: "",
+  date_of_birth: "",
+  mobile: "",
+  whatsapp: "",
+  email: "",
+  referring_doctor: "",
+};
 type FormFields = typeof emptyForm;
 
 interface NewPatientFormProps {
@@ -85,6 +93,10 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
           <TextInput required value={form.full_name} onChange={set("full_name")} />
           {fieldError("full_name")}
         </Field>
+        <Field label="Arabic name (optional)">
+          <TextInput dir="auto" lang="ar" value={form.full_name_ar} onChange={set("full_name_ar")} />
+          {fieldError("full_name_ar")}
+        </Field>
         <Field label="Date of birth">
           <TextInput type="date" required value={form.date_of_birth} onChange={set("date_of_birth")} />
           {fieldError("date_of_birth")}
@@ -110,7 +122,8 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
               {similar.map((p) => (
                 <li key={p.id}>
                   <Link href={`${emrRoutes.docs}?patient=${encodeURIComponent(p.file_number)}`} className="text-warn-ink">
-                    {p.full_name} · {p.file_number} · born {formatDay(p.date_of_birth)}
+                    {p.full_name}
+                    {p.full_name_ar ? ` (${p.full_name_ar})` : ""} · {p.file_number} · born {formatDay(p.date_of_birth)}
                   </Link>
                 </li>
               ))}
@@ -123,8 +136,8 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
         {error ? <p role="alert" className="m-0 text-xs text-danger-ink">{error}</p> : null}
 
         <p className="m-0 rounded-xl bg-canvas px-3 py-2.5 text-xs leading-[1.7] text-muted">
-          The file number is created automatically. The system will warn you if a similar name and date of birth are
-          already registered. The full medical history is taken at Visit 1.
+          The file number is created automatically. The system will warn you if a similar name (English or Arabic) and
+          date of birth are already registered. The full medical history is taken at Visit 1.
         </p>
         <ActionButton type="submit" className="min-h-12" disabled={busy}>
           {busy ? "Saving…" : "Save patient"}

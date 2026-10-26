@@ -8,10 +8,13 @@ export type Patient = Schemas["Patient"];
 export type PatientCreate = Schemas["PatientCreateRequest"];
 export type PatientUpdate = Schemas["PatchedPatientRequest"];
 export type PatientPage = Schemas["PaginatedPatientList"];
-export type SimilarPatient = Pick<Patient, "id" | "file_number" | "full_name" | "date_of_birth">;
+export type SimilarPatient = Pick<Patient, "id" | "file_number" | "full_name" | "full_name_ar" | "date_of_birth">;
 
 export interface PatientListQuery {
+  /** Name in English or Arabic, file number, mobile or email. */
   q?: string;
+  /** YYYY-MM-DD; lists patients born on or within a year of this day, nearest first. */
+  date_of_birth?: string;
   file_number?: string;
   page?: number;
   page_size?: number;

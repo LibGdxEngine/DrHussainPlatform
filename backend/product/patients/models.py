@@ -26,8 +26,10 @@ class Patient(BaseModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='patients')
     file_number = models.CharField(max_length=20, editable=False)
     full_name = models.CharField(max_length=255)
-    # Lower-cased, single-spaced name for duplicate warnings and report matching.
+    full_name_ar = models.CharField('Arabic name', max_length=255, blank=True, default='')
+    # Lower-cased, single-spaced names for search, duplicate warnings and report matching.
     normalized_name = models.CharField(max_length=255, editable=False, db_index=True)
+    normalized_name_ar = models.CharField(max_length=255, editable=False, blank=True, default='', db_index=True)
     date_of_birth = models.DateField(db_index=True)
     mobile = models.CharField(max_length=32, blank=True, default='')
     whatsapp = models.CharField(max_length=32, blank=True, default='')
@@ -50,4 +52,5 @@ class Patient(BaseModel):
     def save(self, *args, **kwargs):
         from .services import normalize_name
         self.normalized_name = normalize_name(self.full_name)
+        self.normalized_name_ar = normalize_name(self.full_name_ar)
         super().save(*args, **kwargs)

@@ -9193,6 +9193,14 @@
                             "type": "string"
                         },
                         "description": "en or ar."
+                    },
+                    {
+                        "in": "query",
+                        "name": "pinned",
+                        "schema": {
+                            "type": "boolean"
+                        },
+                        "description": "Only templates pinned to the home page."
                     }
                 ],
                 "tags": [
@@ -12341,6 +12349,15 @@
                 "parameters": [
                     {
                         "in": "query",
+                        "name": "date_of_birth",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        },
+                        "description": "Only patients born on or within a year of this day, nearest first (YYYY-MM-DD)."
+                    },
+                    {
+                        "in": "query",
                         "name": "file_number",
                         "schema": {
                             "type": "string"
@@ -12371,7 +12388,7 @@
                         "schema": {
                             "type": "string"
                         },
-                        "description": "Search by name, file number, mobile or email."
+                        "description": "Search by name (English or Arabic), file number, mobile or email."
                     }
                 ],
                 "tags": [
@@ -12852,6 +12869,608 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/Patient"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid request or validation error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed or session expired.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied or required verification.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Response format not acceptable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Request throttled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected internal error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "A required service is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/records/diagnoses/": {
+            "get": {
+                "operationId": "product_records_diagnoses_list",
+                "description": "Doctor-only diagnoses with versioned clinical content and no delete endpoint.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "patient",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "Patient whose diagnoses are requested.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "product"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Diagnosis"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid request or validation error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed or session expired.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied or required verification.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Response format not acceptable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Request throttled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected internal error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "A required service is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "product_records_diagnoses_create",
+                "description": "Doctor-only diagnoses with versioned clinical content and no delete endpoint.",
+                "tags": [
+                    "product"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DiagnosisRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DiagnosisRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DiagnosisRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Diagnosis"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid request or validation error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed or session expired.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied or required verification.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Response format not acceptable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Request throttled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected internal error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "A required service is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/records/diagnoses/{id}/": {
+            "get": {
+                "operationId": "product_records_diagnoses_retrieve",
+                "description": "Doctor-only diagnoses with versioned clinical content and no delete endpoint.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "A UUID string identifying this diagnosis.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "product"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Diagnosis"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid request or validation error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed or session expired.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied or required verification.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Response format not acceptable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Request throttled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected internal error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "A required service is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "product_records_diagnoses_partial_update",
+                "description": "Doctor-only diagnoses with versioned clinical content and no delete endpoint.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "A UUID string identifying this diagnosis.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "product"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedDiagnosisRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedDiagnosisRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PatchedDiagnosisRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Diagnosis"
                                 }
                             }
                         },
@@ -21229,6 +21848,160 @@
                     "smtp"
                 ]
             },
+            "Diagnosis": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true
+                    },
+                    "patient": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/DiagnosisStatusEnum"
+                    },
+                    "noted_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "version": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "revisions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DiagnosisRevision"
+                        },
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "id",
+                    "name",
+                    "patient",
+                    "revisions",
+                    "status",
+                    "updated_at",
+                    "version"
+                ]
+            },
+            "DiagnosisRequest": {
+                "type": "object",
+                "properties": {
+                    "patient": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/DiagnosisStatusEnum"
+                    },
+                    "noted_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "expected_version": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "writeOnly": true
+                    }
+                },
+                "required": [
+                    "name",
+                    "patient",
+                    "status"
+                ]
+            },
+            "DiagnosisRevision": {
+                "type": "object",
+                "properties": {
+                    "number": {
+                        "type": "integer",
+                        "readOnly": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "status": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DiagnosisStatusEnum"
+                            }
+                        ],
+                        "readOnly": true
+                    },
+                    "noted_on": {
+                        "type": "string",
+                        "format": "date",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "author_name": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true
+                    }
+                },
+                "required": [
+                    "author_name",
+                    "created_at",
+                    "name",
+                    "noted_on",
+                    "notes",
+                    "number",
+                    "status"
+                ]
+            },
+            "DiagnosisStatusEnum": {
+                "enum": [
+                    "suspected",
+                    "confirmed",
+                    "resolved",
+                    "ruled_out"
+                ],
+                "type": "string",
+                "description": "* `suspected` - Suspected\n* `confirmed` - Confirmed\n* `resolved` - Resolved\n* `ruled_out` - Ruled out"
+            },
             "DirectionEnum": {
                 "enum": [
                     "in",
@@ -21641,6 +22414,9 @@
                         "format": "int64"
                     },
                     "archived": {
+                        "type": "boolean"
+                    },
+                    "pinned": {
                         "type": "boolean"
                     },
                     "default_leaflets": {
@@ -22793,6 +23569,7 @@
                     },
                     "imap_folder": {
                         "type": "string",
+                        "pattern": "^[\\w .&+/#@\\[\\]-]+$",
                         "maxLength": 255
                     },
                     "last_synced_at": {
@@ -23304,6 +24081,36 @@
                     }
                 }
             },
+            "PatchedDiagnosisRequest": {
+                "type": "object",
+                "properties": {
+                    "patient": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/DiagnosisStatusEnum"
+                    },
+                    "noted_on": {
+                        "type": "string",
+                        "format": "date",
+                        "nullable": true
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "expected_version": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "writeOnly": true
+                    }
+                }
+            },
             "PatchedDocumentRequest": {
                 "type": "object",
                 "properties": {
@@ -23365,6 +24172,9 @@
                         "format": "int64"
                     },
                     "archived": {
+                        "type": "boolean"
+                    },
+                    "pinned": {
                         "type": "boolean"
                     },
                     "default_leaflets": {
@@ -23509,6 +24319,7 @@
                     "imap_folder": {
                         "type": "string",
                         "minLength": 1,
+                        "pattern": "^[\\w .&+/#@\\[\\]-]+$",
                         "maxLength": 255
                     }
                 }
@@ -23538,6 +24349,11 @@
                     "full_name": {
                         "type": "string",
                         "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "full_name_ar": {
+                        "type": "string",
+                        "title": "Arabic name",
                         "maxLength": 255
                     },
                     "date_of_birth": {
@@ -23664,6 +24480,11 @@
                     },
                     "full_name": {
                         "type": "string",
+                        "maxLength": 255
+                    },
+                    "full_name_ar": {
+                        "type": "string",
+                        "title": "Arabic name",
                         "maxLength": 255
                     },
                     "date_of_birth": {
@@ -23852,6 +24673,11 @@
                     "full_name": {
                         "type": "string",
                         "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "full_name_ar": {
+                        "type": "string",
+                        "title": "Arabic name",
                         "maxLength": 255
                     },
                     "date_of_birth": {

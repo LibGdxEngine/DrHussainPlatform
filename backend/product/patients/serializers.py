@@ -15,7 +15,7 @@ class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = [
-            'id', 'file_number', 'full_name', 'date_of_birth', 'age', 'mobile', 'whatsapp', 'email',
+            'id', 'file_number', 'full_name', 'full_name_ar', 'date_of_birth', 'age', 'mobile', 'whatsapp', 'email',
             'referring_doctor', 'first_contact_channel', 'preferred_language', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'file_number', 'created_at', 'updated_at']
@@ -28,6 +28,9 @@ class PatientSerializer(serializers.ModelSerializer):
         if not value:
             raise serializers.ValidationError('Enter the patient\'s full name.')
         return value
+
+    def validate_full_name_ar(self, value):
+        return ' '.join(value.split())
 
     def validate_date_of_birth(self, value):
         if value > date.today():
@@ -48,4 +51,4 @@ class PatientCreateSerializer(PatientSerializer):
 class SimilarPatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
-        fields = ['id', 'file_number', 'full_name', 'date_of_birth']
+        fields = ['id', 'file_number', 'full_name', 'full_name_ar', 'date_of_birth']
