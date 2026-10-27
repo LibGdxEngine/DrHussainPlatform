@@ -7,6 +7,7 @@ export const emrRoutes = {
   exam: "/emr/exam",
   orders: "/emr/orders",
   docs: "/emr/docs",
+  diagnoses: "/emr/diagnoses",
   results: "/emr/results",
   scan: "/emr/scan",
   msgs: "/emr/msgs",
@@ -21,6 +22,7 @@ export const emrRoutes = {
   audit: "/emr/audit",
   invite: "/emr/invite",
   intake: "/emr/intake",
+  join: "/emr/join",
 } as const;
 
 export type EmrRouteKey = keyof typeof emrRoutes;

@@ -102,7 +102,7 @@ export function PatientsBrowser({ refreshKey }: PatientsBrowserProps) {
               <tr key={p.id}>
                 <Td>
                   <Link
-                    href={`${emrRoutes.docs}?patient=${encodeURIComponent(p.file_number)}`}
+                    href={`${emrRoutes.visit}?patient=${encodeURIComponent(p.file_number)}`}
                     className="font-semibold text-ink no-underline hover:text-brand"
                   >
                     {p.full_name}

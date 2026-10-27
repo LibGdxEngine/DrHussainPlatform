@@ -151,10 +151,10 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
             <span className="font-emr-mono">{created.file_number}</span>.
           </span>
           <div className="flex flex-wrap gap-2">
-            <ActionLink href={`${emrRoutes.docs}?patient=${encodeURIComponent(created.file_number)}`} size="sm">
-              Open documents
+            <ActionLink href={`${emrRoutes.visit}?patient=${encodeURIComponent(created.file_number)}`} size="sm">
+              Open patient file
             </ActionLink>
-            <ActionLink href={emrRoutes.appts} variant="quiet" size="sm">
+            <ActionLink href={`${emrRoutes.appts}?patient=${encodeURIComponent(created.file_number)}`} variant="quiet" size="sm">
               Book Visit 1
             </ActionLink>
           </div>

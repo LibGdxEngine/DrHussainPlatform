@@ -1,8 +1,14 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** EMR screens that do not need a staff session: sign-in itself and the patient's own form. */
-const PUBLIC_EMR_PATHS = ["/emr/signin", "/emr/intake"];
+/**
+ * EMR screens that do not need a staff session: sign-in itself, the patient's own form, and the
+ * page where an invited colleague creates their account.
+ */
+const PUBLIC_EMR_PATHS = ["/emr/signin", "/emr/intake", "/emr/join"];
+
+/** Files served from `public/emr` (logos, portraits) must load before anyone has signed in. */
+const STATIC_ASSET = /\.(?:png|jpe?g|webp|svg|ico|gif)$/i;
 
 /**
  * Optimistic gate: send signed-out visitors to sign-in before a staff screen renders.
@@ -10,7 +16,10 @@ const PUBLIC_EMR_PATHS = ["/emr/signin", "/emr/intake"];
  */
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  if (PUBLIC_EMR_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+  if (
+    STATIC_ASSET.test(pathname) ||
+    PUBLIC_EMR_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+  ) {
     return NextResponse.next();
   }
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });

@@ -9,8 +9,6 @@ interface AppShellProps {
   topbarStart?: React.ReactNode;
   showMessages?: boolean;
   showPromo?: boolean;
-  doctorSubtitle?: string;
-  doctorMono?: boolean;
   children: React.ReactNode;
 }
 
@@ -23,8 +21,6 @@ export function AppShell({
   topbarStart,
   showMessages,
   showPromo = true,
-  doctorSubtitle,
-  doctorMono,
   children,
 }: AppShellProps) {
   return (
@@ -35,12 +31,7 @@ export function AppShell({
       <Sidebar active={active} showPromo={showPromo} />
       <main className="flex min-w-0 flex-1 flex-col gap-4">
         {topbarStart ? (
-          <Topbar
-            start={topbarStart}
-            showMessages={showMessages}
-            doctorSubtitle={doctorSubtitle}
-            doctorMono={doctorMono}
-          />
+          <Topbar start={topbarStart} showMessages={showMessages} />
         ) : null}
         {children}
       </main>

@@ -6,6 +6,7 @@ import { ActionLink } from "../ui/Action";
 import { Logo } from "./Logo";
 import { SignOutButton } from "./SignOutButton";
 import { ReviewBadge } from "../review/components/ReviewBadge";
+import { InboxBadge, ScanBadge } from "./LiveBadges";
 
 export type SidebarKey = "today" | "patients" | "appts" | "results" | "docs" | "scan" | "msgs" | "rules" | "audit";
 
@@ -14,7 +15,6 @@ interface NavItem {
   label: string;
   href: string;
   icon: IconName;
-  badge?: string;
   /** Live count rendered on the client. */
   liveBadge?: React.ReactNode;
 }
@@ -24,9 +24,9 @@ const mainNav: NavItem[] = [
   { key: "patients", label: "Patients", href: emrRoutes.patients, icon: "patients" },
   { key: "appts", label: "Appointments", href: emrRoutes.appts, icon: "appts" },
   { key: "results", label: "Results review", href: emrRoutes.results, icon: "check", liveBadge: <ReviewBadge /> },
-  { key: "docs", label: "Documents", href: emrRoutes.docs, icon: "docs", badge: "3" },
-  { key: "scan", label: "Scanning", href: emrRoutes.scan, icon: "scan", badge: "86" },
-  { key: "msgs", label: "Inbox", href: emrRoutes.msgs, icon: "msgs", badge: "2" },
+  { key: "docs", label: "Documents", href: emrRoutes.docs, icon: "docs" },
+  { key: "scan", label: "Scanning", href: emrRoutes.scan, icon: "scan", liveBadge: <ScanBadge /> },
+  { key: "msgs", label: "Inbox", href: emrRoutes.msgs, icon: "msgs", liveBadge: <InboxBadge /> },
 ];
 
 const generalNav: NavItem[] = [
@@ -52,11 +52,6 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       <Icon name={item.icon} />
       {item.label}
       {item.liveBadge}
-      {item.badge ? (
-        <span className="ms-auto rounded-full bg-brand-deep px-[9px] py-px text-xs font-semibold text-white">
-          {item.badge}
-        </span>
-      ) : null}
     </Link>
   );
 }
@@ -85,8 +80,8 @@ export function Sidebar({ active, showPromo = true }: SidebarProps) {
           <span className="text-[13px] leading-relaxed text-mint-2">
             Send the form before the visit so it can be filled in at home
           </span>
-          <ActionLink href={emrRoutes.patients} variant="white" size="sm" className="mt-1.5 min-h-[42px] text-sm">
-            Send link
+          <ActionLink href={emrRoutes.appts} variant="white" size="sm" className="mt-1.5 min-h-[42px] text-sm">
+            Book and send link
           </ActionLink>
         </div>
       ) : null}
