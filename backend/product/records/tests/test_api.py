@@ -75,9 +75,9 @@ class DocumentApiTests(PrivateStorageMixin, APITestCase):
         self.upload(patient=str(other_patient.id), file=pdf('other.pdf', PDF + b'%other'))
 
         response = self.client.get(URL, {'patient': str(self.patient.id)})
-        self.assertEqual(sorted(d['slot'] for d in response.data), ['lab', 'letter'])
+        self.assertEqual(sorted(d['slot'] for d in response.data['results']), ['lab', 'letter'])
         letters = self.client.get(URL, {'patient': str(self.patient.id), 'slot': 'letter'})
-        self.assertEqual([d['title'] for d in letters.data], ['referral'])
+        self.assertEqual([d['title'] for d in letters.data['results']], ['referral'])
 
     def test_download_streams_the_original_and_is_audited(self):
         document_id = self.upload().data['id']

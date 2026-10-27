@@ -2,6 +2,7 @@
 
 import type { components } from "../generated";
 import { apiClient } from "../browser";
+import { MAX_PAGE_SIZE, type Page } from "./page";
 
 type Schemas = components["schemas"];
 export type IntakeForm = Schemas["IntakeForm"];
@@ -21,7 +22,8 @@ const BASE = "/product/intake";
 /** Staff side: issue, send and read patient forms. */
 export const intakeApi = {
   list: (query: { patient?: string; appointment?: string }) =>
-    apiClient.get<IntakeForm[]>(`${BASE}/forms/`, { query: { ...query } }),
+    apiClient.get<Page<IntakeForm>>(`${BASE}/forms/`, { query: { ...query, page_size: MAX_PAGE_SIZE } })
+      .then((page) => page.results),
   get: (id: string) => apiClient.get<IntakeFormDetail>(`${BASE}/forms/${id}/`),
   /** Rejects with NO_RECIPIENT or MAILBOX_NOT_READY when send_email is set and it can't be emailed. */
   issue: (body: IntakeFormCreate) => apiClient.post<IntakeFormLink>(`${BASE}/forms/`, body),

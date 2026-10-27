@@ -2,6 +2,7 @@
 
 import type { components } from "../generated";
 import { apiClient } from "../browser";
+import { MAX_PAGE_SIZE, type Page } from "./page";
 
 type Schemas = components["schemas"];
 export type EmailTemplate = Schemas["EmailTemplate"];
@@ -21,6 +22,11 @@ export type ClinicProfile = Schemas["ClinicProfile"];
 const BASE = "/product/content";
 const FILE_TIMEOUT_MS = 120_000;
 
+/** Every item of a short, bounded list (one clinic's templates, rules or leaflets). */
+function whole<T>(path: string, query: Record<string, string | number | boolean | undefined> = {}) {
+  return apiClient.get<Page<T>>(path, { query: { ...query, page_size: MAX_PAGE_SIZE } }).then((page) => page.results);
+}
+
 function form(fields: Record<string, string | File | undefined>) {
   const body = new FormData();
   for (const [key, value] of Object.entries(fields)) if (value !== undefined) body.append(key, value);
@@ -30,7 +36,8 @@ function form(fields: Record<string, string | File | undefined>) {
 /** Clinic-editable content. Reads are open to staff; every change is doctor-only and versioned. */
 export const contentApi = {
   templates: {
-    list: () => apiClient.get<EmailTemplate[]>(`${BASE}/templates/`),
+    list: (filters: { pinned?: boolean } = {}) =>
+      whole<EmailTemplate>(`${BASE}/templates/`, filters.pinned ? { pinned: true } : {}),
     create: (body: Schemas["EmailTemplateCreateRequest"]) => apiClient.post<EmailTemplate>(`${BASE}/templates/`, body),
     update: (id: string, body: Schemas["PatchedEmailTemplateRequest"]) =>
       apiClient.patch<EmailTemplate>(`${BASE}/templates/${id}/`, body),
@@ -45,15 +52,14 @@ export const contentApi = {
   },
   placeholders: () => apiClient.get<Placeholder[]>(`${BASE}/placeholders/`),
   prescriptions: {
-    list: (archived = false) =>
-      apiClient.get<Prescription[]>(`${BASE}/prescriptions/`, { query: archived ? { archived: true } : undefined }),
+    list: (archived = false) => whole<Prescription>(`${BASE}/prescriptions/`, archived ? { archived: true } : {}),
     create: (body: Schemas["PrescriptionRequest"]) => apiClient.post<Prescription>(`${BASE}/prescriptions/`, body),
     update: (id: string, body: Schemas["PatchedPrescriptionRequest"]) =>
       apiClient.patch<Prescription>(`${BASE}/prescriptions/${id}/`, body),
     history: (id: string) => apiClient.get<PrescriptionVersion[]>(`${BASE}/prescriptions/${id}/versions/`),
   },
   alertRules: {
-    list: () => apiClient.get<AlertRule[]>(`${BASE}/alert-rules/`),
+    list: () => whole<AlertRule>(`${BASE}/alert-rules/`),
     /** All or none of the changes are saved. */
     saveChanges: (rules: AlertRuleChange[], note = "") =>
       apiClient.post<AlertRule[]>(`${BASE}/alert-rules/bulk/`, { rules, note }),
@@ -64,8 +70,7 @@ export const contentApi = {
       apiClient.post<ScoreBandSet>(`${BASE}/score-bands/${code}/bands/`, { bands, note }),
   },
   leaflets: {
-    list: (archived = false) =>
-      apiClient.get<Leaflet[]>(`${BASE}/leaflets/`, { query: archived ? { archived: true } : undefined }),
+    list: (archived = false) => whole<Leaflet>(`${BASE}/leaflets/`, archived ? { archived: true } : {}),
     upload: (title: string, file: File) =>
       apiClient.upload<Leaflet>(`${BASE}/leaflets/`, form({ title, file }), { timeoutMs: FILE_TIMEOUT_MS }),
     replace: (id: string, file: File, note = "") =>

@@ -2,6 +2,7 @@
 
 import type { components } from "../generated";
 import { apiClient } from "../browser";
+import type { Page } from "./page";
 
 type Schemas = components["schemas"];
 export type Mailbox = Schemas["Mailbox"];
@@ -28,9 +29,10 @@ export const mailApi = {
     sync: () => apiClient.post<void>(`${BASE}/mailbox/sync/`),
   },
   threads: {
-    list: (folder: MailFolder, filter: MailFilter, q?: string, patient?: string) =>
-      apiClient.get<MailThread[]>(`${BASE}/threads/`, {
-        query: { folder, filter: filter === "all" ? undefined : filter, q: q || undefined, patient },
+    /** The newest page of threads in a folder; `count` is the folder's total. */
+    list: (folder: MailFolder, filter: MailFilter, q?: string, patient?: string, page = 1) =>
+      apiClient.get<Page<MailThread>>(`${BASE}/threads/`, {
+        query: { folder, filter: filter === "all" ? undefined : filter, q: q || undefined, patient, page },
       }),
     counts: () => apiClient.get<InboxCounts>(`${BASE}/threads/counts/`),
     /** Opening a thread marks it read. */

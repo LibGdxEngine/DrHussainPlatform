@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from product.audit import audit, audit_access
 from product.tenancy import IsClinicLead, OrganizationScopedMixin, get_request_organization
 
-from .catalog import ensure_catalog, normalize_test_name
+from .catalog import normalize_test_name
 from .models import InvestigationReport, LabTest, LabTestAlias, ResultValue
 from .pipeline import save_manual_values, should_read
 from .serializers import (
@@ -63,8 +63,7 @@ class LabTestViewSet(
         ])
 
     def get_queryset(self):
-        if not getattr(self, 'swagger_fake_view', False):
-            ensure_catalog(get_request_organization(self.request))
+        # The starting catalog is loaded when the clinic is created (product.onboarding), not here.
         queryset = super().get_queryset()
         if self.request.query_params.get('tracked') in {'1', 'true'}:
             queryset = queryset.filter(tracked=True)
@@ -130,17 +129,20 @@ class InvestigationReportViewSet(
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
         """The doctor confirms a flagged report belongs to this patient; its values join the history."""
-        report = self.get_object()
-        report.status = InvestigationReport.Status.CONFIRMED
-        report.confirmed_by = request.user
-        report.refresh_history_eligibility()
-        report.save(update_fields=['status', 'confirmed_by', 'in_history', 'updated_at'])
-        audit(request, 'report.confirmed', report, flag_reasons=report.flag_reasons)
-        # With the patient settled, the review case is routed again and may now get a draft.
         from product.review.services import route_report
 
-        route_report(report, actor=request.user)
-        return Response(self.get_serializer(report).data)
+        with transaction.atomic():
+            # Locked for the whole step: a re-read finishing at the same moment, or a second click,
+            # must not interleave with confirming and re-routing.
+            report = InvestigationReport.objects.select_for_update().get(pk=self.get_object().pk)
+            report.status = InvestigationReport.Status.CONFIRMED
+            report.confirmed_by = request.user
+            report.refresh_history_eligibility()
+            report.save(update_fields=['status', 'confirmed_by', 'in_history', 'updated_at'])
+            audit(request, 'report.confirmed', report, flag_reasons=report.flag_reasons)
+            # With the patient settled, the review case is routed again and may now get a draft.
+            route_report(report, actor=request.user)
+        return Response(self.get_serializer(self.get_queryset().get(pk=report.pk)).data)
 
 
 class ManualEntryView(OrganizationScopedMixin, generics.GenericAPIView):

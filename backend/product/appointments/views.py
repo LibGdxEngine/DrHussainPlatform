@@ -160,7 +160,7 @@ class AppointmentViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
         OpenApiParameter('from', OpenApiTypes.DATE, required=True),
         OpenApiParameter('to', OpenApiTypes.DATE, required=True),
     ], responses={200: DayCountSerializer(many=True)})
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], pagination_class=None)
     def days(self, request):
         """Booked visits per day, for the day picker and the week chart."""
         start, end = self._range(required=True)
@@ -172,7 +172,7 @@ class AppointmentViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
         return Response(DayCountSerializer([{'date': r['day'], 'count': r['count']} for r in rows], many=True).data)
 
     @extend_schema(responses={200: VisitKindSerializer(many=True)})
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], pagination_class=None)
     def kinds(self, request):
         return Response([{'id': k.value, 'label': k.label, 'form_kind': Appointment(kind=k).form_kind}
                          for k in VisitKind])

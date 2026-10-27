@@ -49,14 +49,14 @@ class AppointmentApiTests(APITestCase):
         self.assertTrue(AuditLog.objects.filter(action='appointment.booked', resource_id=booked['id']).exists())
 
         listed = self.client.get(URL, {'date': self.tomorrow.isoformat()})
-        self.assertEqual([a['id'] for a in listed.data], [booked['id']])
-        self.assertEqual(listed.data[0]['patient']['file_number'], self.patient.file_number)
-        self.assertEqual(self.client.get(URL, {'date': (self.tomorrow + timedelta(days=1)).isoformat()}).data, [])
+        self.assertEqual([a['id'] for a in listed.data['results']], [booked['id']])
+        self.assertEqual(listed.data['results'][0]['patient']['file_number'], self.patient.file_number)
+        self.assertEqual(self.client.get(URL, {'date': (self.tomorrow + timedelta(days=1)).isoformat()}).data['results'], [])
 
     def test_list_needs_a_day_or_patient(self):
         self.assertEqual(self.client.get(URL).status_code, status.HTTP_400_BAD_REQUEST)
         self.book()
-        self.assertEqual(len(self.client.get(URL, {'patient': str(self.patient.pk)}).data), 1)
+        self.assertEqual(self.client.get(URL, {'patient': str(self.patient.pk)}).data['count'], 1)
 
     def test_other_clinics_patients_and_visits_are_out_of_reach(self):
         other = Organization.objects.create(name='Other', slug='other')
@@ -66,7 +66,7 @@ class AppointmentApiTests(APITestCase):
         theirs = Appointment.objects.create(organization=other, patient=stranger, starts_at=at(self.tomorrow, 10),
                                             kind='visit1')
         self.assertEqual(self.client.get(f'{URL}{theirs.pk}/').status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(self.client.get(URL, {'date': self.tomorrow.isoformat()}).data, [])
+        self.assertEqual(self.client.get(URL, {'date': self.tomorrow.isoformat()}).data['results'], [])
 
     def test_check_in_and_cancel(self):
         booked = self.book().data['appointment']
@@ -76,7 +76,7 @@ class AppointmentApiTests(APITestCase):
 
         response = self.client.patch(f'{URL}{booked["id"]}/', {'status': 'cancelled'}, format='json')
         self.assertEqual(response.data['status'], 'cancelled')
-        self.assertEqual(self.client.get(URL, {'date': self.tomorrow.isoformat()}).data, [])
+        self.assertEqual(self.client.get(URL, {'date': self.tomorrow.isoformat()}).data['results'], [])
         self.assertEqual(self.client.post(f'{URL}{booked["id"]}/check-in/').status_code, status.HTTP_409_CONFLICT)
 
     def test_status_cannot_be_set_to_checked_in_directly(self):

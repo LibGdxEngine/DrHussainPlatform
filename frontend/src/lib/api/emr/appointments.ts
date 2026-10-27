@@ -2,6 +2,7 @@
 
 import type { components } from "../generated";
 import { apiClient } from "../browser";
+import { MAX_PAGE_SIZE, type Page } from "./page";
 
 type Schemas = components["schemas"];
 export type Appointment = Schemas["Appointment"];
@@ -26,8 +27,10 @@ const BASE = "/product/appointments";
 
 /** The clinic schedule. Visits are cancelled, never deleted. */
 export const appointmentsApi = {
+  /** Whole days or ranges of visits, unwrapped from the list envelope. */
   list: (query: AppointmentQuery, signal?: AbortSignal) =>
-    apiClient.get<Appointment[]>(`${BASE}/`, { query: { ...query }, signal }),
+    apiClient.get<Page<Appointment>>(`${BASE}/`, { query: { ...query, page_size: MAX_PAGE_SIZE }, signal })
+      .then((page) => page.results),
   get: (id: string) => apiClient.get<Appointment>(`${BASE}/${id}/`),
   /** With send_form, the patient form link is emailed; form_link comes back when it could not be. */
   book: (body: AppointmentBooking) => apiClient.post<AppointmentBooked>(`${BASE}/`, body),

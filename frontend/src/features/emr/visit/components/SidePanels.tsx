@@ -13,13 +13,14 @@ import { ActionLink } from "../../ui/Action";
 import { Panel } from "../../ui/Panel";
 import { latestValues } from "../labValues";
 
-const loadDocuments = (patient: string) => documentsApi.list(patient);
+const loadDocuments = (patient: string) => documentsApi.list(patient).then((page) => page.results);
 const loadKeyValues = async (patient: string) => {
   const [values, tests] = await Promise.all([resultsApi.history(patient), resultsApi.tests()]);
-  return latestValues(values, tests);
+  return latestValues(values.results, tests);
 };
 const loadOrders = (patient: string) => ordersApi.list(patient);
-const loadThreads = (patient: string) => mailApi.threads.list("inbox", "all", undefined, patient);
+const loadThreads = (patient: string) =>
+  mailApi.threads.list("inbox", "all", undefined, patient).then((page) => page.results);
 
 /** Loading, error and empty states shared by the side panels. */
 function PanelState({ error, loading, empty }: { error?: string; loading: boolean; empty: string | false }) {

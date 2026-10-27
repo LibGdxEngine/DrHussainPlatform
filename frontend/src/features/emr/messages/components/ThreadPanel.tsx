@@ -42,7 +42,7 @@ export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadP
   useEffect(() => {
     if (!patient) return;
     let cancelled = false;
-    documentsApi.list(patient.id).then((list) => !cancelled && setDocuments(list), () => undefined);
+    documentsApi.list(patient.id).then((page) => !cancelled && setDocuments(page.results), () => undefined);
     return () => {
       cancelled = true;
     };

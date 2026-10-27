@@ -100,6 +100,8 @@ class EmailTemplate(BaseModel):
     sort_order = models.PositiveIntegerField(default=100)
     default_leaflets = models.ManyToManyField(Leaflet, blank=True, related_name='templates')
     archived = models.BooleanField(default=False)
+    # Shown on the doctor's home page for quick editing.
+    pinned = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         ordering = ['kind', 'sort_order', 'key']
@@ -189,6 +191,14 @@ class LabCheck(models.TextChoices):
     NEVER_MEASURED = 'never_measured', 'Never measured'
 
 
+class VitalSign(models.TextChoices):
+    """A measurement from the examination screen that a rule can be checked against."""
+    NONE = '', 'Not checked against vitals'
+    BLOOD_PRESSURE = 'blood_pressure', 'Blood pressure (average)'
+    BMI = 'bmi', 'BMI'
+    WAIST = 'waist', 'Waist'
+
+
 class AlertRuleVersion(Version):
     rule = models.ForeignKey(AlertRule, on_delete=models.CASCADE, related_name='versions')
     field = models.CharField(max_length=255)
@@ -205,6 +215,10 @@ class AlertRuleVersion(Version):
     # test compared with threshold_a, or "never measured".
     lab_test_code = models.SlugField(max_length=64, blank=True, default='')
     lab_check = models.CharField(max_length=16, choices=LabCheck.choices, blank=True, default='')
+    # When set (instead of lab_test_code), the rule is checked against the patient's latest
+    # examination with lab_check as the comparison. For blood pressure, threshold_a is the systolic
+    # cut-off and threshold_b the diastolic one; crossing either fires the rule.
+    vital = models.CharField(max_length=20, choices=VitalSign.choices, blank=True, default='')
 
     class Meta(Version.Meta):
         constraints = [models.UniqueConstraint(fields=['rule', 'number'], name='content_alert_rule_version_number')]

@@ -15,6 +15,7 @@ export const statusLabel: Record<InvestigationReport["status"], string> = {
   parsed: "Read",
   flagged: "Needs the doctor",
   confirmed: "Checked by the doctor",
+  failed: "Could not be read",
 };
 
 /** Why a report needs the doctor, in the words staff see. Unknown codes fall back to the code. */
@@ -23,6 +24,8 @@ const flagText: Record<string, string> = {
   no_text_found: "No text could be read from the file.",
   ocr_unavailable: "Scanned reports cannot be read on this server yet.",
   too_many_pages: "The file has too many pages to read automatically.",
+  read_timed_out: "Reading the file took too long. Try again, or type the key values in.",
+  image_too_large: "The scan is too large to read. Upload a smaller image or a PDF.",
   unknown_report_type: "The kind of report is not clear.",
   no_results_found: "No results were found in the report.",
   unreadable_value: "Some values could not be read.",

@@ -123,7 +123,7 @@ class IntakeFormViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.R
 
     @extend_schema(parameters=[OpenApiParameter('patient', OpenApiTypes.UUID, required=True)],
                    responses={200: MrsPointSerializer(many=True)})
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], pagination_class=None)
     def mrs(self, request):
         """The patient's Menopause Rating Scale scores over time, oldest first."""
         from product.patients.models import Patient

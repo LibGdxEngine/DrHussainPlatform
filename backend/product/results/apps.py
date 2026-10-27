@@ -6,3 +6,8 @@ class ResultsConfig(AppConfig):
     name = 'product.results'
     label = 'results'
     verbose_name = 'Investigation results'
+
+    def ready(self):
+        from product import onboarding
+
+        onboarding.connect()

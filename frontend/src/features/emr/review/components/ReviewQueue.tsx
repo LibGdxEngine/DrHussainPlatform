@@ -18,16 +18,16 @@ const columns = ["Patient", "Report", "Sample", "Status", "What needs doing", "U
 /** The review queue: the only route by which a results email leaves the clinic. */
 export function ReviewQueue() {
   const [group, setGroup] = useState<QueueGroup>("needs_doctor");
-  const [cases, setCases] = useState<{ group: QueueGroup; list: ResultsCase[] } | null>(null);
+  const [cases, setCases] = useState<{ group: QueueGroup; list: ResultsCase[]; total: number } | null>(null);
   const [counts, setCounts] = useState<QueueCounts | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([reviewApi.list(group), reviewApi.counts()]).then(
-      ([list, totals]) => {
+      ([page, totals]) => {
         if (cancelled) return;
-        setCases({ group, list });
+        setCases({ group, list: page.results, total: page.count });
         setCounts(totals);
       },
       (err: unknown) => {
@@ -40,6 +40,7 @@ export function ReviewQueue() {
   }, [group]);
 
   const rows = cases?.group === group ? cases.list : null;
+  const notShown = cases?.group === group ? cases.total - cases.list.length : 0;
   const options = queueGroups.map((g) => ({ id: g.id, label: counts ? `${g.label} (${counts[g.id]})` : g.label }));
 
   return (
@@ -52,6 +53,11 @@ export function ReviewQueue() {
         <ChipGroup label="Queue" options={options} value={group} onChange={setGroup} />
       </div>
       {error ? <p role="alert" className="m-0 px-5 pb-4 text-sm text-danger-ink">{error}</p> : null}
+      {notShown > 0 ? (
+        <p className="m-0 px-5 pb-4 text-[13px] text-muted">
+          Showing the newest {rows?.length} of {cases?.total} cases in this queue.
+        </p>
+      ) : null}
       <div className="overflow-x-auto">
         <Table>
           <thead>

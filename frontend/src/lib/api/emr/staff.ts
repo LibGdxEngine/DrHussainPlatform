@@ -2,6 +2,7 @@
 
 import type { components } from "../generated";
 import { apiClient } from "../browser";
+import { MAX_PAGE_SIZE, type Page } from "./page";
 
 type Schemas = components["schemas"];
 export type Me = Schemas["Me"];
@@ -17,13 +18,15 @@ const BASE = "/product/staff";
 export const staffApi = {
   me: () => apiClient.get<Me>(`${BASE}/me/`),
   members: {
-    list: () => apiClient.get<Member[]>(`${BASE}/members/`),
+    list: () => apiClient.get<Page<Member>>(`${BASE}/members/`, { query: { page_size: MAX_PAGE_SIZE } })
+      .then((page) => page.results),
     /** Rejects with OWNER_ONLY or LAST_OWNER. */
     setRole: (id: string, role: MemberRole) => apiClient.patch<Member>(`${BASE}/members/${id}/`, { role }),
     remove: (id: string) => apiClient.delete(`${BASE}/members/${id}/`),
   },
   invitations: {
-    list: () => apiClient.get<Invitation[]>(`${BASE}/invitations/`),
+    list: () => apiClient.get<Page<Invitation>>(`${BASE}/invitations/`, { query: { page_size: MAX_PAGE_SIZE } })
+      .then((page) => page.results),
     /** Rejects with ALREADY_MEMBER. The link comes back whether or not it could be emailed. */
     create: (email: string, role: MemberRole) =>
       apiClient.post<InvitationSent>(`${BASE}/invitations/`, { email, role }),

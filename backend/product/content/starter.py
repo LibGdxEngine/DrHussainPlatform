@@ -62,10 +62,21 @@ STARTER_ALERT_RULES = [
     ("R40", "Last annual review (12)", ">", "12", "months", None, "", "reminder", "Annual benefit/risk review"),
 ]
 
+# The emails the doctor edits most, pinned to the home page for a new clinic.
+STARTER_PINNED = ('results', 'menopause_results', 'follow_up_comparison', 'sti_opening', 'smear_section_1',
+                  'prescription_reply')
+
 # The starter rules that are about lab values, and how each is checked against results.
 STARTER_LAB_CHECKS = {
     'R34': ('testosterone_total', 'gt'),
     'R39': ('lpa', 'never_measured'),
+}
+
+# The starter rules about examination vitals, and how each is compared with the latest examination.
+STARTER_VITAL_CHECKS = {
+    'R20': ('blood_pressure', 'gte'),
+    'R21': ('bmi', 'gte'),
+    'R22': ('waist', 'gt'),
 }
 
 # MRS total score bands, forms doc section 4.
@@ -138,9 +149,10 @@ def _load_starter_content(organization) -> None:
         for position, (code, field, pre, a, mid, b, post, level, message) in enumerate(STARTER_ALERT_RULES):
             rule = AlertRule.objects.create(organization=organization, code=code, sort_order=position)
             test_code, check = STARTER_LAB_CHECKS.get(code, ('', ''))
+            vital, check = STARTER_VITAL_CHECKS.get(code, ('', check))
             AlertRuleVersion.objects.create(
                 rule=rule, number=1, field=field, pre=pre, threshold_a=a, mid=mid, threshold_b=b, post=post,
-                level=level, message=message, lab_test_code=test_code, lab_check=check,
+                level=level, message=message, lab_test_code=test_code, lab_check=check, vital=vital,
                 note='Starter list from the forms doc', created_by=None,
             )
     if not ScoreBandSet.objects.filter(organization=organization, code='mrs').exists():
@@ -151,7 +163,8 @@ def _load_starter_content(organization) -> None:
         for spec in starter_templates():
             what = spec.pop('what')
             subject = spec.pop('subject', '')
-            template = EmailTemplate.objects.create(organization=organization, **spec)
+            template = EmailTemplate.objects.create(organization=organization, pinned=spec['key'] in STARTER_PINNED,
+                                                    **spec)
             EmailTemplateVersion.objects.create(
                 template=template, number=1, subject=subject, body=_placeholder(what),
                 note='Empty slot: replace with the clinic master copy', created_by=None,

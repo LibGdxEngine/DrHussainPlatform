@@ -1,7 +1,10 @@
 from django.http import FileResponse
+from django.db import transaction
+from django.db.models import F
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework import mixins, status, viewsets
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -9,10 +12,10 @@ from rest_framework.response import Response
 from core.api_errors import error_response
 from product.audit import audit, audit_access
 from product.results.pipeline import schedule_reading
-from product.tenancy import OrganizationScopedMixin
+from product.tenancy import IsClinicLead, OrganizationScopedMixin
 
-from .models import Document
-from .serializers import DocumentSerializer, DocumentUploadSerializer
+from .models import Diagnosis, DiagnosisRevision, Document, Examination, ExaminationRevision
+from .serializers import DiagnosisSerializer, DocumentSerializer, DocumentUploadSerializer, ExaminationSerializer
 from .services import UploadRejected, store_document
 
 UPLOAD_ERROR_STATUS = {
@@ -68,7 +71,7 @@ class DocumentViewSet(
         response = super().list(request, *args, **kwargs)
         if request.query_params.get('patient'):
             audit_access(request, 'document.listed', patient_id=request.query_params['patient'],
-                         count=len(response.data))
+                         count=response.data['count'])
         return response
 
     def create(self, request, *args, **kwargs):
@@ -116,3 +119,151 @@ class DocumentViewSet(
         response['Cache-Control'] = 'private, no-store'
         response['X-Content-Type-Options'] = 'nosniff'
         return response
+
+
+@extend_schema_view(
+    list=extend_schema(parameters=[
+        OpenApiParameter('patient', OpenApiTypes.UUID, required=True, description='Patient whose diagnoses are requested.'),
+    ]),
+)
+class DiagnosisViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.CreateModelMixin,
+                       mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    """Doctor-only diagnoses with versioned clinical content and no delete endpoint."""
+    queryset = Diagnosis.objects.select_related('patient').prefetch_related('revisions__author')
+    serializer_class = DiagnosisSerializer
+    permission_classes = [IsClinicLead]
+    http_method_names = ['get', 'post', 'patch', 'head', 'options']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action == 'list' and not getattr(self, 'swagger_fake_view', False):
+            try:
+                patient_id = serializers.UUIDField().run_validation(self.request.query_params.get('patient'))
+            except serializers.ValidationError:
+                raise serializers.ValidationError({'patient': 'A valid patient ID is required.'})
+            queryset = queryset.filter(patient_id=patient_id)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        audit_access(request, 'diagnosis.listed', patient_id=request.query_params['patient'],
+                     count=response.data['count'])
+        return response
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        audit(request, 'diagnosis.opened', instance, patient_id=str(instance.patient_id))
+        return Response(self.get_serializer(instance).data)
+
+    @staticmethod
+    def _save_revision(instance, author):
+        DiagnosisRevision.objects.create(diagnosis=instance, number=instance.version, author=author,
+                                         name=instance.name, status=instance.status,
+                                         noted_on=instance.noted_on, notes=instance.notes)
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        instance = serializer.save(organization=serializer.context['organization'], created_by=self.request.user)
+        self._save_revision(instance, self.request.user)
+        audit(self.request, 'diagnosis.created', instance, patient_id=str(instance.patient_id))
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        changes = dict(serializer.validated_data)
+        expected = changes.pop('expected_version')
+        if not changes:
+            raise serializers.ValidationError({'non_field_errors': 'Provide at least one field to update.'})
+        updated = Diagnosis.objects.filter(pk=instance.pk, version=expected).update(
+            **changes, version=F('version') + 1, updated_at=timezone.now(),
+        )
+        if not updated:
+            return error_response('DIAGNOSIS_CONFLICT',
+                                  'This diagnosis has changed. Reload it before editing.', status=409)
+        instance = self.get_queryset().get(pk=instance.pk)
+        self._save_revision(instance, request.user)
+        audit(request, 'diagnosis.updated', instance, patient_id=str(instance.patient_id), fields=sorted(changes))
+        # A fresh queryset avoids returning a prefetched, stale revision list.
+        instance = self.get_queryset().get(pk=instance.pk)
+        return Response(self.get_serializer(instance).data)
+
+
+def _evaluate_alerts(patient):
+    """Vitals rules (blood pressure, BMI, waist) read the latest examination; run them once it is saved."""
+    from product.alerts.services import evaluate_patient
+
+    transaction.on_commit(lambda: evaluate_patient(patient))
+
+
+@extend_schema_view(
+    list=extend_schema(parameters=[
+        OpenApiParameter('patient', OpenApiTypes.UUID, required=True, description='Patient whose examinations are requested.'),
+    ]),
+)
+class ExaminationViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.CreateModelMixin,
+                         mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    """Doctor-only examinations (vitals, findings, screening, plan), versioned, with no delete endpoint."""
+    queryset = Examination.objects.select_related('patient').prefetch_related('revisions__author')
+    serializer_class = ExaminationSerializer
+    permission_classes = [IsClinicLead]
+    http_method_names = ['get', 'post', 'patch', 'head', 'options']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action == 'list' and not getattr(self, 'swagger_fake_view', False):
+            try:
+                patient_id = serializers.UUIDField().run_validation(self.request.query_params.get('patient'))
+            except serializers.ValidationError:
+                raise serializers.ValidationError({'patient': 'A valid patient ID is required.'})
+            queryset = queryset.filter(patient_id=patient_id)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        audit_access(request, 'examination.listed', patient_id=request.query_params['patient'],
+                     count=response.data['count'])
+        return response
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        audit(request, 'examination.opened', instance, patient_id=str(instance.patient_id))
+        return Response(self.get_serializer(instance).data)
+
+    @staticmethod
+    def _save_revision(instance, author):
+        ExaminationRevision.objects.create(examination=instance, number=instance.version, author=author,
+                                           data=instance.snapshot())
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        instance = serializer.save(organization=serializer.context['organization'], created_by=self.request.user)
+        self._save_revision(instance, self.request.user)
+        audit(self.request, 'examination.created', instance, patient_id=str(instance.patient_id))
+        _evaluate_alerts(instance.patient)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        changes = dict(serializer.validated_data)
+        expected = changes.pop('expected_version')
+        if not changes:
+            raise serializers.ValidationError({'non_field_errors': 'Provide at least one field to update.'})
+        # The screen sends the whole form; the audit names only what the doctor changed.
+        changed = sorted(name for name, value in changes.items() if getattr(instance, name) != value)
+        updated = Examination.objects.filter(pk=instance.pk, version=expected).update(
+            **changes, version=F('version') + 1, updated_at=timezone.now(),
+        )
+        if not updated:
+            return error_response('EXAMINATION_CONFLICT',
+                                  'This examination has changed. Reload it before editing.', status=409)
+        instance = self.get_queryset().get(pk=instance.pk)
+        self._save_revision(instance, request.user)
+        audit(request, 'examination.updated', instance, patient_id=str(instance.patient_id), fields=changed)
+        _evaluate_alerts(instance.patient)
+        # A fresh queryset avoids returning a prefetched, stale revision list.
+        instance = self.get_queryset().get(pk=instance.pk)
+        return Response(self.get_serializer(instance).data)

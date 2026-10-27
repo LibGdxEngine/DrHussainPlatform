@@ -64,8 +64,8 @@ export function OrdersWorkspace({ patient, isLead, clinicName }: OrdersWorkspace
       },
     );
     alertsApi.list({ patient: patient.id, status: "open" }).then(
-      (list) => {
-        if (!cancelled) setAlerts(list.filter((a) => a.level === "red"));
+      (page) => {
+        if (!cancelled) setAlerts(page.results.filter((a) => a.level === "red"));
       },
       (err: unknown) => {
         if (!cancelled) setAlertsError(apiErrorMessage(err, "Could not check the patient's alerts."));

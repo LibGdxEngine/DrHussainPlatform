@@ -2,6 +2,7 @@
 
 import type { components } from "../generated";
 import { apiClient } from "../browser";
+import type { Page } from "./page";
 
 type Schemas = components["schemas"];
 export type ResultsCase = Schemas["ResultsCase"];
@@ -17,8 +18,9 @@ const BASE = "/product/review/cases";
 
 /** The results review queue. Every change is the doctor's; approving is the only way an email is sent. */
 export const reviewApi = {
-  list: (group?: QueueGroup, patient?: string) =>
-    apiClient.get<ResultsCase[]>(`${BASE}/`, { query: { group, patient } }),
+  /** The newest page of cases in a queue; `count` is the queue's total. */
+  list: (group?: QueueGroup, patient?: string, page = 1) =>
+    apiClient.get<Page<ResultsCase>>(`${BASE}/`, { query: { group, patient, page } }),
   counts: () => apiClient.get<QueueCounts>(`${BASE}/counts/`),
   get: (id: string) => apiClient.get<ResultsCaseDetail>(`${BASE}/${id}/`),
   /** Abnormal smear: the cervical smear section the doctor chose as the plan. */

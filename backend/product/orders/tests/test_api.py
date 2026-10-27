@@ -42,10 +42,10 @@ class OrderApiTests(APITestCase):
 
         self.client.force_authenticate(self.reception)
         pending = self.client.get(TESTS, {'patient': str(self.patient.pk), 'status': 'pending'})
-        self.assertEqual(len(pending.data), 2)
+        self.assertEqual(pending.data['count'], 2)
         self.assertEqual(self.client.get(f'{TESTS}counts/').data, {'pending': 2, 'patients': 1})
 
-        test_id = pending.data[0]['id']
+        test_id = pending.data['results'][0]['id']
         response = self.client.patch(f'{TESTS}{test_id}/', {'status': 'clinic'}, format='json')
         self.assertEqual(response.data['status'], 'clinic')
         self.assertIsNotNone(response.data['arrived_at'])
@@ -57,8 +57,8 @@ class OrderApiTests(APITestCase):
         body['medicines'] = [{'drug': 'Estradiol gel 0.06%', 'dose': '2 pumps', 'directions': 'Daily to the skin'}]
         self.assertEqual(self.client.post(ORDERS, body, format='json').status_code, status.HTTP_201_CREATED)
         listed = self.client.get(ORDERS, {'patient': str(self.patient.pk)})
-        self.assertEqual(listed.data[0]['medicines'][0]['drug'], 'Estradiol gel 0.06%')
-        self.assertEqual(self.client.get(ORDERS).data, [])
+        self.assertEqual(listed.data['results'][0]['medicines'][0]['drug'], 'Estradiol gel 0.06%')
+        self.assertEqual(self.client.get(ORDERS).data['results'], [])
 
     @override_settings(MAIL_ALLOW_PLATFORM_FALLBACK=True)
     def test_email_delivery_goes_through_the_clinic_mailbox(self):

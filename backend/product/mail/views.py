@@ -1,8 +1,13 @@
+import imaplib
+import logging
 import smtplib
+import socket
+import ssl
 import uuid
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q, Subquery, TextField, Value
+from django.db.models.functions import Coalesce
 from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -26,7 +31,9 @@ from .serializers import (
 )
 from .services import reply_headers
 from .tasks import poll_mailbox, send_thread_reply
-from .transport import MailboxNotReady, imap_connection, outgoing, smtp_connection
+from .transport import MailHostNotAllowed, MailboxNotReady, imap_connection, outgoing, smtp_connection
+
+logger = logging.getLogger(__name__)
 
 
 def _lead_for_writes(request):
@@ -51,12 +58,28 @@ class MailboxView(generics.RetrieveUpdateAPIView):
         audit(self.request, 'mailbox.updated', mailbox, fields=sorted(serializer.validated_data))
 
 
-def _check(run) -> str:
+def _check(which: str, run) -> str:
+    """
+    'ok', or a short reason in the doctor's words. The real exception goes to the log only: server
+    banners, addresses and library internals must not be echoed back to the browser.
+    """
     try:
         run()
         return 'ok'
-    except Exception as exc:  # noqa: BLE001 - reported to the doctor as text
-        return f'{type(exc).__name__}: {exc}'[:255]
+    except MailHostNotAllowed as refused:
+        return str(refused)
+    except (smtplib.SMTPAuthenticationError, imaplib.IMAP4.error):
+        message = 'Sign-in was refused; check the username and password.'
+    except ssl.SSLError:
+        message = 'A secure connection could not be made; check the port and security setting.'
+    except socket.gaierror:
+        message = 'The server address could not be found.'
+    except (TimeoutError, ConnectionError, smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected):
+        message = 'The server did not answer; check the address and port.'
+    except Exception:  # noqa: BLE001 - anything else is still just "it did not work" to the doctor
+        message = 'The connection could not be made.'
+    logger.warning('Mailbox %s check failed', which, exc_info=True)
+    return message
 
 
 class MailboxCheckView(generics.GenericAPIView):
@@ -74,11 +97,11 @@ class MailboxCheckView(generics.GenericAPIView):
                 connection = smtp_connection(mailbox)
                 connection.open()
                 connection.close()
-            smtp_result = _check(smtp)
+            smtp_result = _check('smtp', smtp)
         if mailbox is None or not mailbox.imap_host:
             imap_result = 'Not set up'
         else:
-            imap_result = _check(lambda: imap_connection(mailbox).logout())
+            imap_result = _check('imap', lambda: imap_connection(mailbox).logout())
         return Response({'smtp': smtp_result, 'imap': imap_result})
 
 
@@ -120,6 +143,14 @@ class MailThreadViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.R
         queryset = super().get_queryset()
         if self.action != 'list':
             return queryset.prefetch_related('messages__attachments', 'messages__sent_by')
+        # The preview and the paper-clip come from the thread's messages; computed in the list query
+        # rather than with two or three queries per row.
+        latest = MailMessage.objects.filter(thread=OuterRef('pk')).order_by('-sent_at', '-created_at')
+        queryset = queryset.annotate(
+            preview_text=Coalesce(Subquery(latest.values('body_text')[:1]), Value(''), output_field=TextField()),
+            has_files=Exists(MailAttachment.objects.filter(message__thread=OuterRef('pk'))),
+            has_named_files=Exists(MailMessage.objects.filter(thread=OuterRef('pk')).exclude(attachment_names=[])),
+        )
         params = self.request.query_params
         folder = params.get('folder', 'inbox')
         if folder == 'archive':

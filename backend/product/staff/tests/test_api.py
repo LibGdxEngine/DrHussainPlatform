@@ -24,7 +24,7 @@ class StaffApiTests(APITestCase):
         self.assertFalse(self.client.get(f'{BASE}me/').data['is_lead'])
 
     def test_members_list_and_role_rules(self):
-        members = self.client.get(f'{BASE}members/').data
+        members = self.client.get(f'{BASE}members/').data['results']
         self.assertEqual([m['email'] for m in members], ['doctor@example.com', 'reception@example.com'])
         owner_row = next(m for m in members if m['is_me'])
         reception_row = next(m for m in members if not m['is_me'])
@@ -47,7 +47,7 @@ class StaffApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertFalse(response.data['emailed'])
         token = response.data['link'].split('#t=')[1]
-        self.assertEqual(self.client.get(f'{BASE}invitations/').data[0]['email'], 'nurse@example.com')
+        self.assertEqual(self.client.get(f'{BASE}invitations/').data['results'][0]['email'], 'nurse@example.com')
 
         self.client.force_authenticate(None)
         preview = self.client.post(f'{BASE}join/preview/', {'token': token}, format='json')
@@ -77,4 +77,4 @@ class StaffApiTests(APITestCase):
         second = self.client.post(f'{BASE}invitations/', {'email': 'x@example.com', 'role': 'ADMIN'}, format='json')
         self.assertEqual(Invitation.objects.get(pk=first.data['invitation']['id']).status, 'EXPIRED')
         self.client.post(f'{BASE}invitations/{second.data["invitation"]["id"]}/revoke/')
-        self.assertEqual(self.client.get(f'{BASE}invitations/').data, [])
+        self.assertEqual(self.client.get(f'{BASE}invitations/').data['results'], [])

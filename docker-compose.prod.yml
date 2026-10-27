@@ -1,4 +1,4 @@
-name: mobser-prod
+name: vclinic-prod
 
 x-service-logging: &service-logging
   driver: json-file
@@ -50,7 +50,7 @@ services:
       - django_prod_records:/app/private_media
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-backend
+      - OTEL_SERVICE_NAME=vclinic-backend
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -64,7 +64,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - OTP_SECRET=${OTP_SECRET:?Set OTP_SECRET in .env.prod}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
@@ -97,7 +97,7 @@ services:
       - django_prod_records:/app/private_media
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-worker
+      - OTEL_SERVICE_NAME=vclinic-worker
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -111,7 +111,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - OTP_SECRET=${OTP_SECRET:?Set OTP_SECRET in .env.prod}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
@@ -137,7 +137,7 @@ services:
     env_file: ${PROD_ENV_FILE:-.env.prod}
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-beat
+      - OTEL_SERVICE_NAME=vclinic-beat
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -151,7 +151,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - OTP_SECRET=${OTP_SECRET:?Set OTP_SECRET in .env.prod}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
@@ -179,7 +179,7 @@ services:
     restart: always
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-frontend
+      - OTEL_SERVICE_NAME=vclinic-frontend
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf

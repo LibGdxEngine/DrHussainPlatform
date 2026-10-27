@@ -131,7 +131,10 @@ export function ResultsPanel({ document }: { document: PatientDocument }) {
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="kvs" className="m-0 text-lg font-semibold">Results from this file</h2>
         {report ? (
-          <Pill tone={report.status === "flagged" ? "red" : report.status === "pending" ? "neutral" : "ok"} size="xs">
+          <Pill
+            tone={report.status === "flagged" || report.status === "failed" ? "red" : report.status === "pending" ? "neutral" : "ok"}
+            size="xs"
+          >
             {statusLabel[report.status]}
           </Pill>
         ) : null}

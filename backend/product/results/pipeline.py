@@ -137,6 +137,24 @@ def _save(report, *, flags, method, text, parsed, catalog) -> InvestigationRepor
 
 
 @transaction.atomic
+def mark_failed(document: Document, reason: str) -> InvestigationReport:
+    """
+    The file could not be read at all (for example the OCR time limit ran out). The report says so,
+    with the reason as its flag, instead of staying "waiting to be read" forever.
+    """
+    report, _ = InvestigationReport.objects.get_or_create(
+        document=document, defaults={'organization': document.organization, 'patient': document.patient},
+    )
+    if report.status != InvestigationReport.Status.CONFIRMED:
+        report.status = InvestigationReport.Status.FAILED
+        report.flag_reasons = [reason]
+    report.processed_at = timezone.now()
+    report.refresh_history_eligibility()
+    report.save()
+    return report
+
+
+@transaction.atomic
 def save_manual_values(*, document: Document, result_date, entries: list[tuple[LabTest, str, str]], user):
     """
     Store values staff typed in from a report. Each entry is (test, value, unit); an empty value

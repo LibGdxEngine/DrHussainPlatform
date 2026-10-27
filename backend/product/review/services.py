@@ -7,7 +7,7 @@ from django.db import transaction
 from product.content.models import ClinicProfile, EmailTemplate
 from product.content.placeholders import render
 from product.patients.models import Language
-from product.results.comparison import Change, compare
+from product.results.comparison import Change, compare_many
 from product.results.extraction.classify import INFECTION_TESTS
 from product.results.models import InvestigationReport, ReportType
 
@@ -83,7 +83,8 @@ def decide(report: InvestigationReport | None, case: ResultsCase | None = None, 
     if kind == ReportType.PATHOLOGY:
         return Decision(ResultsCase.Status.DRAFTED, route='pathology', keys=['pathology_results'])
     # Blood tests: earlier results for the same tests make it a follow-up comparison.
-    if any(v.lab_test_id and compare(v).change != Change.FIRST for v in values):
+    comparisons = compare_many([v for v in values if v.lab_test_id])
+    if any(result.change != Change.FIRST for result in comparisons.values()):
         return Decision(ResultsCase.Status.DRAFTED, route='follow_up', keys=['follow_up_comparison'])
     if kind == ReportType.MENOPAUSE_BLOODS:
         return Decision(ResultsCase.Status.DRAFTED, route='menopause', keys=['menopause_results'])
@@ -119,6 +120,7 @@ def route_report(report: InvestigationReport, *, actor=None) -> ResultsCase | No
 
 def _apply(case, decision: Decision, *, actor=None, **draft_options):
     case.drafts.filter(is_current=True).update(is_current=False)
+    case.forget_drafts()
     case.route = decision.route
     case.flag_reasons = decision.flags
     case.status = decision.status
@@ -159,8 +161,7 @@ def _value_line(v) -> str:
 _CHANGE_WORDS = {Change.UP: 'higher', Change.DOWN: 'lower', Change.SAME: 'unchanged', Change.CHANGED: 'changed'}
 
 
-def _comparison_line(v) -> str | None:
-    result = compare(v)
+def _comparison_line(v, result) -> str | None:
     if result.previous is None:
         return None
     name = v.lab_test.name if v.lab_test else v.raw_name
@@ -189,7 +190,8 @@ def draft_values(case: ResultsCase, *, prescriptions=(), follow_up: str = '') ->
     values = list(report.values.select_related('lab_test').order_by('position')) if report else []
     profile = ClinicProfile.objects.filter(organization=case.organization).first()
     abnormal = [v for v in values if v.is_abnormal]
-    comparisons = [line for line in (_comparison_line(v) for v in values if v.lab_test_id) if line]
+    compared = compare_many([v for v in values if v.lab_test_id])
+    comparisons = [line for line in (_comparison_line(v, compared[v.pk]) for v in values if v.lab_test_id) if line]
     return {
         'patient.first_name': patient.full_name.split()[0] if patient.full_name else '',
         'patient.full_name': patient.full_name,
@@ -264,6 +266,7 @@ def build_draft(case, decision: Decision, *, user=None, language=Language.ENGLIS
         body = f'{body}\n\n{profile.signature.strip()}'
 
     case.drafts.filter(is_current=True).update(is_current=False)
+    case.forget_drafts()
     draft = Draft.objects.create(
         case=case, language=language, subject=subject or 'Your results', body=body,
         open_slots=list(dict.fromkeys(open_slots)), follow_up=follow_up,
@@ -340,13 +343,17 @@ def choose_plan(case, template: EmailTemplate, *, user) -> ResultsCase:
     return case
 
 
+@transaction.atomic
 def reject(case, *, user, reason: str) -> ResultsCase:
-    if case.status in {ResultsCase.Status.SENDING, ResultsCase.Status.SENT}:
+    # Locked, so rejecting cannot cross an approval in flight: whichever gets the row first wins.
+    locked = ResultsCase.objects.select_for_update().get(pk=case.pk)
+    if locked.status in {ResultsCase.Status.SENDING, ResultsCase.Status.SENT}:
         raise ReviewError('already_sent', 'This email has already been sent.', status=409)
-    case.status = ResultsCase.Status.REJECTED
-    case.save(update_fields=['status', 'updated_at'])
-    case.drafts.filter(is_current=True).update(is_current=False)
-    _log(case, ReviewAction.Action.REJECTED, user, reason=reason)
+    case.status = locked.status = ResultsCase.Status.REJECTED
+    locked.save(update_fields=['status', 'updated_at'])
+    locked.drafts.filter(is_current=True).update(is_current=False)
+    case.forget_drafts()
+    _log(locked, ReviewAction.Action.REJECTED, user, reason=reason)
     return case
 
 

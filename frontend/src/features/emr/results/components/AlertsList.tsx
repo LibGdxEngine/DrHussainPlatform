@@ -14,25 +14,28 @@ interface AlertsListProps {
   patient: string;
   /** Called after the doctor acknowledges one, e.g. to reload a case it was holding back. */
   onAcknowledged?: () => void;
+  /** Change it to reload the list, e.g. after an examination was saved. */
+  refreshKey?: number;
+  title?: string;
 }
 
 /** Open alert rules for a patient, each acknowledged by the doctor with a reason. */
-export function AlertsList({ patient, onAcknowledged }: AlertsListProps) {
+export function AlertsList({ patient, onAcknowledged, refreshKey = 0, title = "Alerts from results" }: AlertsListProps) {
   const [alerts, setAlerts] = useState<PatientAlert[] | null>(null);
   const [reloads, setReloads] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    alertsApi.list({ patient, status: "open" }).then((list) => !cancelled && setAlerts(list), () => undefined);
+    alertsApi.list({ patient, status: "open" }).then((page) => !cancelled && setAlerts(page.results), () => undefined);
     return () => {
       cancelled = true;
     };
-  }, [patient, reloads]);
+  }, [patient, reloads, refreshKey]);
 
   if (!alerts?.length) return null;
   return (
     <section aria-label="Alerts" className="flex flex-col gap-2 rounded-2xl border border-line p-3.5">
-      <h3 className="m-0 text-[13px] font-semibold">Alerts from results</h3>
+      <h3 className="m-0 text-[13px] font-semibold">{title}</h3>
       {alerts.map((alert) => (
         <AlertRow
           key={alert.id}
@@ -75,6 +78,7 @@ function AlertRow({ alert, onDone }: { alert: PatientAlert; onDone: () => void }
         <span className="text-xs text-muted">
           {alert.detail}
           {alert.result_date ? ` · ${new Date(alert.result_date).toLocaleDateString("en-GB")}` : ""}
+          {alert.examined_on ? ` · exam ${new Date(alert.examined_on).toLocaleDateString("en-GB")}` : ""}
         </span>
         {!open ? (
           <ActionButton variant="quiet" size="sm" className="ms-auto" onClick={() => setOpen(true)}>Acknowledge</ActionButton>

@@ -1,5 +1,6 @@
 """Turn an uploaded report into plain text on this server. Nothing is sent to an outside service."""
 import re
+import warnings
 from dataclasses import dataclass
 
 from django.conf import settings
@@ -34,6 +35,20 @@ def _ocr(image) -> str:
 
 def extract_text(file, content_type: str) -> ExtractedText:
     """Read text from a PDF (its text layer, else OCR of each page) or a scanned image."""
+    from PIL import Image
+
+    # A decompression-bomb guard: a small file can claim a huge canvas. PIL warns at the limit and
+    # only raises at twice it, so the warning is made an error and both become one refusal.
+    Image.MAX_IMAGE_PIXELS = settings.RESULTS_MAX_IMAGE_PIXELS
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', Image.DecompressionBombWarning)
+        try:
+            return _extract(file, content_type)
+        except (Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
+            raise ExtractionError('image_too_large') from exc
+
+
+def _extract(file, content_type: str) -> ExtractedText:
     max_pages = settings.RESULTS_MAX_PAGES
     if content_type in {'image/jpeg', 'image/png'}:
         from PIL import Image, UnidentifiedImageError

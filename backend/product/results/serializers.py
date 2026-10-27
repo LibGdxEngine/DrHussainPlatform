@@ -1,10 +1,11 @@
+from django.db.models.manager import BaseManager
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from product.records.models import Document
 
 from .catalog import ensure_catalog, normalize_test_name
-from .comparison import compare
+from .comparison import compare, compare_many
 from .models import InvestigationReport, LabTest, LabTestAlias, ResultValue
 
 
@@ -72,13 +73,28 @@ class ComparisonSerializer(serializers.Serializer):
     previous = PreviousValueSerializer(allow_null=True)
 
 
+class ResultValueListSerializer(serializers.ListSerializer):
+    """Looks up the previous result for every value in the list with one query, not one per value."""
+
+    def to_representation(self, data):
+        items = list(data.all() if isinstance(data, BaseManager) else data)
+        self.child.comparisons = compare_many(items)
+        try:
+            return super().to_representation(items)
+        finally:
+            self.child.comparisons = None
+
+
 class ResultValueSerializer(serializers.ModelSerializer):
     test = LabTestBriefSerializer(source='lab_test', allow_null=True, read_only=True)
     abnormal = serializers.BooleanField(source='is_abnormal', read_only=True)
     comparison = serializers.SerializerMethodField()
+    # Set by ResultValueListSerializer while a list is being rendered.
+    comparisons = None
 
     class Meta:
         model = ResultValue
+        list_serializer_class = ResultValueListSerializer
         fields = [
             'id', 'report', 'test', 'raw_name', 'value_text', 'value_numeric', 'unit', 'ref_low', 'ref_high',
             'ref_text', 'flag', 'abnormal', 'result_date', 'lab_name', 'unreadable', 'source', 'comparison',
@@ -86,7 +102,8 @@ class ResultValueSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(ComparisonSerializer)
     def get_comparison(self, obj):
-        result = compare(obj)
+        batched = self.comparisons
+        result = batched[obj.pk] if batched is not None and obj.pk in batched else compare(obj)
         return {
             'change': result.change,
             'reasons': result.reasons,

@@ -2,6 +2,7 @@
 
 import type { components } from "../generated";
 import { apiClient } from "../browser";
+import type { Page } from "./page";
 
 type Schemas = components["schemas"];
 export type PatientAlert = Schemas["PatientAlert"];
@@ -21,8 +22,10 @@ export interface ActivityQuery {
 
 /** Alert rules that fired on a patient's results. The doctor acknowledges each with a reason. */
 export const alertsApi = {
-  list: (query: { patient?: string; report?: string; status?: "open" | "acknowledged" | "resolved" | "all" }) =>
-    apiClient.get<PatientAlert[]>("/product/alerts/", { query }),
+  list: (query: {
+    patient?: string; report?: string; status?: "open" | "acknowledged" | "resolved" | "all"; page_size?: number;
+  }) =>
+    apiClient.get<Page<PatientAlert>>("/product/alerts/", { query }),
   acknowledge: (id: string, reason: string) =>
     apiClient.post<PatientAlert>(`/product/alerts/${id}/acknowledge/`, { reason }),
 };

@@ -4,6 +4,7 @@ from email.utils import parseaddr
 from celery import shared_task
 from django.core.mail import EmailMessage
 from django.core.mail.message import make_msgid
+from django.db import transaction
 from django.utils import timezone
 
 from apps.common.tasks import BaseTask, idempotent
@@ -78,19 +79,24 @@ def send_case_email(self, sent_email_id: str):
             raise
         except Exception as exc:  # noqa: BLE001 - the case goes back to the doctor with the reason
             return _failed(sent, type(exc).__name__)
-        sent.status, sent.sent_at = SentEmail.Status.SENT, timezone.now()
-        sent.from_address = parseaddr(from_email)[1]
-        sent.save(update_fields=['status', 'sent_at', 'from_address', 'updated_at'])
-        ResultsCase.objects.filter(pk=sent.case_id).update(status=ResultsCase.Status.SENT, updated_at=timezone.now())
-        ReviewAction.objects.create(case=sent.case, action=ReviewAction.Action.SENT,
-                                    details={'message_id': sent.message_id})
-        # Keep it in the patient's thread, where their reply will land.
-        record_outgoing(
-            case.organization, message_id=message_id, subject=sent.subject, body=sent.body, from_address=from_email,
-            to_addresses=[sent.to_address], patient=case.patient, in_reply_to=in_reply_to, references=references,
-            attachment_names=[a['name'] for a in sent.attachments], sent_email=sent, sent_by=sent.approved_by,
-            thread=thread,
-        )
+        # The email is gone; what is written about it is written as one piece. A crash part-way would
+        # otherwise leave a case marked sent with no copy in the thread, or the reverse.
+        with transaction.atomic():
+            sent.status, sent.sent_at = SentEmail.Status.SENT, timezone.now()
+            sent.from_address = parseaddr(from_email)[1]
+            sent.save(update_fields=['status', 'sent_at', 'from_address', 'updated_at'])
+            ResultsCase.objects.filter(pk=sent.case_id).update(status=ResultsCase.Status.SENT,
+                                                               updated_at=timezone.now())
+            ReviewAction.objects.create(case=sent.case, action=ReviewAction.Action.SENT,
+                                        details={'message_id': sent.message_id})
+            # Keep it in the patient's thread, where their reply will land.
+            record_outgoing(
+                case.organization, message_id=message_id, subject=sent.subject, body=sent.body,
+                from_address=from_email, to_addresses=[sent.to_address], patient=case.patient,
+                in_reply_to=in_reply_to, references=references,
+                attachment_names=[a['name'] for a in sent.attachments], sent_email=sent, sent_by=sent.approved_by,
+                thread=thread,
+            )
         guard.record(sent.message_id)
         return sent.message_id
 
@@ -99,10 +105,11 @@ def _failed(sent, error: str, detail: str = ''):
     """The email did not go: the case returns to the doctor as a draft, with the reason logged."""
     from .models import ResultsCase, ReviewAction, SentEmail
 
-    sent.status, sent.error = SentEmail.Status.FAILED, error
-    sent.save(update_fields=['status', 'error', 'updated_at'])
-    ResultsCase.objects.filter(pk=sent.case_id).update(status=ResultsCase.Status.DRAFTED)
-    ReviewAction.objects.create(case=sent.case, action=ReviewAction.Action.SEND_FAILED,
-                                details={'error': error, 'detail': detail})
+    with transaction.atomic():
+        sent.status, sent.error = SentEmail.Status.FAILED, error
+        sent.save(update_fields=['status', 'error', 'updated_at'])
+        ResultsCase.objects.filter(pk=sent.case_id).update(status=ResultsCase.Status.DRAFTED)
+        ReviewAction.objects.create(case=sent.case, action=ReviewAction.Action.SEND_FAILED,
+                                    details={'error': error, 'detail': detail})
     logger.error('Results email %s failed (%s)', sent.pk, error)
     return None

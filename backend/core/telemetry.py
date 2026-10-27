@@ -178,10 +178,10 @@ def shutdown(**kwargs):
 
 
 def record_http(method, route, status, elapsed):
-    meter = metrics.get_meter('mobser')
+    meter = metrics.get_meter('vclinic')
     attributes = {'http.request.method': method, 'http.route': route, 'http.response.status_code': status}
-    meter.create_counter('mobser.http.requests').add(1, attributes)
-    meter.create_histogram('mobser.http.duration', unit='s').record(elapsed, attributes)
+    meter.create_counter('vclinic.http.requests').add(1, attributes)
+    meter.create_histogram('vclinic.http.duration', unit='s').record(elapsed, attributes)
 
 
 def publish_context(headers=None, **kwargs):
@@ -201,14 +201,14 @@ def task_finished(task=None, state=None, **kwargs):
     if context is None:
         return
     try:
-        meter = metrics.get_meter('mobser')
+        meter = metrics.get_meter('vclinic')
         attributes = {'task.name': task.name, 'task.state': state or 'UNKNOWN'}
-        meter.create_counter('mobser.task.executions').add(1, attributes)
-        meter.create_histogram('mobser.task.duration', unit='s').record(time.monotonic() - context['started'], attributes)
+        meter.create_counter('vclinic.task.executions').add(1, attributes)
+        meter.create_histogram('vclinic.task.duration', unit='s').record(time.monotonic() - context['started'], attributes)
     finally:
         request_id_context.reset(context['request_token'])
         task_context.set(context['parent'])
 
 
 def task_retried(sender=None, **kwargs):
-    metrics.get_meter('mobser').create_counter('mobser.task.retries').add(1, {'task.name': sender.name})
+    metrics.get_meter('vclinic').create_counter('vclinic.task.retries').add(1, {'task.name': sender.name})

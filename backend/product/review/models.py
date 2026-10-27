@@ -47,13 +47,24 @@ class ResultsCase(BaseModel):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [models.Index(fields=['organization', 'status'], name='review_case_org_status')]
 
     def __str__(self):
         return f'{self.get_status_display()}: {self.patient.file_number}'
 
     @property
     def current_draft(self):
+        """The draft waiting for the doctor. Answered from prefetched drafts when a view loaded them."""
+        prefetched = getattr(self, '_prefetched_objects_cache', {}).get('drafts')
+        if prefetched is not None:
+            return max((d for d in prefetched if d.is_current), key=lambda d: d.created_at, default=None)
         return self.drafts.filter(is_current=True).order_by('-created_at').first()
+
+    def forget_drafts(self) -> None:
+        """Drop prefetched drafts after a new one is made, so current_draft is read again."""
+        cache = getattr(self, '_prefetched_objects_cache', None)
+        if cache:
+            cache.pop('drafts', None)
 
 
 class Draft(BaseModel):
@@ -80,6 +91,11 @@ class Draft(BaseModel):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            # One draft at a time waits for the doctor; a race between two rebuilds cannot leave two.
+            models.UniqueConstraint(fields=['case'], condition=models.Q(is_current=True),
+                                    name='review_one_current_draft_per_case'),
+        ]
 
 
 class ReviewAction(BaseModel):

@@ -29,6 +29,9 @@ class PatientAlert(BaseModel):
     value = models.ForeignKey(ResultValue, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     report = models.ForeignKey(InvestigationReport, on_delete=models.SET_NULL, null=True, blank=True,
                                related_name='alerts')
+    # The examination that fired a vitals rule (blood pressure, BMI, waist).
+    examination = models.ForeignKey('records.Examination', on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='alerts')
     detail = models.CharField(max_length=255, blank=True, default='')
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.OPEN, db_index=True)
     acknowledged_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
@@ -39,6 +42,7 @@ class PatientAlert(BaseModel):
 
     class Meta:
         ordering = ['status', '-created_at']
+        indexes = [models.Index(fields=['organization', 'status'], name='alerts_alert_org_status')]
         constraints = [
             # At most one open alert per patient and rule.
             models.UniqueConstraint(fields=['patient', 'rule'], condition=models.Q(status='open'),

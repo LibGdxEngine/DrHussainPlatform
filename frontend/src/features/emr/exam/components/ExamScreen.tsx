@@ -1,17 +1,29 @@
-import { AppShell } from "../../shell/AppShell";
-import { PatientHeader } from "../../shell/PatientHeader";
-import { examFlag, examMeta } from "../data";
-import { ExamAside } from "./ExamAside";
-import { ExamMain } from "./ExamMain";
+"use client";
 
-export function ExamScreen() {
+import { emrRoutes } from "../../routes";
+import { PatientHeader } from "../../shell/PatientHeader";
+import { usePatientByFileNumber } from "../../shell/usePatientByFileNumber";
+import { ActionLink } from "../../ui/Action";
+import { Panel } from "../../ui/Panel";
+import { ExamWorkspace } from "./ExamWorkspace";
+
+export function ExamScreen({ fileNumber }: { fileNumber?: string }) {
+  const { patient, message } = usePatientByFileNumber(fileNumber);
+  if (!patient) return (
+    <Panel className="flex flex-col items-start gap-3 p-6">
+      <h1 className="m-0 text-xl font-semibold">Exam &amp; plan</h1>
+      <p className="m-0 text-sm text-muted">
+        {!fileNumber ? "Choose a patient to examine." : message ?? "Opening patient file…"}
+      </p>
+      <ActionLink href={emrRoutes.patients} size="sm">Go to patients</ActionLink>
+    </Panel>
+  );
   return (
-    <AppShell active="patients">
-      <PatientHeader tab="exam" meta={examMeta} flag={examFlag} />
-      <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-start gap-4">
-        <ExamMain />
-        <ExamAside />
-      </div>
-    </AppShell>
+    <>
+      <PatientHeader tab="exam" realPatient name={`${patient.full_name}, ${patient.age}`}
+        mrn={patient.file_number} initial={patient.full_name.charAt(0).toUpperCase()}
+        meta="Vitals, examination, screening and plan. Every save keeps a version." />
+      <ExamWorkspace key={patient.id} patient={patient} />
+    </>
   );
 }

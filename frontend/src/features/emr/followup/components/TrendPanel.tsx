@@ -12,7 +12,7 @@ import { TrendChart } from "./TrendChart";
 
 const loadLabSeries = async (patient: string) => {
   const [values, tests] = await Promise.all([resultsApi.history(patient), resultsApi.tests()]);
-  return labSeries(values, tests);
+  return labSeries(values.results, tests);
 };
 
 interface TrendPanelProps {

@@ -5,6 +5,7 @@ import { alertsApi } from "@/lib/api/emr/alerts";
 import { appointmentsApi } from "@/lib/api/emr/appointments";
 import { mailApi } from "@/lib/api/emr/mail";
 import { ordersApi } from "@/lib/api/emr/orders";
+import { MAX_PAGE_SIZE } from "@/lib/api/emr/page";
 import { reviewApi } from "@/lib/api/emr/review";
 import { useLoad, useToday } from "@/features/emr/appointments/hooks";
 import { addDays, dayTitle, localTime, weekOf } from "@/features/emr/appointments/schedule";
@@ -26,6 +27,7 @@ import {
 import { patientRefs } from "../patientRefs";
 import { FormGauge } from "./FormGauge";
 import { NextVisitCard } from "./NextVisitCard";
+import { PinnedTemplatesPanel } from "./PinnedTemplatesPanel";
 import { AlertsPanel, FollowupsPanel, PatientRepliesPanel, TestsToArrivePanel } from "./SidePanels";
 import { StatCard, type TodayStat } from "./StatCard";
 import { VisitsTable } from "./VisitsTable";
@@ -66,9 +68,9 @@ export function TodayDashboard() {
     ),
     "Could not load upcoming follow-ups.",
   );
-  const alerts = useLoad(useCallback(() => alertsApi.list({ status: "open" }), []), "Could not load alerts.");
+  const alerts = useLoad(useCallback(() => alertsApi.list({ status: "open", page_size: MAX_PAGE_SIZE }).then((page) => page.results), []), "Could not load alerts.");
   const mailCounts = useLoad(useCallback(() => mailApi.threads.counts(), []), "Could not load the inbox.");
-  const unread = useLoad(useCallback(() => mailApi.threads.list("inbox", "unread"), []), "Could not load the inbox.");
+  const unread = useLoad(useCallback(() => mailApi.threads.list("inbox", "unread").then((page) => page.results), []), "Could not load the inbox.");
   const review = useLoad(useCallback(() => reviewApi.counts(), []), "Could not load the results queue.");
   const tests = useLoad(
     useCallback(() => ordersApi.requested.list({ status: "pending" }), []),
@@ -191,6 +193,7 @@ export function TodayDashboard() {
               today={today}
             />
           ) : null}
+          <PinnedTemplatesPanel />
         </div>
       </div>
     </Panel>

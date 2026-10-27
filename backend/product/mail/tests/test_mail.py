@@ -279,11 +279,11 @@ class InboxTests(MailTestCase):
         services.ingest(self.clinic, raw_email(sender='laila@example.com', subject='From patient'))
         services.ingest(self.clinic, raw_email(sender='lab@lab.example', subject='From lab'))
         self.send_results()
-        inbox = self.client.get('/api/product/mail/threads/').data
+        inbox = self.client.get('/api/product/mail/threads/').data['results']
         self.assertEqual(sorted(t['subject'] for t in inbox), ['From lab', 'From patient'])
-        self.assertEqual([t['subject'] for t in self.client.get('/api/product/mail/threads/', {'filter': 'unmatched'}).data],
+        self.assertEqual([t['subject'] for t in self.client.get('/api/product/mail/threads/', {'filter': 'unmatched'}).data['results']],
                          ['From lab'])
-        self.assertEqual(len(self.client.get('/api/product/mail/threads/', {'folder': 'sent'}).data), 1)
+        self.assertEqual(self.client.get('/api/product/mail/threads/', {'folder': 'sent'}).data['count'], 1)
         self.assertEqual(self.client.get('/api/product/mail/threads/counts/').data, {'unread': 2, 'unmatched': 1})
         opened = self.client.get(f'/api/product/mail/threads/{inbox[0]["id"]}/').data
         self.assertFalse(opened['unread'])

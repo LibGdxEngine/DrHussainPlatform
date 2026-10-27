@@ -86,8 +86,6 @@ class RequestedTestViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixin
                 queryset = queryset.filter(patient_id=params['patient'])
             if params.get('status'):
                 queryset = queryset.filter(status=params['status'])
-            if not params.get('patient'):
-                queryset = queryset[:500]
         return queryset
 
     def perform_update(self, serializer):

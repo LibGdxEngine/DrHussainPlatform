@@ -10,8 +10,10 @@ import { ActionButton } from "../../ui/Action";
 import { SelectInput, TextInput } from "../../ui/Fields";
 import { Panel } from "../../ui/Panel";
 import { Pill } from "../../ui/Pill";
+import { MAX_PAGE_SIZE } from "@/lib/api/emr/page";
 
-const loadAlerts = (patient: string) => alertsApi.list({ patient, status: "open" });
+const loadAlerts = (patient: string) =>
+  alertsApi.list({ patient, status: "open", page_size: MAX_PAGE_SIZE }).then((page) => page.results);
 
 const rowTone: Record<PatientAlert["level"], string> = {
   red: "bg-danger-tint",

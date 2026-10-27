@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from .models import (
     AlertLevel, AlertRule, AlertRuleVersion, LabCheck, ClinicProfile, EmailTemplate, EmailTemplateVersion, Leaflet,
-    LeafletVersion, PrescriptionItem, PrescriptionVersion, ScoreBandSet, ScoreBandVersion, TemplatePart,
+    LeafletVersion, PrescriptionItem, PrescriptionVersion, ScoreBandSet, ScoreBandVersion, TemplatePart, VitalSign,
 )
 from .placeholders import validate_text
 
@@ -45,7 +45,7 @@ class EmailTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EmailTemplate
-        fields = ['id', 'key', 'language', 'name', 'kind', 'part', 'section_key', 'sort_order', 'archived',
+        fields = ['id', 'key', 'language', 'name', 'kind', 'part', 'section_key', 'sort_order', 'archived', 'pinned',
                   'default_leaflets', 'latest', 'approved', 'updated_at']
         read_only_fields = ['id', 'key', 'language', 'kind', 'part', 'section_key', 'updated_at']
 
@@ -158,11 +158,11 @@ class AlertRuleVersionSerializer(VersionMetaMixin, serializers.ModelSerializer):
     class Meta:
         model = AlertRuleVersion
         fields = ['id', 'number', 'field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message',
-                  'enabled', 'lab_test_code', 'lab_check', 'note', 'created_by_name', 'created_at']
+                  'enabled', 'lab_test_code', 'lab_check', 'vital', 'note', 'created_by_name', 'created_at']
 
 
 _RULE_FIELDS = ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled',
-               'lab_test_code', 'lab_check')
+               'lab_test_code', 'lab_check', 'vital')
 
 
 class AlertRuleSerializer(serializers.ModelSerializer):
@@ -178,6 +178,8 @@ class AlertRuleSerializer(serializers.ModelSerializer):
     lab_test_code = serializers.SlugField(max_length=64, allow_blank=True, required=False,
                                           help_text='Catalog test the rule checks, e.g. testosterone_total.')
     lab_check = serializers.ChoiceField(choices=LabCheck.choices, allow_blank=True, required=False)
+    vital = serializers.ChoiceField(choices=VitalSign.choices, allow_blank=True, required=False,
+                                    help_text='Examination measurement the rule checks, e.g. bmi.')
     note = serializers.CharField(max_length=255, allow_blank=True, required=False, write_only=True)
     version = serializers.IntegerField(read_only=True)
     changed_at = serializers.DateTimeField(read_only=True)
@@ -198,7 +200,12 @@ class AlertRuleSerializer(serializers.ModelSerializer):
         check = attrs.get('lab_check', getattr(current, 'lab_check', ''))
         code = attrs.get('lab_test_code', getattr(current, 'lab_test_code', ''))
         cut_off = attrs.get('threshold_a', getattr(current, 'threshold_a', None))
-        if check and not code:
+        vital = attrs.get('vital', getattr(current, 'vital', ''))
+        if vital and code:
+            raise serializers.ValidationError({'vital': ['A rule checks either a lab test or a vital sign, not both.']})
+        if vital and (not check or check == LabCheck.NEVER_MEASURED):
+            raise serializers.ValidationError({'lab_check': ['Choose how the vital sign is compared.']})
+        if check and not code and not vital:
             raise serializers.ValidationError({'lab_test_code': ['Choose the test this rule checks.']})
         if code:
             from product.results.models import LabTest
