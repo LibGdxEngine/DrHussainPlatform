@@ -1,4 +1,4 @@
-name: mobser-dev
+name: vclinic-dev
 
 x-service-logging: &service-logging
   driver: json-file
@@ -39,6 +39,17 @@ services:
       timeout: 5s
       retries: 5
 
+  # Local test mail server for the clinic mailbox (development only). It accepts any login and
+  # keeps every message locally; nothing is relayed to the outside world.
+  mailserver:
+    logging: *service-logging
+    image: greenmail/standalone:2.0.1
+    environment:
+      - GREENMAIL_OPTS=-Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imap -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled
+    ports:
+      - "127.0.0.1:3025:3025"
+      - "127.0.0.1:3143:3143"
+
   backend:
     logging: *service-logging
     networks: [default, telemetry-ingest]
@@ -50,7 +61,7 @@ services:
       - ./scripts:/app/scripts:ro
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-backend
+      - OTEL_SERVICE_NAME=vclinic-backend
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -63,8 +74,8 @@ services:
       - DJANGO_SETTINGS_MODULE=core.settings.dev
       - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-secret-key-template-project-1234}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
-      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-mobser}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-vclinic}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
@@ -88,12 +99,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: celery -A core worker -l info -Q celery,maintenance
+    command: celery -A core worker -l info -Q celery,maintenance,ocr
     volumes:
       - ./backend:/app
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-worker
+      - OTEL_SERVICE_NAME=vclinic-worker
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -106,8 +117,8 @@ services:
       - DJANGO_SETTINGS_MODULE=core.settings.dev
       - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-secret-key-template-project-1234}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
-      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-mobser}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-vclinic}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
@@ -133,7 +144,7 @@ services:
       - ./backend:/app
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-beat
+      - OTEL_SERVICE_NAME=vclinic-beat
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -146,8 +157,8 @@ services:
       - DJANGO_SETTINGS_MODULE=core.settings.dev
       - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-secret-key-template-project-1234}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
-      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-mobser}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-vclinic}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
@@ -176,7 +187,7 @@ services:
       - /app/.next
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-frontend
+      - OTEL_SERVICE_NAME=vclinic-frontend
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf

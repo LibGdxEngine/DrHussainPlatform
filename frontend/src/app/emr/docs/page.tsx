@@ -1,15 +1,16 @@
-import { DocumentsWorkspace } from "@/features/emr/documents/components/DocumentsWorkspace";
+import { DocsScreen } from "@/features/emr/documents/components/DocsScreen";
 import { AppShell } from "@/features/emr/shell/AppShell";
-import { PatientHeader } from "@/features/emr/shell/PatientHeader";
 
-export default function DocsPage() {
+export default async function DocsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { patient } = await searchParams;
+
   return (
     <AppShell active="docs" showPromo={false}>
-      <PatientHeader
-        tab="docs"
-        meta="الموظفين يقدروا يعملوا سكان ويسمّوا الملفات ويكتبوا القيم الأساسية. الملاحظات الطبية للدكتور بس."
-      />
-      <DocumentsWorkspace />
+      <DocsScreen fileNumber={Array.isArray(patient) ? patient[0] : patient} />
     </AppShell>
   );
 }

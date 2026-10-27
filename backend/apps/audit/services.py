@@ -3,6 +3,17 @@ from .models import AuditLog
 
 logger = logging.getLogger(__name__)
 
+def client_ip(request):
+    """
+    The caller's address. Behind Caddy, REMOTE_ADDR is the proxy; Caddy appends the address it
+    saw to X-Forwarded-For, so the last entry is the one a client cannot forge.
+    """
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if forwarded:
+        return forwarded.split(',')[-1].strip() or None
+    return request.META.get('REMOTE_ADDR') or None
+
+
 def record_audit_log(
     action: str,
     resource_type: str,

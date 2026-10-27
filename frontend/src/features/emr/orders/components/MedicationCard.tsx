@@ -1,14 +1,15 @@
 import { cn } from "@/lib/utils";
-import { Pill } from "@/features/emr/ui/Pill";
-import type { Medication } from "../data";
 
 interface MedicationCardProps {
-  med: Medication;
+  drug: string;
+  dose?: string;
+  directions?: string;
   checked: boolean;
   onToggle: () => void;
 }
 
-export function MedicationCard({ med, checked, onToggle }: MedicationCardProps) {
+/** One item of the clinic's prescription list; ticking adds it to this prescription. */
+export function MedicationCard({ drug, dose, directions, checked, onToggle }: MedicationCardProps) {
   return (
     <label
       className={cn(
@@ -18,10 +19,12 @@ export function MedicationCard({ med, checked, onToggle }: MedicationCardProps) 
     >
       <input type="checkbox" checked={checked} onChange={onToggle} className="m-0 size-[18px] flex-none accent-brand" />
       <span className="flex min-w-0 flex-col gap-[3px]">
-        <strong dir="ltr" className="text-right text-sm font-semibold">{med.name}</strong>
-        <span className="text-[13px] text-muted">{med.sig}</span>
+        <strong className="text-sm font-semibold">
+          {drug}
+          {dose ? <span className="font-normal"> · {dose}</span> : null}
+        </strong>
+        {directions ? <span className="text-[13px] text-muted">{directions}</span> : null}
       </span>
-      <Pill tone="neutral" size="xs" className="ms-auto flex-none">{med.kind}</Pill>
     </label>
   );
 }

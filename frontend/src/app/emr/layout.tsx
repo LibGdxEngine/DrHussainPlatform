@@ -4,7 +4,7 @@ import "./emr.css";
 
 const alexandria = Alexandria({
   variable: "--font-alexandria",
-  subsets: ["arabic", "latin"],
+  subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
@@ -16,7 +16,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "V-Clinic EMR",
-  description: "سجل طبي لفريق رعاية V-Clinic",
+  description: "Medical record for the V-Clinic care team",
 };
 
 export default function EmrLayout({
@@ -24,8 +24,8 @@ export default function EmrLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div
-      dir="rtl"
-      lang="ar"
+      dir="ltr"
+      lang="en"
       className={`${alexandria.variable} ${plexMono.variable} font-emr min-h-screen bg-page text-ink`}
     >
       {children}

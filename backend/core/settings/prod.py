@@ -1,10 +1,40 @@
 from .base import *
 import os
 
+from django.core.exceptions import ImproperlyConfigured
+
+
+def _required_secret(name: str, *, minimum_length: int = 32) -> str:
+    value = os.environ.get(name, '').strip()
+    if len(value) < minimum_length or value.startswith(('dev-', 'django-insecure-', 'changeme', 'generate-')):
+        raise ImproperlyConfigured(
+            f'{name} must be set to a real secret of at least {minimum_length} characters in production.'
+        )
+    return value
+
+
 # Enforce secret key configuration in production
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = _required_secret('SECRET_KEY')
+SIMPLE_JWT = {**SIMPLE_JWT, 'SIGNING_KEY': SECRET_KEY}
+OTP_SECRET = _required_secret('OTP_SECRET')
+
+# Patient files and mailbox passwords are encrypted with these keys. Without them the code would fall
+# back to keys derived from SECRET_KEY, and rotating SECRET_KEY would make every file unreadable.
+MEDIA_ENCRYPTION_KEYS = _required_secret('MEDIA_ENCRYPTION_KEYS', minimum_length=44)
+MAIL_CREDENTIALS_KEY = _required_secret('MAIL_CREDENTIALS_KEY', minimum_length=44)
+
+# A WhatsApp connection that is switched on must authenticate its webhooks.
+for _name, _connection in HIREAGENTS_CONNECTIONS.items():
+    if _connection['channel_id'] and not (_connection['webhook_api_key'] and _connection['webhook_signing_secret']):
+        raise ImproperlyConfigured(
+            f'HIREAGENTS_{_name.upper()}_WEBHOOK_API_KEY and _WEBHOOK_SIGNING_SECRET are required '
+            f'when HIREAGENTS_{_name.upper()}_CHANNEL_ID is set.'
+        )
 
 DEBUG = False
+
+# Platform email goes out over SMTP unless the deployment says otherwise (the test site discards it).
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 
 # API credentials must pass account, session-revocation, and onboarding checks.
 REST_FRAMEWORK = {

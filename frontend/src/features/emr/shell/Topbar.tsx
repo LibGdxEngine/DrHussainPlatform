@@ -1,20 +1,11 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
 import { emrRoutes } from "../routes";
 import { Icon } from "../ui/icons";
-import { cn } from "@/lib/utils";
+import { roleLabel, useMe } from "./useMe";
 
-function RoundIconLink({
-  href,
-  label,
-  icon,
-  dot,
-}: {
-  href: string;
-  label: string;
-  icon: "msgs" | "bell";
-  dot?: boolean;
-}) {
+function RoundIconLink({ href, label, icon }: { href: string; label: string; icon: "msgs" | "bell" }) {
   return (
     <Link
       href={href}
@@ -22,26 +13,22 @@ function RoundIconLink({
       className="relative flex size-11 items-center justify-center rounded-full bg-canvas text-ink"
     >
       <Icon name={icon} />
-      {dot ? (
-        <span className="absolute end-[11px] top-2.5 size-2 rounded-full border-2 border-canvas bg-danger" />
-      ) : null}
     </Link>
   );
 }
 
-export function DoctorBadge({ subtitle, mono }: { subtitle: string; mono?: boolean }) {
+/** The signed-in staff member, from the server: never a fixed name. */
+export function StaffBadge() {
+  const me = useMe();
+  const name = me?.name ?? "";
   return (
-    <div className="flex items-center gap-2.5 ps-1.5">
-      <Image
-        src="/emr/dr-gohar.webp"
-        alt=""
-        width={44}
-        height={44}
-        className="size-11 rounded-full bg-brand-tint object-cover object-[50%_8%]"
-      />
-      <span className="flex flex-col leading-snug">
-        <strong className="text-sm font-semibold">د. ح. جوهر</strong>
-        <span className={cn("text-xs text-muted", mono && "font-emr-mono")}>{subtitle}</span>
+    <div className="flex items-center gap-2.5 ps-1.5" aria-live="polite">
+      <span className="flex size-11 items-center justify-center rounded-full bg-brand-tint text-base font-bold text-brand-deep">
+        {name ? name.charAt(0).toUpperCase() : ""}
+      </span>
+      <span className="flex min-w-24 flex-col leading-snug">
+        <strong className="text-sm font-semibold">{name || " "}</strong>
+        <span className="text-xs text-muted">{me ? `${roleLabel[me.role]} · ${me.clinic_name}` : " "}</span>
       </span>
     </div>
   );
@@ -51,19 +38,17 @@ interface TopbarProps {
   /** Left slot (title for list pages, search box for the dashboard). */
   start: React.ReactNode;
   showMessages?: boolean;
-  doctorSubtitle?: string;
-  doctorMono?: boolean;
 }
 
 /** White rounded header shared by every EMR screen. */
-export function Topbar({ start, showMessages, doctorSubtitle = "دكتور", doctorMono }: TopbarProps) {
+export function Topbar({ start, showMessages }: TopbarProps) {
   return (
     <header className="flex items-center gap-3 rounded-[22px] bg-white px-4 py-3">
       {start}
       <div className="ms-auto flex items-center gap-2.5">
-        {showMessages ? <RoundIconLink href={emrRoutes.visit} label="الرسائل" icon="msgs" /> : null}
-        <RoundIconLink href={emrRoutes.today} label="التنبيهات" icon="bell" dot />
-        <DoctorBadge subtitle={doctorSubtitle} mono={doctorMono} />
+        {showMessages ? <RoundIconLink href={emrRoutes.msgs} label="Inbox" icon="msgs" /> : null}
+        <RoundIconLink href={`${emrRoutes.today}#alerts`} label="Open alerts" icon="bell" />
+        <StaffBadge />
       </div>
     </header>
   );

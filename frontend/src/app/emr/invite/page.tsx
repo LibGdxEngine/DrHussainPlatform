@@ -1,7 +1,7 @@
 import { AppShell } from "@/features/emr/shell/AppShell";
 import { InviteScreen } from "@/features/emr/invite/components/InviteScreen";
 
-export const metadata = { title: "ادعُ مستخدم · V-Clinic EMR" };
+export const metadata = { title: "Invite user · V-Clinic EMR" };
 
 export default function InvitePage() {
   return (

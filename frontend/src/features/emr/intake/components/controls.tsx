@@ -19,7 +19,7 @@ export function ToggleChip({ selected, onClick, size = "lg", children }: ToggleC
       aria-pressed={selected}
       onClick={onClick}
       className={cn(
-        "cursor-pointer rounded-full text-sm",
+        "cursor-pointer rounded-full text-start text-sm",
         size === "lg" ? "min-h-12 px-4" : "min-h-11 px-3.5",
         selected ? selectedStyle : idleStyle,
       )}
@@ -32,7 +32,8 @@ export function ToggleChip({ selected, onClick, size = "lg", children }: ToggleC
 
 interface ChoiceGroupProps<T extends string> {
   options: Option<T>[];
-  value: T;
+  /** undefined until the patient answers. */
+  value: T | undefined;
   onChange: (id: T) => void;
   label: string;
   columns: 2 | 3;
@@ -61,7 +62,7 @@ export function ChoiceGroup<T extends string>({
           aria-pressed={o.id === value}
           onClick={() => onChange(o.id)}
           className={cn(
-            "cursor-pointer rounded-[14px] text-[15px]",
+            "cursor-pointer rounded-[14px] px-2 text-[15px]",
             size === "md" ? "min-h-12" : "min-h-[50px]",
             o.id === value ? selectedStyle : idleStyle,
           )}
@@ -75,7 +76,7 @@ export function ChoiceGroup<T extends string>({
 
 interface RadioListProps<T extends string> {
   options: Option<T>[];
-  value: T;
+  value: T | undefined;
   onChange: (id: T) => void;
   label: string;
 }
@@ -132,3 +133,18 @@ export function Question({
 
 export const phoneInputClass =
   "min-h-[52px] w-full rounded-2xl border-[1.5px] border-field bg-white px-3.5 text-base outline-none focus:border-brand";
+
+export const phoneTextareaClass =
+  "w-full rounded-2xl border-[1.5px] border-field bg-white px-3.5 py-3 text-base leading-[1.7] outline-none focus:border-brand";
+
+/** Card around questions that only show because of an earlier answer. */
+export function ConditionalCard({ reason, children }: { reason: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3.5 rounded-[20px] border border-line bg-white p-4">
+      <span className="self-start rounded-full bg-brand-tint px-2.5 py-[3px] text-[11px] font-semibold text-ok-ink">
+        {reason}
+      </span>
+      {children}
+    </div>
+  );
+}

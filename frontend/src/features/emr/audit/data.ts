@@ -1,88 +1,124 @@
-import type {
-  AuditRow,
-  AuditTab,
-  ClinicUser,
-  PermissionCell,
-  RolePermissionRow,
-} from "./types";
+import type { MemberRole } from "@/lib/api/emr/staff";
+import type { AuditTab } from "./types";
 
 export const auditTabs: { id: AuditTab; label: string }[] = [
-  { id: "log", label: "سجل المراجعة" },
-  { id: "users", label: "المستخدمين والصلاحيات" },
+  { id: "log", label: "Audit log" },
+  { id: "users", label: "Users and permissions" },
 ];
 
-export const periodOptions = ["آخر 7 أيام", "النهارده", "آخر 30 يوم"];
-export const userFilterOptions = ["كل المستخدمين", "د. ح. جوهر", "مي سمير", "المرضى"];
-export const actionFilterOptions = ["كل الإجراءات", "مشاهدة", "تعديل", "تأكيد تنبيه", "إرسال", "مرفوض"];
+/** Plain-English names for logged actions; anything not listed is shown as its code. */
+const actionNames: Record<string, string> = {
+  "auth.signin": "Signed in",
+  "auth.signin_failed": "Sign-in failed",
+  "auth.signin_blocked": "Sign-in blocked",
+  "access.denied": "Refused: doctor only",
+  "patient.created": "Created patient file",
+  "patient.opened": "Opened patient file",
+  "patient.updated": "Edited patient file",
+  "patient.searched": "Searched patients",
+  "document.uploaded": "Uploaded document",
+  "document.opened": "Opened document",
+  "document.updated": "Edited document details",
+  "document.listed": "Viewed documents",
+  "report.opened": "Opened results",
+  "report.values_entered": "Entered key values",
+  "report.confirmed": "Confirmed report belongs to patient",
+  "report.reread": "Read report again",
+  "results.history_viewed": "Viewed results history",
+  "review_case.opened": "Opened results case",
+  "review_case.edited": "Edited draft",
+  "review_case.options_chosen": "Chose prescription or follow-up",
+  "review_case.plan_chosen": "Chose smear plan",
+  "review_case.drafted_anyway": "Drafted despite flags",
+  "review_case.approved": "Approved and sent results email",
+  "review_case.rejected": "Rejected results email",
+  "patient_alert.acknowledged": "Acknowledged alert",
+  "mail_thread.opened": "Opened email",
+  "mail_thread.linked": "Filed email with patient",
+  "mail_thread.replied": "Replied by email",
+  "mail_attachment.opened": "Opened email attachment",
+  "mail_attachment.saved": "Saved email attachment to file",
+  "mailbox.updated": "Changed mailbox settings",
+  "template.version_saved": "Saved email template",
+  "template.approved": "Approved email template",
+  "alert_rule.updated": "Edited alert rule",
+  "prescription.created": "Added prescription",
+  "prescription.updated": "Edited prescription",
+  "lab_test.updated": "Edited lab test",
+  "clinic_profile.updated": "Edited clinic details",
+  "member.role_changed": "Changed a user's role",
+  "member.removed": "Removed a user",
+  "invitation.created": "Invited a user",
+  "invitation.revoked": "Withdrew an invitation",
+  "invitation.accepted": "Joined the clinic",
+};
 
-export const auditRows: AuditRow[] = [
-  { time: "13 أكتوبر 09:41", who: "د. ح. جوهر", role: "دكتور", action: "تأكيد تنبيه", patient: "VC-000142", details: 'R7 · السبب: "اتحجز سونار مهبلي قبل العلاج"', outcome: "success" },
-  { time: "13 أكتوبر 09:38", who: "د. ح. جوهر", role: "دكتور", action: "فتح ملخص الزيارة", patient: "VC-000142", details: "الملخص، تاب سن اليأس", outcome: "success" },
-  { time: "13 أكتوبر 09:20", who: "مي سمير", role: "موظفة العيادة", action: "فتح التنبيهات", patient: "VC-000142", details: "دور الموظف مش مسموح له يشوف التنبيهات الطبية", outcome: "denied" },
-  { time: "13 أكتوبر 09:12", who: "مي سمير", role: "موظفة العيادة", action: "كتابة قيم أساسية", patient: "VC-000142", details: "Ferritin 32، HbA1c 5.3، TSH 1.8 · من سكان 3 أكتوبر", outcome: "success" },
-  { time: "12 أكتوبر 21:04", who: "ليلى أحمد", role: "مريضة", action: "رد على إيميل", patient: "VC-000142", details: 'محادثة "نتايج الدم" · اتحفظت في الملف', outcome: "success" },
-  { time: "12 أكتوبر 18:30", who: "نور صالح", role: "مريضة", action: "بعتت استمارة المتابعة", patient: "VC-000118", details: "MRS 9 · دخلت باللينك + الكود", outcome: "success" },
-  { time: "12 أكتوبر 11:02", who: "د. ح. جوهر", role: "دكتور", action: "تعديل قاعدة تنبيه", patient: "إعدادات العيادة", details: "اتحدد ميعاد الماموجرام R36 · R16 من غير تغيير", outcome: "success" },
-  { time: "11 أكتوبر 09:52", who: "د. ح. جوهر", role: "دكتور", action: "بعت طلب تحاليل", patient: "VC-000142", details: "مبدئي – الكل + هرمونات · اتبعت للمعمل بالإيميل", outcome: "success" },
-];
+export function actionText(action: string): string {
+  return actionNames[action] ?? action;
+}
 
-export const outcomeLabel = { success: "نجح", denied: "مرفوض" } as const;
+export const outcomeLabel = { success: "Success", denied: "Denied" } as const;
 
-const YES: PermissionCell = { text: "أيوه", tone: "yes" };
-const NO: PermissionCell = { text: "لا", tone: "no" };
-const OWN: PermissionCell = { text: "بتاعتها بس", tone: "own" };
-const READ_ONLY: PermissionCell = { text: "قراية بس", tone: "readOnly" };
-const NA: PermissionCell = { text: "—", tone: "na" };
-
-const row = (
-  action: string,
-  doctor: PermissionCell,
-  nurse: PermissionCell,
-  staff: PermissionCell,
-  patient: PermissionCell,
-): RolePermissionRow => ({ action, doctor, nurse, staff, patient });
-
-export const rolePermissions: RolePermissionRow[] = [
-  row("حجز زيارات، بعت لينكات الاستمارات", YES, NO, YES, NO),
-  row("تسجيل الحضور والعلامات الحيوية", YES, YES, NO, NO),
-  row("سكان، تسمية، كتابة القيم الأساسية", YES, YES, YES, NO),
-  row("شوف الملخص والتنبيهات والدرجات", YES, READ_ONLY, NO, NO),
-  row("تأكيد التنبيهات، كتابة الروشتات", YES, NO, NO, NO),
-  row("بعت طلبات متكتبة قبل كده", YES, YES, YES, NO),
-  row("بعت النتايج بالإيميل، قراية الردود", YES, NO, NO, OWN),
-  row("ملي الاستمارات، شوف مؤشراتها", NA, NO, NO, OWN),
-  row("إعدادات العيادة، سجل المراجعة", YES, NO, NO, NO),
-];
-
-export const clinicUsers: ClinicUser[] = [
-  {
-    id: "doctor",
-    name: "د. حسين جوهر",
-    email: "hsgohar@gmail.com",
-    roleLabel: "دكتور · أدمن",
-    roleTone: "brand",
-    avatar: { kind: "photo" },
-    meta: { kind: "text", text: "Passkey · دلوقتي" },
+/** The clinic roles as the backend applies them (IsClinicLead = owner or admin). */
+export const roleInfo: Record<MemberRole, { label: string; short: string; can: string[]; cannot?: string[] }> = {
+  OWNER: {
+    label: "Owner",
+    short: "Doctor access, and manages owners",
+    can: [
+      "Everything an admin can do",
+      "Make other users owners, or remove an owner",
+    ],
+    cannot: ["The clinic always keeps at least one owner"],
   },
-  {
-    id: "staff",
-    name: "مي سمير",
-    email: "clinicgohar@gmail.com",
-    roleLabel: "موظفة العيادة",
-    roleTone: "neutral",
-    avatar: { kind: "initial", letter: "م", className: "bg-warn-tint text-warn-ink" },
-    meta: { kind: "text", text: "تطبيق التحقق · 09:20" },
+  ADMIN: {
+    label: "Admin",
+    short: "Doctor access",
+    can: [
+      "Write prescriptions and lab requests",
+      "Review results, approve or reject results emails",
+      "Acknowledge alerts and confirm whose report a flagged upload is",
+      "Reply to patients' emails",
+      "Clinic settings: details, templates, leaflets, lab tests, alert rules and the mailbox",
+      "Read the audit log",
+      "Invite users, change roles and remove users",
+    ],
   },
-  {
-    id: "nurse",
-    name: "سارة محمود",
-    email: "nurse.vclinic@gmail.com",
-    roleLabel: "ممرضة",
-    roleTone: "brand",
-    avatar: { kind: "initial", letter: "س", className: "bg-brand-tint text-brand-deep" },
-    meta: { kind: "inviteLink", text: "الدعوة مستنية · عدّل الصلاحيات" },
+  MEMBER: {
+    label: "Member",
+    short: "Clinic staff",
+    can: [
+      "Patients: create, open and edit files",
+      "Appointments, and sending patient forms",
+      "Scanning and filing documents, and entering key values from reports",
+      "Read the inbox, alerts, orders and clinic settings",
+      "See the list of users",
+    ],
+    cannot: ["Issue orders, approve results emails, change settings or read the audit log"],
   },
-];
+};
+
+export const roleOrder: MemberRole[] = ["OWNER", "ADMIN", "MEMBER"];
+
+export interface MemberControls {
+  /** Roles the signed-in user may pick for this member; empty when the role can't be changed here. */
+  roleOptions: MemberRole[];
+  canRemove: boolean;
+}
+
+/**
+ * What the signed-in user may do to a member, mirroring the backend: only owners and admins change users,
+ * only owners touch owners, and nobody removes or re-roles themselves from this list.
+ */
+export function memberControls(
+  me: { role: MemberRole; is_lead: boolean } | null,
+  member: { role?: MemberRole; is_me: boolean },
+): MemberControls {
+  const none: MemberControls = { roleOptions: [], canRemove: false };
+  if (!me?.is_lead || member.is_me) return none;
+  const owner = me.role === "OWNER";
+  if (member.role === "OWNER" && !owner) return none;
+  return { roleOptions: owner ? roleOrder : ["ADMIN", "MEMBER"], canRemove: true };
+}
 
 export const patientsNote =
-  "المرضى ملهمش حسابات موظفين. بيفتحوا لينك استمارة لمرة واحدة ويأكدوا بتاريخ الميلاد + كود بيوصل SMS؛ بيشوفوا استماراتهم ونتايجهم وإيميلاتهم بس.";
+  "Patients do not have staff accounts. They open a one-time form link and confirm their date of birth; they only see their own form.";

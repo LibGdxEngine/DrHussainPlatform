@@ -1,4 +1,4 @@
-name: mobser-prod
+name: vclinic-prod
 
 x-service-logging: &service-logging
   driver: json-file
@@ -18,7 +18,7 @@ services:
     environment:
       - POSTGRES_DB=${DB_NAME:-postgres}
       - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env.prod}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
@@ -44,11 +44,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
     restart: always
+    env_file: ${PROD_ENV_FILE:-.env.prod}
     volumes:
       - django_prod_media:/app/media
+      - django_prod_records:/app/private_media
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-backend
+      - OTEL_SERVICE_NAME=vclinic-backend
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -61,13 +63,13 @@ services:
       - DJANGO_SETTINGS_MODULE=core.settings.prod
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-mobser}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - OTP_SECRET=${OTP_SECRET:?Set OTP_SECRET in .env.prod}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env.prod}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - CACHE_URL=redis://redis:6379/1
@@ -89,11 +91,13 @@ services:
       dockerfile: Dockerfile.prod
     command: celery -A core worker -l info -Q celery,maintenance
     restart: always
+    env_file: ${PROD_ENV_FILE:-.env.prod}
     volumes:
       - django_prod_media:/app/media
+      - django_prod_records:/app/private_media
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-worker
+      - OTEL_SERVICE_NAME=vclinic-worker
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -106,13 +110,13 @@ services:
       - DJANGO_SETTINGS_MODULE=core.settings.prod
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-mobser}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - OTP_SECRET=${OTP_SECRET:?Set OTP_SECRET in .env.prod}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env.prod}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - CACHE_URL=redis://redis:6379/1
@@ -130,9 +134,10 @@ services:
       dockerfile: Dockerfile.prod
     command: celery -A core beat -l info
     restart: always
+    env_file: ${PROD_ENV_FILE:-.env.prod}
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-beat
+      - OTEL_SERVICE_NAME=vclinic-beat
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -145,13 +150,13 @@ services:
       - DJANGO_SETTINGS_MODULE=core.settings.prod
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - OTP_SECRET=${OTP_SECRET:-dev-otp-secret-key-32-chars-minimum-mobser}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@mobser.local}
+      - OTP_SECRET=${OTP_SECRET:?Set OTP_SECRET in .env.prod}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@vclinic.local}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-postgres}
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?Set DB_PASSWORD in .env.prod}
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - CACHE_URL=redis://redis:6379/1
@@ -174,7 +179,7 @@ services:
     restart: always
     environment:
       - OTEL_ENABLED=${OTEL_ENABLED:-true}
-      - OTEL_SERVICE_NAME=mobser-frontend
+      - OTEL_SERVICE_NAME=vclinic-frontend
       - OTEL_SERVICE_VERSION=${APP_VERSION:-development}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
@@ -368,6 +373,7 @@ volumes:
   postgres_prod_data:
   redis_prod_data:
   django_prod_media:
+  django_prod_records:
   caddy_prod_data:
   caddy_prod_config:
   otel_offsets:

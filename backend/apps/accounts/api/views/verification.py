@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.api.throttles import OTPThrottle
 from apps.accounts.api.serializers import (
     VerificationConfirmSerializer,
     VerificationResendSerializer,
@@ -26,6 +27,7 @@ class VerificationConfirmView(APIView):
     For signup verification: marks user ACTIVE, sets phone_verified_at, and issues JWT tokens directly.
     """
     permission_classes = [AllowAny]
+    throttle_classes = [OTPThrottle]
 
     def post(self, request):
         serializer = VerificationConfirmSerializer(data=request.data)
@@ -69,6 +71,7 @@ class VerificationResendView(APIView):
     Resends OTP challenge respecting cooldown and maximum resend limits.
     """
     permission_classes = [AllowAny]
+    throttle_classes = [OTPThrottle]
 
     def post(self, request):
         serializer = VerificationResendSerializer(data=request.data)

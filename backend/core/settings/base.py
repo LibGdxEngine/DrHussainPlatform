@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from corsheaders.defaults import default_headers
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -29,7 +31,24 @@ INSTALLED_APPS = [
     'apps.billing.apps.BillingConfig',
     'apps.notifications.apps.NotificationsConfig',
     'apps.audit.apps.AuditConfig',
+
+    # Product apps
+    'product.patients.apps.PatientsConfig',
+    'product.records.apps.RecordsConfig',
+    'product.results.apps.ResultsConfig',
+    'product.content.apps.ContentConfig',
+    'product.review.apps.ReviewConfig',
+    'product.mail.apps.MailConfig',
+    'product.alerts.apps.AlertsConfig',
+    'product.activity.apps.ActivityConfig',
+    'product.appointments.apps.AppointmentsConfig',
+    'product.intake.apps.IntakeConfig',
+    'product.orders.apps.OrdersConfig',
+    'product.staff.apps.StaffConfig',
 ]
+
+# Headers the EMR sends besides the defaults: the clinic it acts for, and the patient form's session.
+CORS_ALLOW_HEADERS = (*default_headers, 'x-organization-id', 'x-intake-session')
 
 MIDDLEWARE = [
     'core.middleware.api_errors.ApiErrorMiddleware',
@@ -96,7 +115,8 @@ AUTH_USER_MODEL = 'accounts.User'
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+# The clinic's local time: day boundaries for the schedule ("today", ?date=) follow it.
+TIME_ZONE = os.environ.get('TIME_ZONE', 'UTC')
 USE_I18N = True
 USE_TZ = True
 
@@ -111,6 +131,11 @@ STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
+    # Patient documents: outside MEDIA_ROOT, encrypted at rest, and only served through authenticated views.
+    "private": {
+        "BACKEND": "product.storage.EncryptedFileSystemStorage",
+        "OPTIONS": {"location": BASE_DIR / 'private_media'},
+    },
 }
 
 MEDIA_URL = '/media/'
@@ -122,9 +147,31 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # DRF settings
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'core.api_errors.exception_handler',
+    # Every list is a page: {count, next, previous, results}. ?page_size= raises it up to the class maximum.
+    'DEFAULT_PAGINATION_CLASS': 'apps.common.pagination.DefaultPagination',
+    'PAGE_SIZE': int(os.environ.get('API_PAGE_SIZE', 50)),
+    # Deny by default: a view opens itself up explicitly (AllowAny) when it is meant to be public.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ],
+    # A ceiling against abuse; the sign-in, OTP and password-reset views carry much tighter scoped rates.
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.environ.get('THROTTLE_ANON', '120/min'),
+        'user': os.environ.get('THROTTLE_USER', '1000/min'),
+        'auth_login': os.environ.get('THROTTLE_LOGIN', '10/min'),
+        'auth_otp': os.environ.get('THROTTLE_OTP', '10/min'),
+        'auth_password': os.environ.get('THROTTLE_PASSWORD', '5/min'),
+        'auth_signup': os.environ.get('THROTTLE_SIGNUP', '10/min'),
+        # The patient form's public endpoints: opening a link, the date-of-birth check, saving.
+        'intake': os.environ.get('THROTTLE_INTAKE', '30/min'),
+    },
+    # Reverse proxies in front of Django (the gateway Caddy, plus the host's), so throttling keys on
+    # the real client address. Unset, the whole X-Forwarded-For chain is the identity.
+    'NUM_PROXIES': int(os.environ['REST_NUM_PROXIES']) if os.environ.get('REST_NUM_PROXIES') else None,
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'apps.accounts.authentication.VersionedJWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
@@ -148,6 +195,23 @@ SPECTACULAR_SETTINGS = {
         'UserStatusEnum': 'apps.accounts.models.UserStatus.choices',
         'VerificationPurposeEnum': 'apps.accounts.models.VerificationPurpose.choices',
         'SubscriptionStatusEnum': 'apps.billing.models.Subscription.Status',
+        'DocumentSourceEnum': 'product.records.models.DocumentSource',
+        'DiagnosisStatusEnum': 'product.records.models.Diagnosis.Status',
+        'ResultSourceEnum': 'product.results.models.ResultValue.Source',
+        'LabTestKindEnum': 'product.results.models.LabTest.Kind',
+        'TemplateKindEnum': 'product.content.models.TemplateKind',
+        'LanguageEnum': 'product.patients.models.Language',
+        'ResultsCaseStatusEnum': 'product.review.models.ResultsCase.Status',
+        'ResultsCaseKindEnum': 'product.review.models.ResultsCase.Kind',
+        'MailSecurityEnum': 'product.mail.models.Security',
+        'VisitKindEnum': 'product.appointments.models.VisitKind',
+        'AppointmentStatusEnum': 'product.appointments.models.Appointment.Status',
+        'IntakeFormKindEnum': 'product.intake.models.IntakeForm.Kind',
+        'IntakeFormStatusEnum': 'product.intake.models.IntakeForm.Status',
+        'YesNoEnum': 'product.intake.serializers.YES_NO',
+        'OrderKindEnum': 'product.orders.models.Order.Kind',
+        'RequestedTestStatusEnum': 'product.orders.models.RequestedTest.Status',
+        'InvitationStatusEnum': 'apps.organizations.models.Invitation.Status',
     },
 }
 
@@ -160,7 +224,8 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': os.environ.get('SECRET_KEY', 'django-insecure-dev-secret-key-template-project-1234'),
+    # Each settings module sets this to its SECRET_KEY; there is deliberately no built-in default.
+    'SIGNING_KEY': os.environ.get('SECRET_KEY', ''),
     'AUTH_HEADER_TYPES': ('Bearer',),
     'TOKEN_OBTAIN_SERIALIZER': 'apps.accounts.api.serializers.auth.CustomTokenObtainPairSerializer',
 }
@@ -168,7 +233,8 @@ SIMPLE_JWT = {
 # ------------------------------------------------------------------------------
 # Messaging & WhatsApp Integration Settings (HireAgents)
 # ------------------------------------------------------------------------------
-OTP_SECRET = os.environ.get('OTP_SECRET', 'dev-otp-secret-key-32-chars-minimum-mobser')
+# Keys OTP code digests. Development fills a fixed value in dev.py; production refuses to start without it.
+OTP_SECRET = os.environ.get('OTP_SECRET', '')
 WHATSAPP_AUTH_TEMPLATE = os.environ.get('WHATSAPP_AUTH_TEMPLATE', 'auth_verification_otp')
 HIREAGENTS_BASE_URL = os.environ.get('HIREAGENTS_BASE_URL', 'https://hireagents.blinksolutions.tech')
 
@@ -176,13 +242,13 @@ HIREAGENTS_CONNECTIONS = {
     'auth': {
         'channel_id': os.environ.get('HIREAGENTS_AUTH_CHANNEL_ID', ''),
         'api_key': os.environ.get('HIREAGENTS_AUTH_API_KEY', ''),
-        'webhook_api_key': os.environ.get('HIREAGENTS_AUTH_WEBHOOK_API_KEY', 'dev-hireagents-auth-webhook-key'),
+        'webhook_api_key': os.environ.get('HIREAGENTS_AUTH_WEBHOOK_API_KEY', ''),
         'webhook_signing_secret': os.environ.get('HIREAGENTS_AUTH_WEBHOOK_SIGNING_SECRET', ''),
     },
     'support': {
         'channel_id': os.environ.get('HIREAGENTS_SUPPORT_CHANNEL_ID', ''),
         'api_key': os.environ.get('HIREAGENTS_SUPPORT_API_KEY', ''),
-        'webhook_api_key': os.environ.get('HIREAGENTS_SUPPORT_WEBHOOK_API_KEY', 'dev-hireagents-support-webhook-key'),
+        'webhook_api_key': os.environ.get('HIREAGENTS_SUPPORT_WEBHOOK_API_KEY', ''),
         'webhook_signing_secret': os.environ.get('HIREAGENTS_SUPPORT_WEBHOOK_SIGNING_SECRET', ''),
     },
 }
@@ -249,6 +315,10 @@ CELERY_TASK_ROUTES = {
     'apps.common.tasks.cleanup_temp_uploads': {'queue': 'maintenance'},
     'apps.common.tasks.cleanup_task_records': {'queue': 'maintenance'},
     'apps.notifications.tasks.send_scheduled_reports': {'queue': 'maintenance'},
+    # Reading a report can mean OCR of fifteen pages. Its own queue, with its own longer limit, so it
+    # neither dies at the default limit nor holds up mail polling and OTP delivery.
+    'product.results.tasks.read_report': {'queue': 'ocr'},
+    'product.alerts.tasks.*': {'queue': 'maintenance'},
 }
 
 # Defaults for the shared task base class in apps.common.tasks.
@@ -263,8 +333,26 @@ TASK_RECORD_RETENTION_DAYS = int(os.environ.get('TASK_RECORD_RETENTION_DAYS', 30
 
 # DatabaseScheduler syncs these defaults into the django_celery_beat tables on
 # startup, after which they can be retimed from the Django admin without a deploy.
+# The clinic's own mailbox (product.mail). Patient email goes only through the clinic's server; the
+# platform address is a development fallback and is off unless explicitly enabled.
+MAIL_CREDENTIALS_KEY = os.environ.get('MAIL_CREDENTIALS_KEY', '')
+MAIL_ALLOW_PLATFORM_FALLBACK = os.environ.get('MAIL_ALLOW_PLATFORM_FALLBACK', 'false').lower() == 'true'
+MAIL_SMTP_BACKEND = os.environ.get('MAIL_SMTP_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+MAIL_TIMEOUT_SECONDS = int(os.environ.get('MAIL_TIMEOUT_SECONDS', 30))
+MAIL_POLL_SECONDS = int(os.environ.get('MAIL_POLL_SECONDS', 120))
+# Development stacks talk to a mail server on the Docker network; outside that, a mailbox may only
+# point at public addresses (the connection check would otherwise probe the hosting network).
+MAIL_ALLOW_PRIVATE_HOSTS = os.environ.get('MAIL_ALLOW_PRIVATE_HOSTS', 'false').lower() == 'true'
+
+# Public address of the EMR frontend: patient form links and staff invitations point here.
+EMR_PUBLIC_URL = os.environ.get('EMR_PUBLIC_URL', 'http://localhost').rstrip('/')
+
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BEAT_SCHEDULE = {
+    'poll-clinic-mailboxes': {
+        'task': 'product.mail.tasks.poll_mailboxes',
+        'schedule': float(MAIL_POLL_SECONDS),
+    },
     'beat-heartbeat': {
         'task': 'apps.common.tasks.beat_heartbeat',
         'schedule': 60.0,
@@ -310,6 +398,20 @@ VERIFICATION_CHALLENGE_RETENTION_DAYS = int(os.environ.get('VERIFICATION_CHALLEN
 EXPIRED_TOKEN_RETENTION_DAYS = int(os.environ.get('EXPIRED_TOKEN_RETENTION_DAYS', 1))
 INVITATION_EXPIRY_DAYS = int(os.environ.get('INVITATION_EXPIRY_DAYS', 7))
 TEMP_UPLOAD_RETENTION_HOURS = int(os.environ.get('TEMP_UPLOAD_RETENTION_HOURS', 24))
+DOCUMENT_MAX_UPLOAD_BYTES = int(os.environ.get('DOCUMENT_MAX_UPLOAD_BYTES', 25 * 1024 * 1024))
+# Fernet keys for patient files at rest, comma-separated: the first encrypts, all decrypt (rotation).
+MEDIA_ENCRYPTION_KEYS = os.environ.get('MEDIA_ENCRYPTION_KEYS', '')
+# Investigation reports are read on this server (PDF text layer, else Tesseract OCR). Adding 'ara'
+# reads Arabic too but makes Tesseract misread Latin letters such as the H/L flags, so it is opt-in.
+RESULTS_OCR_LANGUAGES = os.environ.get('RESULTS_OCR_LANGUAGES', 'eng')
+RESULTS_OCR_DPI = int(os.environ.get('RESULTS_OCR_DPI', 300))
+RESULTS_MAX_PAGES = int(os.environ.get('RESULTS_MAX_PAGES', 15))
+# Reading runs on the `ocr` queue with these limits (seconds); a report still unread at the soft
+# limit is marked as failed instead of staying "waiting to be read".
+RESULTS_READ_SOFT_TIME_LIMIT = int(os.environ.get('RESULTS_READ_SOFT_TIME_LIMIT', 900))
+RESULTS_READ_TIME_LIMIT = int(os.environ.get('RESULTS_READ_TIME_LIMIT', 960))
+# The largest scan PIL will decode (a decompression-bomb guard; A4 at 600 DPI is about 35 MP).
+RESULTS_MAX_IMAGE_PIXELS = int(os.environ.get('RESULTS_MAX_IMAGE_PIXELS', 50_000_000))
 SUBSCRIPTION_PAST_DUE_GRACE_HOURS = int(os.environ.get('SUBSCRIPTION_PAST_DUE_GRACE_HOURS', 24))
 SCHEDULED_REPORT_PERIOD_DAYS = int(os.environ.get('SCHEDULED_REPORT_PERIOD_DAYS', 7))
 
@@ -320,7 +422,7 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': os.environ.get('CACHE_URL', 'redis://redis:6379/1'),
-        'KEY_PREFIX': 'mobser',
+        'KEY_PREFIX': 'vclinic',
         'OPTIONS': {'socket_connect_timeout': 2, 'socket_timeout': 2},
     }
 }
@@ -328,8 +430,17 @@ CACHES = {
 # ------------------------------------------------------------------------------
 # Email
 # ------------------------------------------------------------------------------
+# Platform email: invitations, password resets, weekly reports. Development prints to the console;
+# production defaults to SMTP with the EMAIL_* settings below (see prod.py).
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@mobser.local')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@vclinic.local')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() == 'true'
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'false').lower() == 'true'
+EMAIL_TIMEOUT = int(os.environ.get('EMAIL_TIMEOUT', 30))
 
 # ------------------------------------------------------------------------------
 # Logging

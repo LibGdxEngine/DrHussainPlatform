@@ -1,9 +1,9 @@
+import type { IntakeAnswers } from "@/lib/api/emr/intake";
+
 export interface VisitReason {
-  id: string;
+  id: ReasonId;
   label: string;
-  /** Extra question module added to the form when this reason is picked. */
-  module?: { title: string; minutes: string };
-  /** Reasons that open the menopause module (shared by several reasons). */
+  /** Reasons that open the menopause (MRS) questions. */
   menopause?: boolean;
 }
 
@@ -17,9 +17,37 @@ export interface Option<T extends string = string> {
   label: string;
 }
 
-export type PeriodStatus = "reg" | "irr" | "stopped" | "horm" | "hyst";
-export type OverallFeeling = "much" | "better" | "same" | "worse";
-export type Adherence = "yes" | "some" | "stop";
+/** What the patient can answer; the backend drops anything else. */
+export type Answers = IntakeAnswers;
+export type ReasonId = NonNullable<Answers["reasons"]>[number];
+export type PeriodStatus = NonNullable<Answers["period_status"]>;
+export type OverallFeeling = NonNullable<Answers["overall"]>;
+export type Adherence = NonNullable<Answers["adherence"]>;
+export type SideEffect = NonNullable<Answers["side_effects"]>[number];
+export type YesNo = NonNullable<Answers["uterus"]>;
+export type YesNoUnsure = NonNullable<Answers["pregnant"]>;
+export type Medicine = NonNullable<Answers["medicines"]>[number];
+
+export type FormKind = "full" | "followup";
+
+/** One screen of the form after the date-of-birth check. */
+export type StepId = "reasons" | "periods" | "mrs" | "notes" | "progress" | "treatment" | "review";
+
+/** The 11 MRS answers; null until the patient picks a score. */
+export type MrsDraft = (number | null)[];
+
+export interface ReviewRow {
+  step: StepId;
+  label: string;
+  value: string;
+}
+
+export interface ProgressBar {
+  label: string;
+  value: number;
+  /** Bar height as a share of the MRS maximum, 0–100. */
+  pct: number;
+}
 
 export interface MrsBand {
   label: string;

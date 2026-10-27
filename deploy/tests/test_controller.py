@@ -473,3 +473,36 @@ class ProcessTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PrivateMediaBackupTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name)
+        for name, content in [('compose.yml', 'compose'), ('gateway.Caddyfile', 'gateway'),
+                              ('runtime.env', ''), ('config.json', '{"public_url":"https://test.example"}')]:
+            (self.base / name).write_text(content)
+            (self.base / name).chmod(0o600)
+        for patcher in (patch.object(c, 'BASE', self.base), patch.object(c, 'protected')):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.controller = c.Controller()
+
+    def test_patient_files_are_archived_from_the_volume_with_a_throwaway_container(self):
+        def compose(release_, args, timeout=180, output=None, extra_env=None):
+            output.write(b'tar-bytes')
+
+        self.controller.compose = Mock(side_effect=compose)
+        target = self.base / 'files.tar'
+        self.controller.backup_private_media(release(), target)
+        self.assertEqual(target.read_bytes(), b'tar-bytes')
+        args = self.controller.compose.call_args.args[1]
+        self.assertEqual(args[:3], ['run', '--rm', '--no-deps'])
+        self.assertIn('--entrypoint', args)
+        self.assertEqual(args[-4:], ['/app/private_media', '-cf', '-', '.'])
+
+    def test_an_empty_archive_fails_the_deploy(self):
+        self.controller.compose = Mock()
+        with self.assertRaises(c.DeployError):
+            self.controller.backup_private_media(release(), self.base / 'empty.tar')

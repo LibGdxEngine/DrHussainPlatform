@@ -5,11 +5,8 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenVerifyView,
-)
-from apps.accounts.api.views.auth import SessionTokenRefreshView
+from rest_framework_simplejwt.views import TokenVerifyView
+from apps.accounts.api.views.auth import LegacyTokenObtainPairView, SessionTokenRefreshView
 from apps.common.views import hello_world, system_status
 from apps.common.observability import health_live, health_ready, observability_auth
 
@@ -32,7 +29,7 @@ urlpatterns = [
     # Backward-compatible API roots
     path('api/hello/', hello_world, name='api_hello'),
     path('api/status/', system_status, name='api_status'),
-    path('api/token/', TokenObtainPairView.as_view(), name='api_token_obtain_pair'),
+    path('api/token/', LegacyTokenObtainPairView.as_view(), name='api_token_obtain_pair'),
     path('api/token/refresh/', SessionTokenRefreshView.as_view(), name='api_token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='api_token_verify'),
 
@@ -45,4 +42,18 @@ urlpatterns = [
     path('api/billing/', include('apps.billing.urls', namespace='billing')),
     path('api/notifications/', include('apps.notifications.urls', namespace='notifications')),
     path('api/audit/', include('apps.audit.urls', namespace='audit')),
+
+    # Product App Routes
+    path('api/product/patients/', include('product.patients.urls', namespace='patients')),
+    path('api/product/records/', include('product.records.urls', namespace='records')),
+    path('api/product/results/', include('product.results.urls', namespace='results')),
+    path('api/product/content/', include('product.content.urls', namespace='content')),
+    path('api/product/review/', include('product.review.urls', namespace='review')),
+    path('api/product/mail/', include('product.mail.urls', namespace='mail')),
+    path('api/product/alerts/', include('product.alerts.urls', namespace='alerts')),
+    path('api/product/activity/', include('product.activity.urls', namespace='activity')),
+    path('api/product/appointments/', include('product.appointments.urls', namespace='appointments')),
+    path('api/product/intake/', include('product.intake.urls', namespace='intake')),
+    path('api/product/orders/', include('product.orders.urls', namespace='orders')),
+    path('api/product/staff/', include('product.staff.urls', namespace='staff')),
 ]

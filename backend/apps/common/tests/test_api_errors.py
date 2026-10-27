@@ -6,7 +6,7 @@ from django.test import SimpleTestCase, override_settings
 from django.urls import path
 from rest_framework import exceptions
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
@@ -14,6 +14,7 @@ from core.api_errors import exception_handler, flatten_errors, normalize_error, 
 
 
 @api_view(["POST"])
+@permission_classes([AllowAny])  # the project default is deny; these views test the envelope only
 def validation_view(request):
     if request.data.get("nested"):
         raise exceptions.ValidationError({"members": [{"email": ["Invalid email."]}, {}]})
@@ -27,16 +28,19 @@ def protected_view(request):
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])  # the project default is deny; these views test the envelope only
 def forbidden_view(request):
     raise exceptions.PermissionDenied("Membership is required.")
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])  # the project default is deny; these views test the envelope only
 def throttled_view(request):
     raise exceptions.Throttled(wait=12)
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])  # the project default is deny; these views test the envelope only
 def success_view(request):
     return Response({"message": "unchanged"})
 

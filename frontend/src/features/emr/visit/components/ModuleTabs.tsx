@@ -2,27 +2,47 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import type { IntakeFormDetail } from "@/lib/api/emr/intake";
 import { Panel } from "../../ui/Panel";
-import { moduleTabs } from "../data";
-import type { ModuleTabId } from "../types";
+import { readAnswers } from "../answers";
 import { MenoModule } from "./MenoModule";
-import { CoreHistoryModule, DischargeModule } from "./HistoryModules";
+import { CoreHistoryModule, DischargeModule, NotRecorded, PeriodsModule } from "./HistoryModules";
 
-const modules: Record<ModuleTabId, React.ReactNode> = {
-  meno: <MenoModule />,
-  dis: <DischargeModule />,
-  core: <CoreHistoryModule />,
-};
+type ModuleTabId = "meno" | "periods" | "dis" | "core";
 
-export function ModuleTabs() {
+const moduleTabs: { id: ModuleTabId; label: string }[] = [
+  { id: "meno", label: "Menopause" },
+  { id: "periods", label: "Periods & bleeding" },
+  { id: "dis", label: "Discharge & infections" },
+  { id: "core", label: "Core history" },
+];
+
+/** History modules from the patient's latest completed history form. */
+export function ModuleTabs({ form }: { form?: IntakeFormDetail }) {
   const [tab, setTab] = useState<ModuleTabId>("meno");
+  const answers = readAnswers(form?.answers);
+
+  let body: React.ReactNode;
+  if (!form && tab !== "core") {
+    body = <p className="m-0 text-[13px] text-muted">No completed patient form yet, so nothing has been answered.</p>;
+  } else if (tab === "meno") {
+    body = (
+      <div className="flex flex-col gap-4">
+        <MenoModule scores={form?.mrs ?? null} submittedAt={form?.submitted_at} />
+        <NotRecorded title="Hormone safety screen" items={["Part A (stop and review)", "Part B (caution)", "PHQ-2", "GAD-2"]} />
+      </div>
+    );
+  } else if (tab === "periods") {
+    body = <PeriodsModule answers={answers} />;
+  } else if (tab === "dis") {
+    body = <DischargeModule answers={answers} />;
+  } else {
+    body = <CoreHistoryModule />;
+  }
+
   return (
-    <Panel aria-label="الأقسام" className="flex flex-col gap-4 p-5">
-      <div
-        role="tablist"
-        aria-label="الأقسام"
-        className="flex gap-1.5 self-start rounded-full bg-canvas p-[5px]"
-      >
+    <Panel aria-label="Modules" className="flex flex-col gap-4 p-5">
+      <div role="tablist" aria-label="Modules" className="flex gap-1.5 self-start rounded-full bg-canvas p-[5px]">
         {moduleTabs.map((t) => {
           const on = t.id === tab;
           return (
@@ -44,7 +64,7 @@ export function ModuleTabs() {
           );
         })}
       </div>
-      {modules[tab]}
+      {body}
     </Panel>
   );
 }

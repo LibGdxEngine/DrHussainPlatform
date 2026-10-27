@@ -1,15 +1,18 @@
-import { OrdersWorkspace } from "@/features/emr/orders/components/OrdersWorkspace";
+import { OrdersScreen } from "@/features/emr/orders/components/OrdersScreen";
 import { AppShell } from "@/features/emr/shell/AppShell";
-import { PatientHeader } from "@/features/emr/shell/PatientHeader";
 
-export default function OrdersPage() {
+export const metadata = { title: "Orders & prescriptions · V-Clinic EMR" };
+
+export default async function OrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { patient } = await searchParams;
+
   return (
     <AppShell active="patients" showPromo={false}>
-      <PatientHeader
-        tab="orders"
-        meta="الرحم موجود · حساسية: بنسلين · حساسية فول سوداني: لا · صداع نصفي مع أورة"
-      />
-      <OrdersWorkspace />
+      <OrdersScreen fileNumber={Array.isArray(patient) ? patient[0] : patient} />
     </AppShell>
   );
 }

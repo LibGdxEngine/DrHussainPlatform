@@ -1,4 +1,4 @@
-/** Top bar title block for list screens, e.g. "المرضى · 412 ملف". */
+/** Top bar title block for list screens, e.g. "Patients · 412 charts". */
 export function PageTitle({ title, meta }: { title: string; meta?: string }) {
   return (
     <div className="flex items-baseline gap-3 ps-2">

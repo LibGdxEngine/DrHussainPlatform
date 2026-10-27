@@ -1,4 +1,8 @@
 /* V-Clinic EMR design tokens. Scoped to Tailwind utilities (bg-brand, text-muted, ...). */
+/* Each CSS entry is compiled on its own, so this file needs Tailwind's theme + utilities to emit the token classes. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 @theme {
   --color-brand: #1c6b45;
   --color-brand-deep: #145a3a;

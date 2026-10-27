@@ -7,13 +7,22 @@ export const emrRoutes = {
   exam: "/emr/exam",
   orders: "/emr/orders",
   docs: "/emr/docs",
+  diagnoses: "/emr/diagnoses",
+  results: "/emr/results",
+  scan: "/emr/scan",
   msgs: "/emr/msgs",
   followup: "/emr/followup",
   appts: "/emr/appts",
   rules: "/emr/rules",
+  templates: "/emr/settings/templates",
+  prescriptions: "/emr/settings/prescriptions",
+  leaflets: "/emr/settings/leaflets",
+  labTests: "/emr/settings/lab-tests",
+  clinic: "/emr/settings/clinic",
   audit: "/emr/audit",
   invite: "/emr/invite",
   intake: "/emr/intake",
+  join: "/emr/join",
 } as const;
 
 export type EmrRouteKey = keyof typeof emrRoutes;

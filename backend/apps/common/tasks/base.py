@@ -6,6 +6,7 @@ and dead-letter capture without opting in.
 """
 
 import logging
+import socket
 
 import httpx
 import requests
@@ -25,9 +26,14 @@ except ImportError:  # pragma: no cover - older celery
 
 # Only transport-level problems are retried. Application errors such as an HTTP 4xx or a
 # validation failure will never succeed on a retry, so they fail fast into the dead letter.
+# Deliberately not the whole of OSError: smtplib.SMTPException (a refused recipient, a bad
+# password), FileNotFoundError and PermissionError are all OSErrors that a retry cannot fix.
 RETRYABLE_EXCEPTIONS = (
     RetryableTaskError,
-    OSError,  # covers ConnectionError, TimeoutError and socket errors
+    ConnectionError,  # ConnectionRefusedError, ConnectionResetError, BrokenPipeError
+    TimeoutError,
+    socket.gaierror,
+    socket.herror,
     httpx.TransportError,
     requests.ConnectionError,
     requests.Timeout,

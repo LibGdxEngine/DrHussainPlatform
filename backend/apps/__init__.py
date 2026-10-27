@@ -1,4 +1,4 @@
 """
-Platform apps package for Mobser.
+Platform apps package for V-Clinic.
 Contains reusable horizontal modules: accounts, organizations, billing, notifications, audit, and common.
 """

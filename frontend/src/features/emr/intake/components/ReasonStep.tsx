@@ -1,65 +1,53 @@
-import { emrRoutes } from "../../routes";
-import { visitReasons } from "../data";
-import { progressPct } from "../logic";
-import type { FormModule } from "../types";
-import { PhoneBody, PhoneFooter, PhoneFrame, StepHeader } from "./PhoneFrame";
-import { ToggleChip } from "./controls";
+import { answerLimits, menopauseModule, visitReasons } from "../data";
+import { needsMrs, toggleIn } from "../logic";
+import type { Answers } from "../types";
+import { ToggleChip, phoneTextareaClass } from "./controls";
 
-interface ReasonStepProps {
-  selected: ReadonlySet<string>;
-  onToggle: (id: string) => void;
-  modules: FormModule[];
-  totalSteps: number;
+export interface StepProps {
+  answers: Answers;
+  onChange: (patch: Partial<Answers>) => void;
 }
 
-const textareaClass =
-  "w-full rounded-2xl border-[1.5px] border-field bg-white px-3.5 py-3 text-[15px] leading-[1.7] outline-none focus:border-brand";
-
-/** B: reason picker; the chosen reasons add question modules to the form. */
-export function ReasonStep({ selected, onToggle, modules, totalSteps }: ReasonStepProps) {
+/** Reason picker; menopause reasons add the symptom questions to the form. */
+export function ReasonStep({ answers, onChange }: StepProps) {
+  const reasons = answers.reasons ?? [];
   return (
-    <PhoneFrame label="ب · سبب الزيارة">
-      <StepHeader title="V-Clinic" stepText={`خطوة 2 من ${totalSteps}`} progress={progressPct(2, totalSteps)} />
-      <PhoneBody className="gap-[18px] p-6">
-        <div className="flex flex-col gap-2">
-          <h2 className="m-0 text-[26px] font-bold leading-[1.4]">إيه اللي جايبك النهارده؟</h2>
-          <p className="m-0 text-[15px] leading-[1.7] text-ink-3">
-            اختاري كل اللي ينطبق عليكي. هنسألك بس الأسئلة اللي تهمّك.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {visitReasons.map((r) => (
-            <ToggleChip key={r.id} selected={selected.has(r.id)} onClick={() => onToggle(r.id)}>
-              {r.label}
-            </ToggleChip>
-          ))}
-        </div>
-        <div className="flex flex-col gap-2 rounded-[18px] border border-line bg-white px-4 py-3.5">
-          <span className="text-[13px] font-semibold text-muted">اتضاف لاستمارتك</span>
-          {modules.map((m) => (
-            <div key={m.name} className="flex text-[15px]">
-              <span>{m.name}</span>
-              <span className="ms-auto text-[13px] text-muted">{m.minutes}</span>
-            </div>
-          ))}
-          {modules.length === 0 ? (
-            <span className="text-sm text-muted">الاستمارة الأساسية بس</span>
-          ) : null}
-        </div>
+    <>
+      <div className="flex flex-col gap-2">
+        <h2 className="m-0 text-[24px] font-bold leading-[1.4]">What brings you in?</h2>
+        <p className="m-0 text-[15px] leading-[1.7] text-ink-3">
+          Choose all that apply. We will only ask the questions that matter to you.
+        </p>
+      </div>
+      <div role="group" aria-label="Reasons for your visit" className="flex flex-wrap gap-2">
+        {visitReasons.map((r) => (
+          <ToggleChip
+            key={r.id}
+            selected={reasons.includes(r.id)}
+            onClick={() => onChange({ reasons: toggleIn(reasons, r.id) })}
+          >
+            {r.label}
+          </ToggleChip>
+        ))}
+      </div>
+      {reasons.includes("other") ? (
         <label className="flex flex-col gap-2 text-[15px] font-semibold">
-          بكلامك، إيه أكتر حاجة مضايقاكي؟
-          <textarea rows={3} defaultValue="عرق بالليل ومش عارفة أنام. وكمان شوية هرش." className={textareaClass} />
-        </label>
-        <label className="flex flex-col gap-2 text-[15px] font-semibold">
-          نفسك تطلعي من الزيارة دي بإيه؟
+          What else would you like to see the doctor about?
           <textarea
-            rows={2}
-            defaultValue="أنام الليل كله وأرجع أحس إني أنا في الشغل."
-            className={textareaClass}
+            rows={3}
+            maxLength={answerLimits.otherReason}
+            value={answers.other_reason ?? ""}
+            onChange={(e) => onChange({ other_reason: e.target.value })}
+            className={phoneTextareaClass}
           />
         </label>
-      </PhoneBody>
-      <PhoneFooter backHref={emrRoutes.intake} next={{ label: "كمّلي", href: emrRoutes.intake }} />
-    </PhoneFrame>
+      ) : null}
+      {needsMrs(reasons) ? (
+        <p className="m-0 flex rounded-[18px] border border-line bg-white px-4 py-3.5 text-[15px]">
+          <span>Added to your form: {menopauseModule.name}</span>
+          <span className="ms-auto ps-3 text-[13px] text-muted">{menopauseModule.minutes}</span>
+        </p>
+      ) : null}
+    </>
   );
 }

@@ -27,7 +27,9 @@ def compute_code_digest(code: str, secret: Optional[str] = None) -> str:
     Computes a keyed HMAC-SHA256 digest of the OTP code using OTP_SECRET.
     Never store raw OTP codes in the database.
     """
-    otp_secret = secret or getattr(settings, "OTP_SECRET", "fallback-secret-key-mobser")
+    otp_secret = secret or settings.OTP_SECRET
+    if not otp_secret:
+        raise RuntimeError("OTP_SECRET is not configured.")
     return hmac.new(
         otp_secret.encode("utf-8"),
         code.strip().encode("utf-8"),
@@ -142,7 +144,7 @@ def resend_verification_challenge(
     challenge.expires_at = now + timedelta(minutes=5)
     challenge.resend_count += 1
     challenge.last_sent_at = now
-    challenge.attempt_count = 0  # Reset attempt counter on fresh code
-    challenge.save(update_fields=["code_digest", "expires_at", "resend_count", "last_sent_at", "attempt_count"])
+    # The attempt counter is deliberately kept: resending must not hand out a fresh set of guesses.
+    challenge.save(update_fields=["code_digest", "expires_at", "resend_count", "last_sent_at"])
 
     return challenge, new_plain_code

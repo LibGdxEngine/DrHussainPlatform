@@ -321,12 +321,24 @@ class Controller:
             output.flush()
             os.fsync(output.fileno())
         require(filename.stat().st_size > 0, 'database backup is empty')
+        self.backup_private_media(release, directory / f'{release["run_id"]}-{release["run_attempt"]}-private-media.tar')
         with filename.open('rb') as source:
             run_command(['/usr/bin/docker', 'compose', '--project-name', PROJECT, '--env-file',
                          str(BASE / 'runtime.env'), '--file', str(BASE / 'compose.yml'),
                          'exec', '-T', 'db', 'pg_restore', '--list'], timeout=60,
                         input_file=source, env=dict(ENV, BACKEND_IMAGE=release['backend_image'],
                                                          FRONTEND_IMAGE=release['frontend_image']))
+
+    def backup_private_media(self, release, filename):
+        """Patient files are encrypted on the private_media volume; a database dump alone cannot restore them."""
+        with filename.open('xb') as output:
+            os.chmod(filename, 0o600)
+            # A throwaway container with the volume attached: the app containers may not be running yet.
+            self.compose(release, ['run', '--rm', '--no-deps', '-T', '--entrypoint', 'tar', 'backend',
+                         '-C', '/app/private_media', '-cf', '-', '.'], timeout=300, output=output)
+            output.flush()
+            os.fsync(output.fileno())
+        require(filename.stat().st_size > 0, 'private media backup is empty')
 
     def cleanup_migration(self):
         def exists():
