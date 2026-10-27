@@ -63,6 +63,7 @@ export function DocsScreen({ fileNumber }: { fileNumber?: string }) {
     <>
       <PatientHeader
         tab="docs"
+        realPatient
         name={`${patient.full_name}, ${patient.age}`}
         mrn={patient.file_number}
         initial={patient.full_name.charAt(0).toUpperCase()}

@@ -47,7 +47,7 @@ class ProdSettingsTests(SimpleTestCase):
 
     def test_development_placeholders_are_rejected(self):
         with self.assertRaises(ImproperlyConfigured):
-            load_prod(OTP_SECRET='dev-otp-secret-key-32-chars-minimum-mobser')
+            load_prod(OTP_SECRET='dev-otp-secret-key-32-chars-minimum-vclinic')
         with self.assertRaises(ImproperlyConfigured):
             load_prod(SECRET_KEY='generate-a-secure-random-secret-key-for-production-here')
 

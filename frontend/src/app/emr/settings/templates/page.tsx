@@ -3,10 +3,11 @@ import { AppShell } from "@/features/emr/shell/AppShell";
 
 export const metadata = { title: "Email templates · V-Clinic EMR" };
 
-export default function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ template?: string | string[] }> }) {
+  const { template } = await searchParams;
   return (
     <AppShell active="rules" showPromo={false}>
-      <TemplatesScreen />
+      <TemplatesScreen initialId={typeof template === "string" ? template : undefined} />
     </AppShell>
   );
 }

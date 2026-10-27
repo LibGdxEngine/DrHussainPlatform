@@ -6,6 +6,7 @@ import { Icon } from "@/features/emr/ui/icons";
 import { Panel } from "@/features/emr/ui/Panel";
 import { FormGauge } from "@/features/emr/today/components/FormGauge";
 import { NextVisitCard } from "@/features/emr/today/components/NextVisitCard";
+import { PinnedTemplatesPanel } from "@/features/emr/today/components/PinnedTemplatesPanel";
 import { FollowupsPanel, PatientRepliesPanel, RemindersPanel } from "@/features/emr/today/components/SidePanels";
 import { StatCard } from "@/features/emr/today/components/StatCard";
 import { VisitsTable } from "@/features/emr/today/components/VisitsTable";
@@ -68,6 +69,7 @@ export default function TodayPage() {
         <div className="grid items-start gap-4 xl:grid-cols-[2fr_1fr]">
           <VisitsTable visits={todayVisits} />
           <div className="flex flex-col gap-4">
+            <PinnedTemplatesPanel />
             <FollowupsPanel />
             <PatientRepliesPanel />
             <RemindersPanel />

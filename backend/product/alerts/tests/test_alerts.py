@@ -93,7 +93,7 @@ class EvaluationTests(AlertTestCase):
 
     def test_list_and_permissions(self):
         self.read(['Testosterone 62 ng/dL 8 - 60'])
-        listed = self.client.get('/api/product/alerts/', {'patient': str(self.patient.id)}).data
+        listed = self.client.get('/api/product/alerts/', {'patient': str(self.patient.id)}).data['results']
         self.assertEqual(sorted(a['code'] for a in listed), ['R34', 'R39'])
         self.client.force_authenticate(self.staff)
         alert = self.alerts(status='open')['R34']

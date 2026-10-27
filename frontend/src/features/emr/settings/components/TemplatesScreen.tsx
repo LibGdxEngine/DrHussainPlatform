@@ -7,6 +7,7 @@ import {
   type TemplatePreview,
 } from "@/lib/api/emr/content";
 import { formatDay } from "../../format";
+import { templateStatus as status } from "../templateStatus";
 import { ActionButton } from "../../ui/Action";
 import { ChipGroup } from "../../ui/ChipGroup";
 import { Field, TextArea, TextInput } from "../../ui/Fields";
@@ -32,21 +33,13 @@ const languages: { id: LanguageFilter; label: string }[] = [
   { id: "ar", label: "Arabic" },
 ];
 
-function status(template: EmailTemplate): { tone: "ok" | "amber" | "danger"; text: string } {
-  if (!template.approved) return { tone: "danger", text: "Not approved" };
-  if (template.latest && template.latest.number !== template.approved.number) {
-    return { tone: "amber", text: `v${template.approved.number} approved · v${template.latest.number} draft` };
-  }
-  return { tone: "ok", text: `v${template.approved.number} approved` };
-}
-
 /** Email templates: the clinic's wording for every results email, versioned and approved by the doctor. */
-export function TemplatesScreen() {
+export function TemplatesScreen({ initialId }: { initialId?: string }) {
   const [templates, setTemplates] = useState<EmailTemplate[] | null>(null);
   const [placeholders, setPlaceholders] = useState<Placeholder[]>([]);
   const [leaflets, setLeaflets] = useState<Leaflet[]>([]);
   const [language, setLanguage] = useState<LanguageFilter>("en");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialId ?? null);
   const [notice, setNotice] = useState<NoticeState>(null);
 
   useEffect(() => {
@@ -55,6 +48,9 @@ export function TemplatesScreen() {
       ([list, names, files]) => {
         if (cancelled) return;
         setTemplates(list);
+        // Opened from a pinned template on the home page: show it in its own language.
+        const opened = list.find((t) => t.id === initialId);
+        if (opened) setLanguage(opened.language as LanguageFilter);
         setPlaceholders(names);
         setLeaflets(files);
       },
@@ -65,7 +61,7 @@ export function TemplatesScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialId]);
 
   // In the order the list shows them: by email type, then the template's own order.
   const shown = useMemo(
@@ -104,12 +100,15 @@ export function TemplatesScreen() {
           {templates && !shown.length ? (
             <p className="m-0 text-[13px] text-muted">No Arabic templates yet. Open an English one and choose “Add Arabic version”.</p>
           ) : null}
-          {kindOrder.map((kind) => {
-            const group = shown.filter((t) => t.kind === kind);
+          {[null, ...kindOrder].map((kind) => {
+            // Pinned templates come first, as on the home page, and are not listed again under their type.
+            const group = shown.filter((t) => (kind === null ? t.pinned : !t.pinned && t.kind === kind));
             if (!group.length) return null;
             return (
-              <div key={kind} className="flex flex-col gap-1">
-                <h2 className="m-0 px-2 pt-2 text-xs font-semibold uppercase tracking-wide text-subtle">{kindLabel[kind]}</h2>
+              <div key={kind ?? "pinned"} className="flex flex-col gap-1">
+                <h2 className="m-0 px-2 pt-2 text-xs font-semibold uppercase tracking-wide text-subtle">
+                  {kind === null ? "Pinned to home page" : kindLabel[kind]}
+                </h2>
                 {group.map((t) => {
                   const s = status(t);
                   const active = t.id === selected?.id;
@@ -247,6 +246,12 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
     }
   }
 
+  const togglePin = () =>
+    void run(
+      () => contentApi.templates.update(template.id, { pinned: !template.pinned }),
+      template.pinned ? "Removed from the home page." : "Pinned to the home page.",
+    );
+
   const toggleLeaflet = (id: string) => {
     const current = template.default_leaflets ?? [];
     const next = current.includes(id) ? current.filter((l) => l !== id) : [...current, id];
@@ -260,6 +265,9 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
           <h2 id="tpl" className="m-0 text-lg font-semibold">{template.name}</h2>
           <Pill tone="neutral" size="xs">{template.language === "ar" ? "Arabic" : "English"}</Pill>
           {template.part !== "full" ? <Pill tone="brand" size="xs">{template.part}</Pill> : null}
+          <ActionButton variant="quiet" className="ms-auto" disabled={busy} aria-pressed={template.pinned} onClick={togglePin}>
+            {template.pinned ? "Unpin from home page" : "Pin to home page"}
+          </ActionButton>
         </div>
         <Field label="Subject">
           <TextInput value={subject} onChange={(e) => setSubject(e.target.value)} dir="auto" />

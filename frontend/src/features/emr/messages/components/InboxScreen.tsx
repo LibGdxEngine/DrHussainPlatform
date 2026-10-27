@@ -20,7 +20,7 @@ interface InboxScreenProps {
 /** The clinic mailbox: every email in its thread, filed with the patient it belongs to. */
 export function InboxScreen({ patientMrn, threadId, compose }: InboxScreenProps) {
   const [mailbox, setMailbox] = useState<Mailbox | null | undefined>(undefined);
-  const [threads, setThreads] = useState<{ key: string; list: MailThread[] } | null>(null);
+  const [threads, setThreads] = useState<{ key: string; list: MailThread[]; total: number } | null>(null);
   const [selected, setSelected] = useState<MailThreadDetail | null>(null);
   const [selectedId, setSelectedId] = useState<string | undefined>(threadId);
   const [folder, setFolder] = useState<MailFolder>("inbox");
@@ -47,9 +47,9 @@ export function InboxScreen({ patientMrn, threadId, compose }: InboxScreenProps)
     let cancelled = false;
     const timer = setTimeout(() => {
       Promise.all([mailApi.threads.list(folder, filter, query.trim(), patient?.id), mailApi.threads.counts()]).then(
-        ([list, counts]) => {
+        ([page, counts]) => {
           if (cancelled) return;
-          setThreads({ key, list });
+          setThreads({ key, list: page.results, total: page.count });
           setUnread(counts.unread);
         },
         (err: unknown) => {
@@ -64,6 +64,7 @@ export function InboxScreen({ patientMrn, threadId, compose }: InboxScreenProps)
   }, [folder, filter, query, patient, refresh, key]);
 
   const list = threads?.key === key ? threads.list : null;
+  const notShown = threads?.key === key ? threads.total - threads.list.length : 0;
   const openId = selectedId ?? (compose ? list?.[0]?.id : undefined);
   useEffect(() => {
     if (!openId) return;
@@ -112,6 +113,11 @@ export function InboxScreen({ patientMrn, threadId, compose }: InboxScreenProps)
         onSettings={() => setSettingsOpen((o) => !o)}
       />
       {error ? <p role="alert" className="m-0 rounded-xl bg-danger-tint px-3 py-2.5 text-[13px] text-danger-ink">{error}</p> : null}
+      {notShown > 0 ? (
+        <p className="m-0 text-[13px] text-muted">
+          Showing the newest {list?.length} of {threads?.total} threads. Search or filter to find older ones.
+        </p>
+      ) : null}
 
       {mailbox !== undefined && (settingsOpen || !ready) ? (
         <MailboxSettings

@@ -63,6 +63,7 @@ ARCHIVED_PARAM = OpenApiParameter('archived', OpenApiTypes.BOOL, description='In
     ARCHIVED_PARAM,
     OpenApiParameter('kind', str, description='results, menopause, follow_up, infection, pathology, smear or reply.'),
     OpenApiParameter('language', str, description='en or ar.'),
+    OpenApiParameter('pinned', OpenApiTypes.BOOL, description='Only templates pinned to the home page.'),
 ]))
 class EmailTemplateViewSet(
     ContentViewMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin,
@@ -82,6 +83,8 @@ class EmailTemplateViewSet(
             for name in ('kind', 'language'):
                 if params.get(name):
                     queryset = queryset.filter(**{name: params[name]})
+            if params.get('pinned') in {'1', 'true'}:
+                queryset = queryset.filter(pinned=True)
         return queryset
 
     @extend_schema(request=EmailTemplateCreateSerializer, responses={201: EmailTemplateSerializer})
@@ -227,7 +230,7 @@ class PrescriptionViewSet(
 # --- Alert rules ----------------------------------------------------------------------------------
 
 RULE_FIELDS = ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled',
-              'lab_test_code', 'lab_check')
+              'lab_test_code', 'lab_check', 'vital')
 
 
 class AlertRuleViewSet(

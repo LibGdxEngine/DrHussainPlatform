@@ -1,5 +1,7 @@
 """Compare a result with the patient's previous result for the same test."""
+from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import date
 
 from django.db.models import Q
 
@@ -42,8 +44,51 @@ def previous_result(value: ResultValue) -> ResultValue | None:
     return earlier.order_by('-result_date', '-report__created_at').first()
 
 
-def compare(value: ResultValue) -> Comparison:
-    previous = previous_result(value)
+def _is_earlier(candidate: ResultValue, value: ResultValue) -> bool:
+    """The same rule as previous_result's query, applied in Python to a batch."""
+    if candidate.report_id == value.report_id:
+        return False
+    if value.result_date is not None:
+        if candidate.result_date is None:
+            return False
+        return (candidate.result_date, candidate.report.created_at) < (value.result_date, value.report.created_at)
+    return candidate.report.created_at < value.report.created_at
+
+
+def previous_results(values) -> dict:
+    """
+    {value pk: its previous value or None} for a whole batch from one query, for the pages that
+    compare every value of a report or a patient's history at once.
+    """
+    previous = {v.pk: None for v in values}
+    wanted = [v for v in values if v.lab_test_id is not None]
+    if not wanted:
+        return previous
+    history = ResultValue.objects.filter(
+        patient_id__in={v.patient_id for v in wanted}, lab_test_id__in={v.lab_test_id for v in wanted},
+        report__in_history=True, unreadable=False,
+    ).select_related('report')
+    by_test = defaultdict(list)
+    for candidate in history:
+        by_test[(candidate.patient_id, candidate.lab_test_id)].append(candidate)
+    for value in wanted:
+        earlier = [c for c in by_test[(value.patient_id, value.lab_test_id)] if _is_earlier(c, value)]
+        previous[value.pk] = max(earlier, key=lambda c: (c.result_date or date.min, c.report.created_at), default=None)
+    return previous
+
+
+def compare_many(values) -> dict:
+    """{value pk: Comparison} for a batch, looking previous results up once rather than per value."""
+    previous = previous_results(values)
+    return {v.pk: compare(v, previous[v.pk]) for v in values}
+
+
+_LOOK_UP = object()
+
+
+def compare(value: ResultValue, previous=_LOOK_UP) -> Comparison:
+    if previous is _LOOK_UP:
+        previous = previous_result(value)
     if previous is None:
         return Comparison(Change.FIRST)
 

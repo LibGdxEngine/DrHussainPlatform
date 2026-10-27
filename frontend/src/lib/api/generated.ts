@@ -1270,6 +1270,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/product/records/examinations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Doctor-only examinations (vitals, findings, screening, plan), versioned, with no delete endpoint. */
+        get: operations["product_records_examinations_list"];
+        put?: never;
+        /** @description Doctor-only examinations (vitals, findings, screening, plan), versioned, with no delete endpoint. */
+        post: operations["product_records_examinations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/records/examinations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Doctor-only examinations (vitals, findings, screening, plan), versioned, with no delete endpoint. */
+        get: operations["product_records_examinations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Doctor-only examinations (vitals, findings, screening, plan), versioned, with no delete endpoint. */
+        patch: operations["product_records_examinations_partial_update"];
+        trace?: never;
+    };
     "/api/product/results/history/": {
         parameters: {
             query?: never;
@@ -2066,6 +2102,15 @@ export interface components {
             /** @description Catalog test the rule checks, e.g. testosterone_total. */
             lab_test_code?: string;
             lab_check?: components["schemas"]["LabCheckEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * @description Examination measurement the rule checks, e.g. bmi.
+             *
+             *     * `` - Not checked against vitals
+             *     * `blood_pressure` - Blood pressure (average)
+             *     * `bmi` - BMI
+             *     * `waist` - Waist
+             */
+            vital?: components["schemas"]["VitalEnum"] | components["schemas"]["BlankEnum"];
             /** Format: int64 */
             sort_order?: number;
             readonly version: number;
@@ -2098,6 +2143,15 @@ export interface components {
             /** @description Catalog test the rule checks, e.g. testosterone_total. */
             lab_test_code?: string;
             lab_check?: components["schemas"]["LabCheckEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * @description Examination measurement the rule checks, e.g. bmi.
+             *
+             *     * `` - Not checked against vitals
+             *     * `blood_pressure` - Blood pressure (average)
+             *     * `bmi` - BMI
+             *     * `waist` - Waist
+             */
+            vital?: components["schemas"]["VitalEnum"] | components["schemas"]["BlankEnum"];
             note?: string;
             /** Format: int64 */
             sort_order?: number;
@@ -2118,6 +2172,7 @@ export interface components {
             enabled?: boolean;
             lab_test_code?: string;
             lab_check?: components["schemas"]["LabCheckEnum"] | components["schemas"]["BlankEnum"];
+            vital?: components["schemas"]["VitalEnum"] | components["schemas"]["BlankEnum"];
             /** @description Why it changed. */
             note?: string;
             readonly created_by_name: string;
@@ -2149,6 +2204,10 @@ export interface components {
         };
         /** @enum {unknown} */
         BlankEnum: "";
+        BloodPressure: {
+            systolic: number;
+            diastolic: number;
+        };
         CasePatient: {
             /** Format: uuid */
             id: string;
@@ -2432,6 +2491,85 @@ export interface components {
             /** Format: date-time */
             approved_at?: string | null;
         };
+        Examination: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            patient: string;
+            /** Format: date */
+            examined_on?: string;
+            /** Format: int64 */
+            bp1_systolic?: number | null;
+            /** Format: int64 */
+            bp1_diastolic?: number | null;
+            /** Format: int64 */
+            bp2_systolic?: number | null;
+            /** Format: int64 */
+            bp2_diastolic?: number | null;
+            /** Format: decimal */
+            height_cm?: string | null;
+            /** Format: decimal */
+            weight_kg?: string | null;
+            /** Format: decimal */
+            waist_cm?: string | null;
+            readonly bp_average: components["schemas"]["BloodPressure"] | null;
+            /** Format: decimal */
+            readonly bmi: string | null;
+            breast_exam?: string;
+            pelvic_exam?: string;
+            screening?: {
+                [key: string]: boolean;
+            };
+            plan?: components["schemas"]["PlanEnum"] | components["schemas"]["BlankEnum"];
+            plan_notes?: string;
+            /** Format: date */
+            next_review?: string | null;
+            send_follow_up_form?: boolean;
+            readonly version: number;
+            readonly revisions: components["schemas"]["ExaminationRevision"][];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        ExaminationRequest: {
+            /** Format: uuid */
+            patient: string;
+            /** Format: date */
+            examined_on?: string;
+            /** Format: int64 */
+            bp1_systolic?: number | null;
+            /** Format: int64 */
+            bp1_diastolic?: number | null;
+            /** Format: int64 */
+            bp2_systolic?: number | null;
+            /** Format: int64 */
+            bp2_diastolic?: number | null;
+            /** Format: decimal */
+            height_cm?: string | null;
+            /** Format: decimal */
+            weight_kg?: string | null;
+            /** Format: decimal */
+            waist_cm?: string | null;
+            breast_exam?: string;
+            pelvic_exam?: string;
+            screening?: {
+                [key: string]: boolean;
+            };
+            plan?: components["schemas"]["PlanEnum"] | components["schemas"]["BlankEnum"];
+            plan_notes?: string;
+            /** Format: date */
+            next_review?: string | null;
+            send_follow_up_form?: boolean;
+            expected_version?: number;
+        };
+        ExaminationRevision: {
+            readonly number: number;
+            readonly data: unknown;
+            readonly author_name: string;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
         /**
          * @description * `automatic` - automatic
          *     * `review` - review
@@ -2499,9 +2637,10 @@ export interface components {
          *     * `parsed` - Read
          *     * `flagged` - Needs the doctor
          *     * `confirmed` - Checked by the doctor
+         *     * `failed` - Could not be read
          * @enum {string}
          */
-        InvestigationReportStatusEnum: "pending" | "parsed" | "flagged" | "confirmed";
+        InvestigationReportStatusEnum: "pending" | "parsed" | "flagged" | "confirmed" | "failed";
         /**
          * @description * `` - Not checked against results
          *     * `gt` - Above the cut-off
@@ -2686,6 +2825,7 @@ export interface components {
             readonly has_outbound: boolean;
             readonly unread: boolean;
             readonly archived: boolean;
+            /** @description The latest message's first words. Annotated by the list view; otherwise from the messages. */
             readonly preview: string;
             readonly has_attachments: boolean;
         };
@@ -2704,6 +2844,7 @@ export interface components {
             readonly has_outbound: boolean;
             readonly unread: boolean;
             readonly archived: boolean;
+            /** @description The latest message's first words. Annotated by the list view; otherwise from the messages. */
             readonly preview: string;
             readonly has_attachments: boolean;
             readonly messages: components["schemas"]["MailMessage"][];
@@ -2815,6 +2956,261 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["Activity"][];
         };
+        PaginatedActivityMemberList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ActivityMember"][];
+        };
+        PaginatedAlertRuleList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AlertRule"][];
+        };
+        PaginatedAlertRuleVersionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AlertRuleVersion"][];
+        };
+        PaginatedAuditLogList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["AuditLog"][];
+        };
+        PaginatedDiagnosisList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Diagnosis"][];
+        };
+        PaginatedDocumentList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Document"][];
+        };
+        PaginatedEmailTemplateList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["EmailTemplate"][];
+        };
+        PaginatedEmailTemplateVersionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["EmailTemplateVersion"][];
+        };
+        PaginatedExaminationList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Examination"][];
+        };
+        PaginatedInvestigationReportList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["InvestigationReport"][];
+        };
+        PaginatedLabTestList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["LabTest"][];
+        };
+        PaginatedLeafletList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Leaflet"][];
+        };
+        PaginatedLeafletVersionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["LeafletVersion"][];
+        };
+        PaginatedMailThreadList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["MailThread"][];
+        };
+        PaginatedNotificationList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Notification"][];
+        };
+        PaginatedOrganizationList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Organization"][];
+        };
+        PaginatedPatientAlertList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["PatientAlert"][];
+        };
         PaginatedPatientList: {
             /** @example 123 */
             count: number;
@@ -2829,6 +3225,141 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Patient"][];
+        };
+        PaginatedPlaceholderList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Placeholder"][];
+        };
+        PaginatedPlanList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Plan"][];
+        };
+        PaginatedPrescriptionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Prescription"][];
+        };
+        PaginatedPrescriptionVersionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["PrescriptionVersion"][];
+        };
+        PaginatedResultValueList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ResultValue"][];
+        };
+        PaginatedResultsCaseList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ResultsCase"][];
+        };
+        PaginatedScoreBandSetList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ScoreBandSet"][];
+        };
+        PaginatedScoreBandVersionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["ScoreBandVersion"][];
+        };
+        PaginatedSubscriptionList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["Subscription"][];
         };
         /**
          * @description * `full` - Whole email
@@ -2876,6 +3407,15 @@ export interface components {
             /** @description Catalog test the rule checks, e.g. testosterone_total. */
             lab_test_code?: string;
             lab_check?: components["schemas"]["LabCheckEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * @description Examination measurement the rule checks, e.g. bmi.
+             *
+             *     * `` - Not checked against vitals
+             *     * `blood_pressure` - Blood pressure (average)
+             *     * `bmi` - BMI
+             *     * `waist` - Waist
+             */
+            vital?: components["schemas"]["VitalEnum"] | components["schemas"]["BlankEnum"];
             note?: string;
             /** Format: int64 */
             sort_order?: number;
@@ -2920,6 +3460,37 @@ export interface components {
             archived?: boolean;
             pinned?: boolean;
             default_leaflets?: string[];
+        };
+        PatchedExaminationRequest: {
+            /** Format: uuid */
+            patient?: string;
+            /** Format: date */
+            examined_on?: string;
+            /** Format: int64 */
+            bp1_systolic?: number | null;
+            /** Format: int64 */
+            bp1_diastolic?: number | null;
+            /** Format: int64 */
+            bp2_systolic?: number | null;
+            /** Format: int64 */
+            bp2_diastolic?: number | null;
+            /** Format: decimal */
+            height_cm?: string | null;
+            /** Format: decimal */
+            weight_kg?: string | null;
+            /** Format: decimal */
+            waist_cm?: string | null;
+            breast_exam?: string;
+            pelvic_exam?: string;
+            screening?: {
+                [key: string]: boolean;
+            };
+            plan?: components["schemas"]["PlanEnum"] | components["schemas"]["BlankEnum"];
+            plan_notes?: string;
+            /** Format: date */
+            next_review?: string | null;
+            send_follow_up_form?: boolean;
+            expected_version?: number;
         };
         PatchedLabTestRequest: {
             code?: string;
@@ -3037,6 +3608,10 @@ export interface components {
             readonly result_date: string | null;
             /** Format: uuid */
             readonly report: string | null;
+            /** Format: uuid */
+            readonly examination: string | null;
+            /** Format: date */
+            readonly examined_on: string | null;
             readonly status: components["schemas"]["PatientAlertStatusEnum"];
             readonly acknowledged_by_name: string;
             /** Format: date-time */
@@ -3099,6 +3674,16 @@ export interface components {
             features?: unknown;
             is_active?: boolean;
         };
+        /**
+         * @description * `continue` - Continue
+         *     * `start` - Start treatment
+         *     * `adjust` - Adjust dose
+         *     * `route` - Change route
+         *     * `investigate` - Investigate first
+         *     * `stop` - Stop
+         * @enum {string}
+         */
+        PlanEnum: "continue" | "start" | "adjust" | "route" | "investigate" | "stop";
         PlanRequestRequest: {
             /** @description The cervical smear section, e.g. smear_section_5. */
             template: string;
@@ -3545,6 +4130,14 @@ export interface components {
             message: string;
             expires_in: number;
         };
+        /**
+         * @description * `` - Not checked against vitals
+         *     * `blood_pressure` - Blood pressure (average)
+         *     * `bmi` - BMI
+         *     * `waist` - Waist
+         * @enum {string}
+         */
+        VitalEnum: "blood_pressure" | "bmi" | "waist";
         WebhookReceived: {
             status: string;
             /** Format: uuid */
@@ -5640,7 +6233,12 @@ export interface operations {
     };
     audit_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5652,7 +6250,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuditLog"][];
+                    "application/json": components["schemas"]["PaginatedAuditLogList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -5749,7 +6347,12 @@ export interface operations {
     };
     billing_plans_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5761,7 +6364,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Plan"][];
+                    "application/json": components["schemas"]["PaginatedPlanList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -5858,7 +6461,12 @@ export interface operations {
     };
     billing_subscriptions_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5870,7 +6478,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Subscription"][];
+                    "application/json": components["schemas"]["PaginatedSubscriptionList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -6294,7 +6902,12 @@ export interface operations {
     };
     notifications_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6306,7 +6919,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Notification"][];
+                    "application/json": components["schemas"]["PaginatedNotificationList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -6631,7 +7244,12 @@ export interface operations {
     };
     organizations_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6643,7 +7261,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Organization"][];
+                    "application/json": components["schemas"]["PaginatedOrganizationList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -7438,7 +8056,12 @@ export interface operations {
     };
     product_activity_members_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7450,7 +8073,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ActivityMember"][];
+                    "application/json": components["schemas"]["PaginatedActivityMemberList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -7548,6 +8171,10 @@ export interface operations {
     product_alerts_list: {
         parameters: {
             query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Only this patient's alerts. */
                 patient?: string;
                 /** @description Only alerts fired by this report. */
@@ -7566,7 +8193,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PatientAlert"][];
+                    "application/json": components["schemas"]["PaginatedPatientAlertList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -7781,7 +8408,12 @@ export interface operations {
     };
     product_content_alert_rules_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7793,7 +8425,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AlertRule"][];
+                    "application/json": components["schemas"]["PaginatedAlertRuleList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -8235,7 +8867,12 @@ export interface operations {
     };
     product_content_alert_rules_versions_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path: {
                 /** @description A UUID string identifying this alert rule. */
@@ -8250,7 +8887,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AlertRuleVersion"][];
+                    "application/json": components["schemas"]["PaginatedAlertRuleVersionList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -8347,7 +8984,12 @@ export interface operations {
     };
     product_content_alert_rules_bulk_create: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8365,7 +9007,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AlertRule"][];
+                    "application/json": components["schemas"]["PaginatedAlertRuleList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -8465,6 +9107,10 @@ export interface operations {
             query?: {
                 /** @description Include archived items. */
                 archived?: boolean;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
             };
             header?: never;
             path?: never;
@@ -8477,7 +9123,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Leaflet"][];
+                    "application/json": components["schemas"]["PaginatedLeafletList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -9148,7 +9794,12 @@ export interface operations {
     };
     product_content_leaflets_versions_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path: {
                 /** @description A UUID string identifying this leaflet. */
@@ -9163,7 +9814,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LeafletVersion"][];
+                    "application/json": components["schemas"]["PaginatedLeafletVersionList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -9260,7 +9911,12 @@ export interface operations {
     };
     product_content_placeholders_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9272,7 +9928,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Placeholder"][];
+                    "application/json": components["schemas"]["PaginatedPlaceholderList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -9372,6 +10028,10 @@ export interface operations {
             query?: {
                 /** @description Include archived items. */
                 archived?: boolean;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
             };
             header?: never;
             path?: never;
@@ -9384,7 +10044,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Prescription"][];
+                    "application/json": components["schemas"]["PaginatedPrescriptionList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -9826,7 +10486,12 @@ export interface operations {
     };
     product_content_prescriptions_versions_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path: {
                 /** @description A UUID string identifying this prescription item. */
@@ -9841,7 +10506,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PrescriptionVersion"][];
+                    "application/json": components["schemas"]["PaginatedPrescriptionVersionList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -10162,7 +10827,12 @@ export interface operations {
     };
     product_content_score_bands_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10174,7 +10844,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScoreBandSet"][];
+                    "application/json": components["schemas"]["PaginatedScoreBandSetList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -10499,7 +11169,12 @@ export interface operations {
     };
     product_content_score_bands_versions_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path: {
                 code: string;
@@ -10513,7 +11188,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ScoreBandVersion"][];
+                    "application/json": components["schemas"]["PaginatedScoreBandVersionList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -10617,6 +11292,10 @@ export interface operations {
                 kind?: string;
                 /** @description en or ar. */
                 language?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Only templates pinned to the home page. */
                 pinned?: boolean;
             };
@@ -10631,7 +11310,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmailTemplate"][];
+                    "application/json": components["schemas"]["PaginatedEmailTemplateList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -11191,7 +11870,12 @@ export interface operations {
     };
     product_content_templates_versions_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+            };
             header?: never;
             path: {
                 /** @description A UUID string identifying this email template. */
@@ -11206,7 +11890,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmailTemplateVersion"][];
+                    "application/json": components["schemas"]["PaginatedEmailTemplateVersionList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -12324,6 +13008,10 @@ export interface operations {
                 filter?: string;
                 /** @description inbox (default), sent or archive. */
                 folder?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Only this patient's emails. */
                 patient?: string;
                 /** @description Search sender, subject, patient name or file number. */
@@ -12340,7 +13028,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MailThread"][];
+                    "application/json": components["schemas"]["PaginatedMailThreadList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -13485,6 +14173,10 @@ export interface operations {
     product_records_diagnoses_list: {
         parameters: {
             query: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Patient whose diagnoses are requested. */
                 patient: string;
             };
@@ -13499,7 +14191,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Diagnosis"][];
+                    "application/json": components["schemas"]["PaginatedDiagnosisList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -13942,6 +14634,10 @@ export interface operations {
     product_records_documents_list: {
         parameters: {
             query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Only this patient's documents. */
                 patient?: string;
                 /** @description Only this category, e.g. lab. */
@@ -13958,7 +14654,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Document"][];
+                    "application/json": components["schemas"]["PaginatedDocumentList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -14525,9 +15221,474 @@ export interface operations {
             };
         };
     };
+    product_records_examinations_list: {
+        parameters: {
+            query: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+                /** @description Patient whose examinations are requested. */
+                patient: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedExaminationList"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_records_examinations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExaminationRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ExaminationRequest"];
+                "multipart/form-data": components["schemas"]["ExaminationRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Examination"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_records_examinations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this examination. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Examination"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_records_examinations_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this examination. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedExaminationRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedExaminationRequest"];
+                "multipart/form-data": components["schemas"]["PatchedExaminationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Examination"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
     product_results_history_list: {
         parameters: {
             query: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description The patient's history. */
                 patient: string;
                 /** @description Only this catalog test, e.g. ferritin. */
@@ -14544,7 +15705,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ResultValue"][];
+                    "application/json": components["schemas"]["PaginatedResultValueList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -14759,6 +15920,10 @@ export interface operations {
             query?: {
                 /** @description The report read from this document. */
                 document?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Only this patient's reports. */
                 patient?: string;
                 /** @description pending, parsed, flagged or confirmed. */
@@ -14775,7 +15940,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InvestigationReport"][];
+                    "application/json": components["schemas"]["PaginatedInvestigationReportList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -15324,6 +16489,10 @@ export interface operations {
     product_results_tests_list: {
         parameters: {
             query?: {
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Only tests shown in the key values panel. */
                 tracked?: boolean;
             };
@@ -15338,7 +16507,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LabTest"][];
+                    "application/json": components["schemas"]["PaginatedLabTestList"];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -15783,6 +16952,10 @@ export interface operations {
             query?: {
                 /** @description needs_doctor, ready, sent or rejected. */
                 group?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description Only this patient's cases (id). */
                 patient?: string;
             };
@@ -15797,7 +16970,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ResultsCase"][];
+                    "application/json": components["schemas"]["PaginatedResultsCaseList"];
                 };
             };
             /** @description Invalid request or validation error. */

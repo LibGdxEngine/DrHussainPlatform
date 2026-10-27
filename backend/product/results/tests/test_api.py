@@ -36,9 +36,9 @@ class ResultsApiTests(PrivateStorageMixin, APITestCase):
     def test_tracked_catalog_matches_the_key_values_panel(self):
         response = self.client.get(f'{BASE}tests/', {'tracked': 'true'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual([t['code'] for t in response.data],
+        self.assertEqual([t['code'] for t in response.data['results']],
                          ['ferritin', 'estradiol', 'testosterone_total', 'hba1c', 'ldl', 'tsh'])
-        self.assertEqual(response.data[0]['optimal_text'], '50–150')
+        self.assertEqual(response.data['results'][0]['optimal_text'], '50–150')
 
     def test_report_lists_values_with_previous_results(self):
         process_document(self.document(pdfs.header(collected='03/07/2026') + pdfs.BLOODS, name='july.pdf'))
@@ -48,7 +48,7 @@ class ResultsApiTests(PrivateStorageMixin, APITestCase):
 
         response = self.client.get(f'{BASE}reports/', {'document': str(document.id)})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        [report] = response.data
+        [report] = response.data['results']
         [ferritin] = report['values']
         self.assertEqual(ferritin['test']['code'], 'ferritin')
         self.assertEqual(ferritin['comparison']['change'], 'up')
@@ -104,8 +104,8 @@ class ResultsApiTests(PrivateStorageMixin, APITestCase):
         process_document(self.document(pdfs.header(collected='03/07/2026') + pdfs.BLOODS, name='a.pdf'))
         process_document(self.document(pdfs.header(dob='01/01/1980', file_number='') + pdfs.BLOODS, name='b.pdf'))
         response = self.client.get(f'{BASE}history/', {'patient': str(self.patient.id), 'test': 'ferritin'})
-        self.assertEqual([v['result_date'] for v in response.data], ['2026-07-03'])
-        self.assertEqual(self.client.get(f'{BASE}history/').data, [])
+        self.assertEqual([v['result_date'] for v in response.data['results']], ['2026-07-03'])
+        self.assertEqual(self.client.get(f'{BASE}history/').data['results'], [])
 
     def test_reread_queues_the_file_again(self):
         report = process_document(self.document(pdfs.header() + pdfs.BLOODS))

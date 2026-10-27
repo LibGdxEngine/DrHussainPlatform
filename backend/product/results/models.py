@@ -71,6 +71,7 @@ class InvestigationReport(BaseModel):
         PARSED = 'parsed', 'Read'
         FLAGGED = 'flagged', 'Needs the doctor'
         CONFIRMED = 'confirmed', 'Checked by the doctor'
+        FAILED = 'failed', 'Could not be read'
 
     class Method(models.TextChoices):
         TEXT = 'text', 'PDF text'

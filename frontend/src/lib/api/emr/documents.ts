@@ -2,6 +2,7 @@
 
 import type { components } from "../generated";
 import { apiClient } from "../browser";
+import { MAX_PAGE_SIZE, type Page } from "./page";
 
 type Schemas = components["schemas"];
 export type PatientDocument = Schemas["Document"];
@@ -23,8 +24,11 @@ const FILE_TIMEOUT_MS = 120_000;
 
 export const documentsApi = {
   get: (id: string) => apiClient.get<PatientDocument>(`/product/records/documents/${id}/`),
+  /** The newest page of a patient's documents (count says how many there are in all). */
   list: (patient: string, slot?: DocumentSlot) =>
-    apiClient.get<PatientDocument[]>("/product/records/documents/", { query: { patient, slot } }),
+    apiClient.get<Page<PatientDocument>>("/product/records/documents/", {
+      query: { patient, slot, page_size: MAX_PAGE_SIZE },
+    }),
   /** Rejects with DUPLICATE_DOCUMENT, DOCUMENT_TOO_LARGE or UNSUPPORTED_DOCUMENT_TYPE. */
   upload(body: DocumentUpload) {
     const form = new FormData();

@@ -116,7 +116,7 @@ services:
       - media_data:/app/media
       # Patient files (encrypted at rest) live outside MEDIA_ROOT; without this they vanish on redeploy.
       - private_media_data:/app/private_media
-    command: [celery, -A, core, worker, -l, info, -Q, "celery,maintenance", --concurrency=1]
+    command: [celery, -A, core, worker, -l, info, -Q, "celery,maintenance,ocr", --concurrency=1]
     mem_limit: 256m
     depends_on:
       backend:

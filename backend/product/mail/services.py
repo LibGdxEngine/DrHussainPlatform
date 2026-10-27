@@ -217,6 +217,13 @@ def is_prescription_question(message: MailMessage) -> bool:
     return named or '?' in own_words
 
 
+def quote_folder(name: str) -> str:
+    """An IMAP quoted string: the folder name with backslashes and quotes escaped, in double quotes."""
+    if any(ch in name for ch in '\r\n\0'):
+        raise ValueError('Folder names cannot contain line breaks.')
+    return '"' + name.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
 def poll(mailbox) -> int:
     """
     Take in new mail since the last poll. Returns how many messages were added.
@@ -230,7 +237,7 @@ def poll(mailbox) -> int:
     added = 0
     skipped = []
     try:
-        status, data = client.select(f'"{mailbox.imap_folder}"', readonly=True)
+        status, data = client.select(quote_folder(mailbox.imap_folder), readonly=True)
         if status != 'OK':
             raise RuntimeError(f'Cannot open folder {mailbox.imap_folder}')
         validity = _uid_validity(client)

@@ -13,12 +13,12 @@ export function DocumentsPanel() {
           Documents
         </h2>
         <ActionLink
-          href={`${emrRoutes.scan}?patient=VC-000142&visit=v2`}
+          href={emrRoutes.patients}
           variant="outline"
           size="sm"
           className="ms-auto min-h-[34px] border px-3 text-xs"
         >
-          + Scan / upload
+          Choose patient to scan
         </ActionLink>
       </div>
       {documentSlots.map((d, i) => (
@@ -107,8 +107,8 @@ export function EmailsPanel() {
           {m.text}
         </div>
       ))}
-      <ActionLink href={`${emrRoutes.msgs}?patient=VC-000142`} variant="white" size="sm" className="min-h-10 self-start px-4">
-        Reply in thread
+      <ActionLink href={emrRoutes.patients} variant="white" size="sm" className="min-h-10 self-start px-4">
+        Choose patient for email
       </ActionLink>
     </Panel>
   );

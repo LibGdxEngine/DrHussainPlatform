@@ -45,7 +45,7 @@ export function DocumentsWorkspace({ patient }: { patient: Patient }) {
 
   const reload = useCallback(
     () =>
-      documentsApi.list(patient.id).then(setDocuments, (err: unknown) => {
+      documentsApi.list(patient.id).then((page) => setDocuments(page.results), (err: unknown) => {
         setNotice({ tone: "error", text: apiErrorMessage(err, "Could not load the documents.") });
       }),
     [patient.id],

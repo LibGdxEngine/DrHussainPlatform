@@ -9,8 +9,6 @@ import { Panel } from "../../ui/Panel";
 import { Pill } from "../../ui/Pill";
 import { arrivalStatus, countArrived, requestedFiles, type RequestedFile } from "../data";
 
-const MRN = "VC-000142";
-
 /** Tests requested for visit 2 and whether each arrived (clinic scan / email) or was entered. */
 export function RequestedFilesPanel() {
   const [files, setFiles] = useState<RequestedFile[]>(requestedFiles);
@@ -46,10 +44,10 @@ export function RequestedFilesPanel() {
             {f.status === "pending" ? (
               <span className="flex w-full gap-3 text-xs">
                 <Link
-                  href={`${emrRoutes.scan}?patient=${MRN}&visit=v2`}
+                  href={emrRoutes.patients}
                   className="font-semibold text-brand no-underline"
                 >
-                  Scan now
+                  Choose patient to scan
                 </Link>
                 <button
                   type="button"
@@ -64,12 +62,12 @@ export function RequestedFilesPanel() {
         );
       })}
       <ActionLink
-        href={`${emrRoutes.scan}?patient=${MRN}&visit=v2`}
+        href={emrRoutes.patients}
         variant="outline"
         size="sm"
         className="mt-3"
       >
-        Open scanning station for this visit
+        Choose patient to scan
       </ActionLink>
     </Panel>
   );

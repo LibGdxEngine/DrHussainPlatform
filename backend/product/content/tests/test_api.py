@@ -23,17 +23,17 @@ class ContentTestCase(PrivateStorageMixin, APITestCase):
 class TemplateTests(ContentTestCase):
     def template(self, key='sti_opening'):
         response = self.client.get(f'{BASE}templates/', {'kind': 'infection'})
-        return next(t for t in response.data if t['key'] == key)
+        return next(t for t in response.data['results'] if t['key'] == key)
 
     def test_starter_slots_follow_the_routing_table_and_are_not_approved(self):
         response = self.client.get(f'{BASE}templates/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        keys = {t['key'] for t in response.data}
+        keys = {t['key'] for t in response.data['results']}
         self.assertTrue({'results', 'menopause_results', 'follow_up_comparison', 'pathology_results', 'sti_opening',
                          'sti_closing', 'sti_section_chlamydia', 'smear_section_1', 'smear_section_14',
                          'prescription_reply'} <= keys)
-        self.assertTrue(all(t['approved'] is None for t in response.data))
-        self.assertIn('[[Paste the approved wording', response.data[0]['latest']['body'])
+        self.assertTrue(all(t['approved'] is None for t in response.data['results']))
+        self.assertIn('[[Paste the approved wording', response.data['results'][0]['latest']['body'])
 
     def test_saving_wording_adds_a_draft_version_and_approving_makes_it_used(self):
         template = self.template()
@@ -116,6 +116,20 @@ class TemplateTests(ContentTestCase):
                                      format='json')
         self.assertEqual([str(i) for i in response.data['default_leaflets']], [str(leaflet['id'])])
 
+    def test_everyday_templates_start_pinned_and_the_doctor_can_change_them(self):
+        pinned = self.client.get(f'{BASE}templates/', {'pinned': 'true'}).data['results']
+        self.assertEqual({t['key'] for t in pinned}, {'results', 'menopause_results', 'follow_up_comparison',
+                                                      'sti_opening', 'smear_section_1', 'prescription_reply'})
+        closing = self.template('sti_closing')
+        self.assertFalse(closing['pinned'])
+        url = f'{BASE}templates/{closing["id"]}/'
+        self.client.force_authenticate(self.staff)
+        self.assertEqual(self.client.patch(url, {'pinned': True}, format='json').status_code,
+                         status.HTTP_403_FORBIDDEN)
+        self.client.force_authenticate(self.doctor)
+        self.assertTrue(self.client.patch(url, {'pinned': True}, format='json').data['pinned'])
+        self.assertIn('sti_closing', {t['key'] for t in self.client.get(f'{BASE}templates/', {'pinned': 'true'}).data['results']})
+
 
 class PrescriptionTests(ContentTestCase):
     def test_list_item_history(self):
@@ -134,8 +148,8 @@ class PrescriptionTests(ContentTestCase):
 
         archived = self.client.patch(url, {'archived': True}, format='json')
         self.assertTrue(archived.data['archived'])
-        self.assertEqual(self.client.get(f'{BASE}prescriptions/').data, [])
-        self.assertEqual(len(self.client.get(f'{BASE}prescriptions/', {'archived': 'true'}).data), 1)
+        self.assertEqual(self.client.get(f'{BASE}prescriptions/').data['results'], [])
+        self.assertEqual(self.client.get(f'{BASE}prescriptions/', {'archived': 'true'}).data['count'], 1)
         self.assertEqual([v['dose'] for v in self.client.get(f'{url}versions/').data], ['200 mg', '100 mg'])
         self.assertEqual(self.client.delete(url).status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -143,8 +157,8 @@ class PrescriptionTests(ContentTestCase):
 class AlertRuleTests(ContentTestCase):
     def test_starter_rules_r1_to_r40(self):
         response = self.client.get(f'{BASE}alert-rules/')
-        self.assertEqual([r['code'] for r in response.data], [f'R{n}' for n in range(1, 41)])
-        r7 = response.data[6]
+        self.assertEqual([r['code'] for r in response.data['results']], [f'R{n}' for n in range(1, 41)])
+        r7 = response.data['results'][6]
         self.assertEqual((r7['pre'], r7['threshold_a'], r7['mid'], r7['level']), ('≥', '12', 'months', 'red'))
 
     def test_bulk_save_versions_each_changed_rule(self):
@@ -225,7 +239,7 @@ class LabTestCatalogTests(ContentTestCase):
     URL = '/api/product/results/tests/'
 
     def test_doctor_edits_targets_tracking_and_lab_names(self):
-        ferritin = next(t for t in self.client.get(self.URL).data if t['code'] == 'ferritin')
+        ferritin = next(t for t in self.client.get(self.URL).data['results'] if t['code'] == 'ferritin')
         self.assertIn('serum ferritin', ferritin['aliases'])
         response = self.client.patch(f'{self.URL}{ferritin["id"]}/', {
             'optimal_low': '70', 'optimal_text': '70–150', 'aliases': ['Ferritin, serum', 'S. Ferritin'],
@@ -236,7 +250,7 @@ class LabTestCatalogTests(ContentTestCase):
         self.assertEqual(response.data['aliases'], ['ferritin serum', 's ferritin'])
 
     def test_targets_and_alias_clashes_are_checked(self):
-        tests = {t['code']: t for t in self.client.get(self.URL).data}
+        tests = {t['code']: t for t in self.client.get(self.URL).data['results']}
         bad_range = self.client.patch(f'{self.URL}{tests["tsh"]["id"]}/', {'optimal_low': '3'}, format='json')
         self.assertEqual(bad_range.status_code, status.HTTP_400_BAD_REQUEST)
         clash = self.client.patch(f'{self.URL}{tests["tsh"]["id"]}/', {'aliases': ['serum ferritin']}, format='json')
@@ -250,7 +264,7 @@ class LabTestCatalogTests(ContentTestCase):
         self.assertEqual(response.data['aliases'], ['serum zinc', 'zinc'])
 
     def test_staff_cannot_edit_the_catalog(self):
-        ferritin = next(t for t in self.client.get(self.URL).data if t['code'] == 'ferritin')
+        ferritin = next(t for t in self.client.get(self.URL).data['results'] if t['code'] == 'ferritin')
         self.client.force_authenticate(self.staff)
         self.assertEqual(self.client.get(self.URL).status_code, status.HTTP_200_OK)
         response = self.client.patch(f'{self.URL}{ferritin["id"]}/', {'tracked': False}, format='json')

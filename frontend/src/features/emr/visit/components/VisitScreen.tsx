@@ -25,11 +25,11 @@ export function VisitScreen() {
             <ActionLink href={emrRoutes.orders} variant="quiet" size="md">
               Order labs / imaging
             </ActionLink>
-            <ActionLink href={`${emrRoutes.msgs}?patient=VC-000142`} variant="quiet" size="md">
-              Email results
+            <ActionLink href={emrRoutes.patients} variant="quiet" size="md">
+              Choose patient for email
             </ActionLink>
-            <ActionLink href={`${emrRoutes.msgs}?patient=VC-000142&compose=case`} variant="quiet" size="md">
-              Request case by email
+            <ActionLink href={emrRoutes.patients} variant="quiet" size="md">
+              Choose patient for case request
             </ActionLink>
           </>
         }

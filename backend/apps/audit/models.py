@@ -18,6 +18,10 @@ class AuditLog(BaseModel):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['resource_id'], name='audit_log_resource_id'),
+            models.Index(fields=['actor', 'created_at'], name='audit_log_actor_created'),
+        ]
         verbose_name = 'Audit Log'
         verbose_name_plural = 'Audit Logs'
 

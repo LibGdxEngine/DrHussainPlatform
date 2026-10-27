@@ -1,4 +1,4 @@
-# Mobser Full-Stack Platform (Next.js + Django)
+# V-Clinic Full-Stack Platform (Next.js + Django)
 
 A production-ready platform template structured around decoupled reusable platform modules and dedicated product modules. Incorporates a modern Next.js frontend, Django REST Framework backend, Celery task workers, Redis caching, PostgreSQL persistence, and an automated HTTPS reverse proxy via Caddy.
 
@@ -16,7 +16,7 @@ A production-ready platform template structured around decoupled reusable platfo
 ## Project Structure
 
 ```text
-Mobser/
+DrHussainPlatform/
 ├── backend/                        # Django backend
 │   ├── core/                       # Core configuration & gateways
 │   │   ├── settings/               # Split settings (base, dev, prod)
@@ -39,11 +39,11 @@ Mobser/
 ├── frontend/                       # Next.js frontend
 │   ├── src/
 │   │   ├── app/                    # Next.js App Router (pages & layouts)
-│   │   ├── components/             # Reusable UI kit components (Button, Card, Badge)
-│   │   ├── features/               # Feature-sliced modules (auth, system, overview)
+│   │   ├── components/             # Shared components (session provider)
+│   │   ├── features/               # Feature-sliced modules (emr)
 │   │   ├── lib/                    # Shared API client, auth options & utilities
-│   │   ├── hooks/                  # Custom React hooks (useSystemStatus, useDebounce)
-│   │   └── types/                  # Domain TypeScript interfaces & NextAuth types
+│   │   ├── hooks/                  # Custom React hooks (useDebounce)
+│   │   └── types/                  # NextAuth type augmentation
 │   ├── Dockerfile                  # Dev frontend image configuration
 │   └── Dockerfile.prod             # Multi-stage standalone production build
 ├── caddy/                          # Reverse proxy configuration

@@ -137,6 +137,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # DRF settings
 REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'core.api_errors.exception_handler',
+    # Every list is a page: {count, next, previous, results}. ?page_size= raises it up to the class maximum.
+    'DEFAULT_PAGINATION_CLASS': 'apps.common.pagination.DefaultPagination',
+    'PAGE_SIZE': int(os.environ.get('API_PAGE_SIZE', 50)),
     # Deny by default: a view opens itself up explicitly (AllowAny) when it is meant to be public.
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -181,6 +184,7 @@ SPECTACULAR_SETTINGS = {
         'VerificationPurposeEnum': 'apps.accounts.models.VerificationPurpose.choices',
         'SubscriptionStatusEnum': 'apps.billing.models.Subscription.Status',
         'DocumentSourceEnum': 'product.records.models.DocumentSource',
+        'DiagnosisStatusEnum': 'product.records.models.Diagnosis.Status',
         'ResultSourceEnum': 'product.results.models.ResultValue.Source',
         'LabTestKindEnum': 'product.results.models.LabTest.Kind',
         'TemplateKindEnum': 'product.content.models.TemplateKind',
@@ -291,6 +295,10 @@ CELERY_TASK_ROUTES = {
     'apps.common.tasks.cleanup_temp_uploads': {'queue': 'maintenance'},
     'apps.common.tasks.cleanup_task_records': {'queue': 'maintenance'},
     'apps.notifications.tasks.send_scheduled_reports': {'queue': 'maintenance'},
+    # Reading a report can mean OCR of fifteen pages. Its own queue, with its own longer limit, so it
+    # neither dies at the default limit nor holds up mail polling and OTP delivery.
+    'product.results.tasks.read_report': {'queue': 'ocr'},
+    'product.alerts.tasks.*': {'queue': 'maintenance'},
 }
 
 # Defaults for the shared task base class in apps.common.tasks.
@@ -312,6 +320,9 @@ MAIL_ALLOW_PLATFORM_FALLBACK = os.environ.get('MAIL_ALLOW_PLATFORM_FALLBACK', 'f
 MAIL_SMTP_BACKEND = os.environ.get('MAIL_SMTP_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 MAIL_TIMEOUT_SECONDS = int(os.environ.get('MAIL_TIMEOUT_SECONDS', 30))
 MAIL_POLL_SECONDS = int(os.environ.get('MAIL_POLL_SECONDS', 120))
+# Development stacks talk to a mail server on the Docker network; outside that, a mailbox may only
+# point at public addresses (the connection check would otherwise probe the hosting network).
+MAIL_ALLOW_PRIVATE_HOSTS = os.environ.get('MAIL_ALLOW_PRIVATE_HOSTS', 'false').lower() == 'true'
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BEAT_SCHEDULE = {
@@ -372,6 +383,12 @@ MEDIA_ENCRYPTION_KEYS = os.environ.get('MEDIA_ENCRYPTION_KEYS', '')
 RESULTS_OCR_LANGUAGES = os.environ.get('RESULTS_OCR_LANGUAGES', 'eng')
 RESULTS_OCR_DPI = int(os.environ.get('RESULTS_OCR_DPI', 300))
 RESULTS_MAX_PAGES = int(os.environ.get('RESULTS_MAX_PAGES', 15))
+# Reading runs on the `ocr` queue with these limits (seconds); a report still unread at the soft
+# limit is marked as failed instead of staying "waiting to be read".
+RESULTS_READ_SOFT_TIME_LIMIT = int(os.environ.get('RESULTS_READ_SOFT_TIME_LIMIT', 900))
+RESULTS_READ_TIME_LIMIT = int(os.environ.get('RESULTS_READ_TIME_LIMIT', 960))
+# The largest scan PIL will decode (a decompression-bomb guard; A4 at 600 DPI is about 35 MP).
+RESULTS_MAX_IMAGE_PIXELS = int(os.environ.get('RESULTS_MAX_IMAGE_PIXELS', 50_000_000))
 SUBSCRIPTION_PAST_DUE_GRACE_HOURS = int(os.environ.get('SUBSCRIPTION_PAST_DUE_GRACE_HOURS', 24))
 SCHEDULED_REPORT_PERIOD_DAYS = int(os.environ.get('SCHEDULED_REPORT_PERIOD_DAYS', 7))
 
@@ -382,7 +399,7 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.redis.RedisCache',
         'LOCATION': os.environ.get('CACHE_URL', 'redis://redis:6379/1'),
-        'KEY_PREFIX': 'mobser',
+        'KEY_PREFIX': 'vclinic',
         'OPTIONS': {'socket_connect_timeout': 2, 'socket_timeout': 2},
     }
 }
@@ -393,7 +410,7 @@ CACHES = {
 # Platform email: invitations, password resets, weekly reports. Development prints to the console;
 # production defaults to SMTP with the EMAIL_* settings below (see prod.py).
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@mobser.local')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'no-reply@vclinic.local')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')

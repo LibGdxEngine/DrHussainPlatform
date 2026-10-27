@@ -12,7 +12,7 @@ from .base import *
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-secret-key-template-project-1234')
 SIMPLE_JWT = {**SIMPLE_JWT, 'SIGNING_KEY': SECRET_KEY}
-OTP_SECRET = OTP_SECRET or 'dev-otp-secret-key-32-chars-minimum-mobser'
+OTP_SECRET = OTP_SECRET or 'dev-otp-secret-key-32-chars-minimum-vclinic'
 for _connection in HIREAGENTS_CONNECTIONS.values():
     _connection['webhook_api_key'] = _connection['webhook_api_key'] or 'dev-hireagents-webhook-key'
 
@@ -28,6 +28,8 @@ if 'test' in sys.argv:
 
 # Without a clinic mailbox, development email prints to the console instead of being refused.
 MAIL_ALLOW_PLATFORM_FALLBACK = os.environ.get('MAIL_ALLOW_PLATFORM_FALLBACK', 'true').lower() == 'true'
+# The development mail server (greenmail) sits on the Docker network, a private address.
+MAIL_ALLOW_PRIVATE_HOSTS = os.environ.get('MAIL_ALLOW_PRIVATE_HOSTS', 'true').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
@@ -65,6 +67,6 @@ if not os.environ.get('CACHE_URL') and not os.environ.get('REDIS_URL'):
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'mobser-dev',
+            'LOCATION': 'vclinic-dev',
         }
     }

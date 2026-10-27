@@ -4,16 +4,20 @@ import { emrRoutes } from "../routes";
 import { Panel } from "../ui/Panel";
 import { Pill } from "../ui/Pill";
 
-export type PatientTab = "summary" | "exam" | "orders" | "docs" | "emails" | "trends";
+export type PatientTab = "summary" | "exam" | "orders" | "docs" | "emails" | "trends" | "diagnoses";
 
 const tabs: { id: PatientTab; label: string; href: string }[] = [
   { id: "summary", label: "Summary", href: emrRoutes.visit },
   { id: "exam", label: "Exam & plan", href: emrRoutes.exam },
   { id: "orders", label: "Orders & prescriptions", href: emrRoutes.orders },
+  { id: "diagnoses", label: "Diagnoses", href: emrRoutes.diagnoses },
   { id: "docs", label: "Documents", href: emrRoutes.docs },
   { id: "emails", label: "Emails", href: emrRoutes.msgs },
   { id: "trends", label: "Trends & follow-up", href: emrRoutes.followup },
 ];
+
+/** Tabs backed by the patient record; the others are still demonstration screens. */
+const realTabs = new Set<PatientTab>(["exam", "diagnoses", "docs", "emails"]);
 
 interface PatientHeaderProps {
   tab: PatientTab;
@@ -21,6 +25,8 @@ interface PatientHeaderProps {
   mrn?: string;
   meta?: string;
   initial?: string;
+  /** True when the identity was loaded from the patient API. */
+  realPatient?: boolean;
   /** Red banner pill, e.g. "Red 1". */
   flag?: string;
   /** Trailing action buttons (e.g. new prescription). */
@@ -34,11 +40,17 @@ export function PatientHeader({
   mrn = "VC-000142",
   meta,
   initial = "L",
+  realPatient = false,
   flag,
   actions,
 }: PatientHeaderProps) {
   return (
     <Panel as="header" className="flex flex-col gap-[18px] px-6 pb-0 pt-[22px]">
+      {!realPatient ? (
+        <p role="status" className="m-0 rounded-xl bg-warn-wash px-4 py-3 text-sm font-semibold">
+          Demonstration data: this screen is not connected to a patient record. Do not use it for clinical care.
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center gap-4">
         <span className="flex size-[58px] items-center justify-center rounded-full bg-brand-tint text-[22px] font-bold text-brand-deep">
           {initial}
@@ -58,12 +70,12 @@ export function PatientHeader({
         {actions ? <div className="ms-auto flex flex-wrap gap-2">{actions}</div> : null}
       </div>
       <nav aria-label="Patient chart" className="flex gap-1">
-        {tabs.map((t) => {
+        {(tabs.filter((t) => realPatient ? realTabs.has(t.id) : !realTabs.has(t.id))).map((t) => {
           const on = t.id === tab;
           return (
             <Link
               key={t.id}
-              href={t.id === "emails" ? `${t.href}?patient=${mrn}` : t.href}
+              href={realPatient || t.id === "emails" ? `${t.href}?patient=${encodeURIComponent(mrn)}` : t.href}
               aria-current={on ? "page" : undefined}
               className={cn(
                 "border-b-[3px] px-4 py-3 text-sm no-underline",
@@ -77,6 +89,9 @@ export function PatientHeader({
           );
         })}
       </nav>
+      {realPatient ? (
+        <p className="m-0 pb-3 text-xs text-muted">The summary, orders and trends screens are demonstrations and are not yet available for this patient.</p>
+      ) : null}
     </Panel>
   );
 }

@@ -256,7 +256,7 @@ class ReviewActionTests(ReviewTestCase):
         self.read(pdfs.header(dob='01/01/1980', file_number='') + pdfs.BLOODS[:3], name='other.pdf')
         counts = self.client.get(f'{BASE}counts/').data
         self.assertEqual(counts, {'needs_doctor': 1, 'ready': 1, 'sent': 0, 'rejected': 0})
-        ready = self.client.get(BASE, {'group': 'ready'}).data
+        ready = self.client.get(BASE, {'group': 'ready'}).data['results']
         self.assertEqual([c['id'] for c in ready], [str(self.case.id)])
 
     def test_every_action_is_logged(self):

@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from product.patients.models import Patient
@@ -14,6 +16,11 @@ class MailboxSerializer(serializers.ModelSerializer):
     has_imap_password = serializers.SerializerMethodField()
     smtp_security = serializers.ChoiceField(choices=Security.choices, required=False)
     imap_security = serializers.ChoiceField(choices=Security.choices, required=False)
+    # Folder names are sent to the IMAP server inside a quoted string; keep them to characters that
+    # need no escaping (no quotes, backslashes, wildcards or line breaks).
+    imap_folder = serializers.CharField(max_length=255, required=False, validators=[RegexValidator(
+        r'^[\w .&+/#@\[\]-]+$', 'Use letters, digits, spaces and . _ - / & + # @ [ ] only.',
+    )])
 
     class Meta:
         model = Mailbox
@@ -30,6 +37,17 @@ class MailboxSerializer(serializers.ModelSerializer):
 
     def get_has_imap_password(self, obj) -> bool:
         return bool(obj.imap_password_encrypted)
+
+    def _no_plain_text(self, value):
+        if value == Security.NONE and not settings.DEBUG:
+            raise serializers.ValidationError('Unencrypted connections are only allowed on development servers.')
+        return value
+
+    def validate_smtp_security(self, value):
+        return self._no_plain_text(value)
+
+    def validate_imap_security(self, value):
+        return self._no_plain_text(value)
 
     def update(self, instance, validated_data):
         for name in ('smtp_password', 'imap_password'):
@@ -63,11 +81,30 @@ class MailThreadSerializer(serializers.ModelSerializer):
                   'has_inbound', 'has_outbound', 'unread', 'archived', 'preview', 'has_attachments']
         read_only_fields = fields
 
+    @staticmethod
+    def _prefetched_messages(obj):
+        if 'messages' in getattr(obj, '_prefetched_objects_cache', {}):
+            return list(obj.messages.all())
+        return None
+
     def get_preview(self, obj) -> str:
-        last = obj.messages.order_by('-sent_at').first()
-        return ' '.join((last.body_text if last else '').split())[:160]
+        """The latest message's first words. Annotated by the list view; otherwise from the messages."""
+        text = getattr(obj, 'preview_text', None)
+        if text is None:
+            messages = self._prefetched_messages(obj)
+            if messages is not None:
+                last = max(messages, key=lambda m: (m.sent_at, m.created_at), default=None)
+            else:
+                last = obj.messages.order_by('-sent_at', '-created_at').first()
+            text = last.body_text if last else ''
+        return ' '.join(text.split())[:160]
 
     def get_has_attachments(self, obj) -> bool:
+        if hasattr(obj, 'has_files'):
+            return bool(obj.has_files or obj.has_named_files)
+        messages = self._prefetched_messages(obj)
+        if messages is not None:
+            return any(m.attachment_names or m.attachments.all() for m in messages)
         return MailAttachment.objects.filter(message__thread=obj).exists() or obj.messages.exclude(
             attachment_names=[]).exists()
 

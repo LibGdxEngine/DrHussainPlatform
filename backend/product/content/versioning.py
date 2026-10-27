@@ -7,7 +7,7 @@ CONTENT_FIELDS = {
     EmailTemplateVersion: ('subject', 'body'),
     PrescriptionVersion: ('drug', 'dose', 'directions'),
     AlertRuleVersion: ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled',
-                       'lab_test_code', 'lab_check'),
+                       'lab_test_code', 'lab_check', 'vital'),
     ScoreBandVersion: ('bands',),
 }
 

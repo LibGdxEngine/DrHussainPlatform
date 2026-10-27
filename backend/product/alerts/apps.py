@@ -6,3 +6,8 @@ class AlertsConfig(AppConfig):
     name = 'product.alerts'
     label = 'alerts'
     verbose_name = 'Patient alerts'
+
+    def ready(self):
+        from . import signals
+
+        signals.connect()

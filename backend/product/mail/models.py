@@ -90,6 +90,11 @@ class MailThread(BaseModel):
 
     class Meta:
         ordering = ['-last_message_at']
+        indexes = [
+            # The inbox, sent and archive folders: a clinic's threads by folder, newest first.
+            models.Index(fields=['organization', 'archived', 'has_inbound', 'last_message_at'],
+                         name='mail_thread_folder'),
+        ]
 
     def __str__(self):
         return self.subject or self.contact_email
