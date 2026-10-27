@@ -1,90 +1,90 @@
-"use client";
+import { answerLimits, periodOptions, yesNo, yesNoUnsure } from "../data";
+import { ChoiceGroup, ConditionalCard, Question, RadioList, phoneInputClass } from "./controls";
+import type { StepProps } from "./ReasonStep";
 
-import Link from "next/link";
-import { useState } from "react";
-import { emrRoutes } from "../../routes";
-import { periodOptions, yesNo, yesNoUnsure } from "../data";
-import { progressPct } from "../logic";
-import type { PeriodStatus } from "../types";
-import { PhoneBody, PhoneFooter, PhoneFrame, StepHeader } from "./PhoneFrame";
-import { ChoiceGroup, Question, RadioList, phoneInputClass } from "./controls";
+const NOT_SURE = "Not sure";
 
-interface CycleStepProps {
-  totalSteps: number;
-}
-
-function ConditionalCard({ reason, children }: { reason: string; children: React.ReactNode }) {
+/** Periods: the questions below depend on whether periods continue or have stopped. */
+export function CycleStep({ answers, onChange }: StepProps) {
+  const status = answers.period_status;
+  const unsure = answers.last_period === NOT_SURE;
   return (
-    <div className="flex flex-col gap-3.5 rounded-[20px] border border-line bg-white p-4">
-      <span className="self-start rounded-full bg-brand-tint px-2.5 py-[3px] text-[11px] font-semibold text-ok-ink">
-        {reason}
-      </span>
-      {children}
-    </div>
-  );
-}
-
-/** C: a form step whose follow-up questions depend on the answer above. */
-export function CycleStep({ totalSteps }: CycleStepProps) {
-  const [period, setPeriod] = useState<PeriodStatus>("stopped");
-  const [bleedAfterYear, setBleedAfterYear] = useState("yes");
-  const [uterus, setUterus] = useState("yes");
-  const [pregnant, setPregnant] = useState("no");
-  const [intermenstrual, setIntermenstrual] = useState("no");
-
-  return (
-    <PhoneFrame label="C · Form step (with questions that depend on the answer)">
-      <StepHeader title="Periods" stepText={`Step 3 of ${totalSteps}`} progress={progressPct(3, totalSteps)}>
-        <Link
-          href={emrRoutes.intake}
-          className="flex items-center gap-1.5 self-start text-[13px] font-semibold text-brand"
-        >
-          💾 Save and finish later
-        </Link>
-      </StepHeader>
-      <PhoneBody className="gap-[22px] p-6">
-        <div className="flex flex-col gap-2.5">
-          <span className="text-base font-semibold">When was your last period?</span>
-          <div className="flex gap-2">
-            <input defaultValue="Aug 2025" aria-label="Last period" className={`${phoneInputClass} flex-1`} />
-            <button
-              type="button"
-              className="min-h-[52px] cursor-pointer rounded-2xl border border-field bg-white px-3.5 text-sm"
-            >
-              Not sure
-            </button>
-          </div>
+    <>
+      <div className="flex flex-col gap-2.5">
+        <label htmlFor="last-period" className="text-base font-semibold">When was your last period?</label>
+        <div className="flex gap-2">
+          <input
+            id="last-period"
+            placeholder="e.g. August 2025"
+            maxLength={answerLimits.lastPeriod}
+            value={unsure ? "" : answers.last_period ?? ""}
+            disabled={unsure}
+            onChange={(e) => onChange({ last_period: e.target.value })}
+            className={`${phoneInputClass} flex-1 disabled:bg-canvas`}
+          />
+          <button
+            type="button"
+            aria-pressed={unsure}
+            onClick={() => onChange({ last_period: unsure ? "" : NOT_SURE })}
+            className={
+              unsure
+                ? "min-h-[52px] cursor-pointer rounded-2xl border-2 border-brand bg-brand-tint px-3.5 text-sm font-semibold text-brand-ink"
+                : "min-h-[52px] cursor-pointer rounded-2xl border border-field bg-white px-3.5 text-sm"
+            }
+          >
+            {NOT_SURE}
+          </button>
         </div>
-        <div className="flex flex-col gap-2.5">
-          <span className="text-base font-semibold">Your periods now</span>
-          <RadioList label="Your periods now" options={periodOptions} value={period} onChange={setPeriod} />
-        </div>
-        {period === "stopped" ? (
-          <ConditionalCard reason="Shown because your periods have stopped">
-            <Question label="Any bleeding a year or more after your last period?">
-              <ChoiceGroup label="Bleeding after a year" columns={2} options={yesNo} value={bleedAfterYear} onChange={setBleedAfterYear} />
-            </Question>
-            <label className="flex flex-col gap-2 text-[15px] font-semibold">
-              How old were you when your periods stopped?
-              <input defaultValue="51" inputMode="numeric" className={phoneInputClass} />
-            </label>
-            <Question label="Do you still have your uterus?">
-              <ChoiceGroup label="Uterus present" columns={2} options={yesNo} value={uterus} onChange={setUterus} />
-            </Question>
-          </ConditionalCard>
-        ) : null}
-        {period === "reg" || period === "irr" ? (
-          <ConditionalCard reason="Shown because you still have periods">
-            <Question label="Could you be pregnant?">
-              <ChoiceGroup label="Possible pregnancy" columns={3} options={yesNoUnsure} value={pregnant} onChange={setPregnant} />
-            </Question>
-          </ConditionalCard>
-        ) : null}
-        <Question label="Bleeding between periods or after sex?">
-          <ChoiceGroup label="Intermenstrual bleeding" columns={2} options={yesNo} value={intermenstrual} onChange={setIntermenstrual} />
-        </Question>
-      </PhoneBody>
-      <PhoneFooter backHref={emrRoutes.intake} next={{ label: "Continue", href: emrRoutes.intake }} />
-    </PhoneFrame>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        <span className="text-base font-semibold">Your periods now</span>
+        <RadioList label="Your periods now" options={periodOptions} value={status} onChange={(v) => onChange({ period_status: v })} />
+      </div>
+      {status === "stopped" ? (
+        <ConditionalCard reason="Shown because your periods have stopped">
+          <Question label="Any bleeding a year or more after your last period?">
+            <ChoiceGroup
+              label="Bleeding a year or more after your last period"
+              columns={2}
+              options={yesNo}
+              value={answers.bleed_after_year}
+              onChange={(v) => onChange({ bleed_after_year: v })}
+            />
+          </Question>
+          <label className="flex flex-col gap-2 text-[15px] font-semibold">
+            How old were you when your periods stopped?
+            <input
+              inputMode="numeric"
+              maxLength={2}
+              value={answers.menopause_age != null ? String(answers.menopause_age) : ""}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "");
+                onChange({ menopause_age: digits ? Number(digits) : null });
+              }}
+              className={phoneInputClass}
+            />
+          </label>
+          <Question label="Do you still have your uterus (womb)?">
+            <ChoiceGroup label="Still have your uterus" columns={2} options={yesNo} value={answers.uterus} onChange={(v) => onChange({ uterus: v })} />
+          </Question>
+        </ConditionalCard>
+      ) : null}
+      {status === "reg" || status === "irr" ? (
+        <ConditionalCard reason="Shown because you still have periods">
+          <Question label="Could you be pregnant?">
+            <ChoiceGroup label="Could you be pregnant" columns={3} options={yesNoUnsure} value={answers.pregnant} onChange={(v) => onChange({ pregnant: v })} />
+          </Question>
+        </ConditionalCard>
+      ) : null}
+      <Question label="Bleeding between periods or after sex?">
+        <ChoiceGroup
+          label="Bleeding between periods or after sex"
+          columns={2}
+          options={yesNo}
+          value={answers.intermenstrual}
+          onChange={(v) => onChange({ intermenstrual: v })}
+        />
+      </Question>
+    </>
   );
 }

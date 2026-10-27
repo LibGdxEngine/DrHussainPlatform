@@ -1,18 +1,23 @@
-import { AppointmentsTable } from "@/features/emr/appointments/components/AppointmentsTable";
-import { BookingForm } from "@/features/emr/appointments/components/BookingForm";
-import { DayPicker } from "@/features/emr/appointments/components/DayPicker";
-import { StaffHeader } from "@/features/emr/appointments/components/StaffHeader";
+import { AppointmentsScreen } from "@/features/emr/appointments/components/AppointmentsScreen";
+import { isDayKey } from "@/features/emr/appointments/schedule";
 import { AppShell } from "@/features/emr/shell/AppShell";
 
-export default function AppointmentsPage() {
+export const metadata = { title: "Appointments · V-Clinic EMR" };
+
+function one(v: string | string[] | undefined) {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+export default async function AppointmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const sp = await searchParams;
+  const date = one(sp.date);
   return (
     <AppShell active="appts" showPromo={false}>
-      <StaffHeader />
-      <DayPicker />
-      <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] items-start gap-4">
-        <AppointmentsTable />
-        <BookingForm />
-      </div>
+      <AppointmentsScreen initialDate={isDayKey(date) ? date : undefined} initialPatient={one(sp.patient) || undefined} />
     </AppShell>
   );
 }

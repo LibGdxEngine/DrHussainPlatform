@@ -1,7 +1,18 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/features/emr/ui/icons";
-import type { TodayStat } from "../data";
+
+export interface TodayStat {
+  title: string;
+  /** null while loading or when it could not be loaded. */
+  value: number | null;
+  caption: string;
+  href: string;
+  /** Set when the number could not be loaded; shown instead of the caption. */
+  error?: string;
+  /** The first card is the dark "needs attention" card. */
+  highlight?: boolean;
+}
 
 export function StatCard({ stat }: { stat: TodayStat }) {
   const { highlight } = stat;
@@ -26,10 +37,14 @@ export function StatCard({ stat }: { stat: TodayStat }) {
           <Icon name="arrowUpRight" size={16} strokeWidth={2} />
         </span>
       </div>
-      <span className="text-5xl font-bold leading-none">{stat.value}</span>
-      <span className={cn("text-[13px]", highlight ? "text-mint-2" : "text-muted")}>
-        {stat.caption}
-      </span>
+      <span className="text-5xl font-bold leading-none">{stat.value ?? "—"}</span>
+      {stat.error ? (
+        <span role="alert" className={cn("text-[13px]", highlight ? "text-white" : "text-danger-ink")}>
+          {stat.error}
+        </span>
+      ) : (
+        <span className={cn("text-[13px]", highlight ? "text-mint-2" : "text-muted")}>{stat.caption}</span>
+      )}
     </Link>
   );
 }

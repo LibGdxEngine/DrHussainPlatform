@@ -6,14 +6,17 @@ const ARC = Math.PI * RADIUS;
 const ARC_PATH = "M20 112 A90 90 0 0 1 200 112";
 
 interface FormGaugeProps {
-  done: number;
-  pending: number;
+  /** null while loading. */
+  done: number | null;
+  pending: number | null;
+  error?: string;
 }
 
-/** Half-circle completion gauge: solid arc for done, hatched track for pending. */
-export function FormGauge({ done, pending }: FormGaugeProps) {
+/** Half-circle completion gauge for today's patient forms: solid arc for done, hatched track for pending. */
+export function FormGauge({ done, pending, error }: FormGaugeProps) {
   const hatchId = useId();
-  const percent = Math.round((done / (done + pending)) * 100);
+  const total = (done ?? 0) + (pending ?? 0);
+  const percent = total ? Math.round(((done ?? 0) / total) * 100) : 0;
   return (
     <Panel variant="outline" aria-labelledby="fp" className="flex flex-col gap-2.5 p-5">
       <h2 id="fp" className="m-0 text-lg font-semibold">
@@ -37,18 +40,19 @@ export function FormGauge({ done, pending }: FormGaugeProps) {
           />
         </svg>
         <div className="absolute bottom-0 flex flex-col items-center">
-          <span className="text-[38px] font-bold leading-none">{percent}%</span>
-          <span className="mt-1 text-xs text-muted">complete</span>
+          <span className="text-[38px] font-bold leading-none">{done === null ? "—" : total ? `${percent}%` : "—"}</span>
+          <span className="mt-1 text-xs text-muted">{done !== null && !total ? "no forms due" : "complete"}</span>
         </div>
       </div>
+      {error ? <p role="alert" className="m-0 text-center text-sm text-danger-ink">{error}</p> : null}
       <div className="mt-auto flex justify-center gap-4 text-[13px] text-ink-3">
         <span className="flex items-center gap-1.5">
           <span className="size-2.5 rounded-full bg-brand" />
-          Complete {done}
+          Complete {done ?? "—"}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="box-border size-2.5 rounded-full border border-hatch bg-[repeating-linear-gradient(45deg,var(--color-hatch)_0_2px,#fff_2px_4px)]" />
-          Pending {pending}
+          Pending {pending ?? "—"}
         </span>
       </div>
     </Panel>

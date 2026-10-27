@@ -1,9 +1,5 @@
-import type {
-  AuditTab,
-  ClinicUser,
-  PermissionCell,
-  RolePermissionRow,
-} from "./types";
+import type { MemberRole } from "@/lib/api/emr/staff";
+import type { AuditTab } from "./types";
 
 export const auditTabs: { id: AuditTab; label: string }[] = [
   { id: "log", label: "Audit log" },
@@ -50,6 +46,11 @@ const actionNames: Record<string, string> = {
   "prescription.updated": "Edited prescription",
   "lab_test.updated": "Edited lab test",
   "clinic_profile.updated": "Edited clinic details",
+  "member.role_changed": "Changed a user's role",
+  "member.removed": "Removed a user",
+  "invitation.created": "Invited a user",
+  "invitation.revoked": "Withdrew an invitation",
+  "invitation.accepted": "Joined the clinic",
 };
 
 export function actionText(action: string): string {
@@ -58,61 +59,66 @@ export function actionText(action: string): string {
 
 export const outcomeLabel = { success: "Success", denied: "Denied" } as const;
 
-const YES: PermissionCell = { text: "Yes", tone: "yes" };
-const NO: PermissionCell = { text: "No", tone: "no" };
-const OWN: PermissionCell = { text: "Own only", tone: "own" };
-const READ_ONLY: PermissionCell = { text: "Read only", tone: "readOnly" };
-const NA: PermissionCell = { text: "—", tone: "na" };
-
-const row = (
-  action: string,
-  doctor: PermissionCell,
-  nurse: PermissionCell,
-  staff: PermissionCell,
-  patient: PermissionCell,
-): RolePermissionRow => ({ action, doctor, nurse, staff, patient });
-
-export const rolePermissions: RolePermissionRow[] = [
-  row("Book visits, send form links", YES, NO, YES, NO),
-  row("Check-in and vital signs", YES, YES, NO, NO),
-  row("Scan, label, enter key values", YES, YES, YES, NO),
-  row("View summary, alerts and scores", YES, READ_ONLY, NO, NO),
-  row("Acknowledge alerts, write prescriptions", YES, NO, NO, NO),
-  row("Send pre-written orders", YES, YES, YES, NO),
-  row("Email results, read replies", YES, NO, NO, OWN),
-  row("Fill in forms, view their scores", NA, NO, NO, OWN),
-  row("Clinic settings, audit log", YES, NO, NO, NO),
-];
-
-export const clinicUsers: ClinicUser[] = [
-  {
-    id: "doctor",
-    name: "Dr. Hussain Gohar",
-    email: "hsgohar@gmail.com",
-    roleLabel: "Doctor · Admin",
-    roleTone: "brand",
-    avatar: { kind: "photo" },
-    meta: { kind: "text", text: "Passkey · now" },
+/** The clinic roles as the backend applies them (IsClinicLead = owner or admin). */
+export const roleInfo: Record<MemberRole, { label: string; short: string; can: string[]; cannot?: string[] }> = {
+  OWNER: {
+    label: "Owner",
+    short: "Doctor access, and manages owners",
+    can: [
+      "Everything an admin can do",
+      "Make other users owners, or remove an owner",
+    ],
+    cannot: ["The clinic always keeps at least one owner"],
   },
-  {
-    id: "staff",
-    name: "Mai Samir",
-    email: "clinicgohar@gmail.com",
-    roleLabel: "Clinic staff",
-    roleTone: "neutral",
-    avatar: { kind: "initial", letter: "M", className: "bg-warn-tint text-warn-ink" },
-    meta: { kind: "text", text: "Authenticator app · 09:20" },
+  ADMIN: {
+    label: "Admin",
+    short: "Doctor access",
+    can: [
+      "Write prescriptions and lab requests",
+      "Review results, approve or reject results emails",
+      "Acknowledge alerts and confirm whose report a flagged upload is",
+      "Reply to patients' emails",
+      "Clinic settings: details, templates, leaflets, lab tests, alert rules and the mailbox",
+      "Read the audit log",
+      "Invite users, change roles and remove users",
+    ],
   },
-  {
-    id: "nurse",
-    name: "Sara Mahmoud",
-    email: "nurse.vclinic@gmail.com",
-    roleLabel: "Nurse",
-    roleTone: "brand",
-    avatar: { kind: "initial", letter: "S", className: "bg-brand-tint text-brand-deep" },
-    meta: { kind: "inviteLink", text: "Invite pending · edit permissions" },
+  MEMBER: {
+    label: "Member",
+    short: "Clinic staff",
+    can: [
+      "Patients: create, open and edit files",
+      "Appointments, and sending patient forms",
+      "Scanning and filing documents, and entering key values from reports",
+      "Read the inbox, alerts, orders and clinic settings",
+      "See the list of users",
+    ],
+    cannot: ["Issue orders, approve results emails, change settings or read the audit log"],
   },
-];
+};
+
+export const roleOrder: MemberRole[] = ["OWNER", "ADMIN", "MEMBER"];
+
+export interface MemberControls {
+  /** Roles the signed-in user may pick for this member; empty when the role can't be changed here. */
+  roleOptions: MemberRole[];
+  canRemove: boolean;
+}
+
+/**
+ * What the signed-in user may do to a member, mirroring the backend: only owners and admins change users,
+ * only owners touch owners, and nobody removes or re-roles themselves from this list.
+ */
+export function memberControls(
+  me: { role: MemberRole; is_lead: boolean } | null,
+  member: { role?: MemberRole; is_me: boolean },
+): MemberControls {
+  const none: MemberControls = { roleOptions: [], canRemove: false };
+  if (!me?.is_lead || member.is_me) return none;
+  const owner = me.role === "OWNER";
+  if (member.role === "OWNER" && !owner) return none;
+  return { roleOptions: owner ? roleOrder : ["ADMIN", "MEMBER"], canRemove: true };
+}
 
 export const patientsNote =
-  "Patients do not have staff accounts. They open a one-time form link and verify with date of birth + an SMS code; they only see their own forms, results and emails.";
+  "Patients do not have staff accounts. They open a one-time form link and confirm their date of birth; they only see their own form.";

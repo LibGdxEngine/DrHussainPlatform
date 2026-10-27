@@ -1,5 +1,7 @@
-import type { SlotId } from "../documents/data";
-import type { VisitKey } from "../journey/data";
+import type { Appointment } from "@/lib/api/emr/appointments";
+import type { DocumentSlot } from "@/lib/api/emr/documents";
+import type { RequestedTest, RequestedTestStatus } from "@/lib/api/emr/orders";
+import type { Patient } from "@/lib/api/emr/patients";
 import type { PillTone } from "../ui/Pill";
 
 export type ScanTab = "visit" | "bulk";
@@ -9,60 +11,94 @@ export const scanTabs: { id: ScanTab; label: string }[] = [
   { id: "bulk", label: "Bulk scan (doctor's files)" },
 ];
 
-export const scanVisits: { id: VisitKey; label: string }[] = [
-  { id: "v1", label: "Visit 1" },
-  { id: "v2", label: "Visit 2" },
-  { id: "v3", label: "Visit 3" },
-  { id: "fu", label: "3-month follow-up" },
+/** Who a scan is saved to: from today's schedule or a patient search. */
+export type ScanPatient = Pick<Patient, "id" | "file_number" | "full_name">;
+
+export const scanSlots: { id: DocumentSlot; name: string }[] = [
+  { id: "lab", name: "Lab results" },
+  { id: "us", name: "Ultrasound" },
+  { id: "rad", name: "Other imaging" },
+  { id: "path", name: "Pathology" },
+  { id: "paper", name: "Old paper notes" },
+  { id: "letter", name: "Letters" },
 ];
 
-/** Patients checked in today for visit 2/3: reception picks one of these first. */
-export const todayScanQueue: { mrn: string; name: string; time: string; visit: VisitKey; waiting: number }[] = [
-  { mrn: "VC-000142", name: "Laila Ahmed", time: "09:30", visit: "v2", waiting: 3 },
-  { mrn: "VC-000118", name: "Nour Saleh", time: "10:15", visit: "fu", waiting: 1 },
-  { mrn: "VC-000097", name: "Dina Farouk", time: "11:00", visit: "v3", waiting: 2 },
-];
-
-export interface ScannedPage {
-  id: string;
-  name: string;
-  slot: SlotId;
-  date: string;
-}
-
-export const sampleScanNames = ["Lab result", "Ultrasound report", "Imaging report", "Old prescription", "Referral letter"];
-
-export type BulkStatus = "unsorted" | "assigned" | "saved";
-
-export const bulkStatus: Record<BulkStatus, { label: string; tone: PillTone }> = {
-  unsorted: { label: "Unsorted", tone: "neutral" },
-  assigned: { label: "Assigned", tone: "amber" },
-  saved: { label: "Saved to file", tone: "ok" },
+export const arrivalLabel: Record<RequestedTestStatus, string> = {
+  pending: "Waiting",
+  clinic: "Arrived",
+  email: "By email",
+  entered: "Entered",
 };
 
-export interface BulkFile {
-  id: string;
-  file: string;
-  pages: number;
-  /** Doctor's hint written on the folder/paper, helps reception match the patient. */
-  hint: string;
-  mrn: string;
-  slot: SlotId | "";
+/** One chosen file waiting to be saved, or saved, to a patient's record. */
+export interface ScanFile {
+  key: string;
+  file: File;
+  title: string;
+  slot: DocumentSlot | "";
+  /** YYYY-MM-DD or blank. */
   date: string;
-  status: BulkStatus;
+  status: "idle" | "saving" | "saved" | "error";
+  message?: string;
+  /** The saved document's id. */
+  document?: string;
 }
 
-export const initialBulk: BulkFile[] = [
-  { id: "b01", file: "scan_0412.pdf", pages: 3, hint: "Laila · labs 2023", mrn: "VC-000142", slot: "lab", date: "2023", status: "assigned" },
-  { id: "b02", file: "scan_0413.pdf", pages: 1, hint: "Laila · ultrasound", mrn: "VC-000142", slot: "us", date: "May 2024", status: "saved" },
-  { id: "b03", file: "scan_0414.pdf", pages: 5, hint: "Paper file · Rania", mrn: "", slot: "", date: "", status: "unsorted" },
-  { id: "b04", file: "scan_0415.pdf", pages: 2, hint: "Rania · DEXA", mrn: "", slot: "", date: "", status: "unsorted" },
-  { id: "b05", file: "scan_0416.pdf", pages: 1, hint: "Heba · mammogram", mrn: "", slot: "", date: "", status: "unsorted" },
-  { id: "b06", file: "scan_0417.pdf", pages: 4, hint: "Heba · old notes", mrn: "VC-000131", slot: "paper", date: "2019–2022", status: "assigned" },
-  { id: "b07", file: "scan_0418.pdf", pages: 2, hint: "Nour · hormone tests", mrn: "", slot: "", date: "", status: "unsorted" },
-  { id: "b08", file: "scan_0419.pdf", pages: 1, hint: "No name", mrn: "", slot: "", date: "", status: "unsorted" },
-];
+let counter = 0;
 
-/** Backlog files already sorted before this session (not in the mock list above). */
-export const BACKLOG_TOTAL = 120;
-export const BACKLOG_DONE_BEFORE = 32;
+export function newScanFile(file: File, slot: DocumentSlot | ""): ScanFile {
+  counter += 1;
+  return { key: `f${counter}-${file.name}`, file, title: fileTitle(file.name), slot, date: "", status: "idle" };
+}
+
+/** "scan_0412.pdf" → "scan_0412". */
+export function fileTitle(name: string): string {
+  const base = name.replace(/\.[^.]+$/, "").trim();
+  return (base || name).slice(0, 255);
+}
+
+/** A calendar day in the browser's time zone, as the schedule API expects it. */
+export function localDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Today's visits that bring files to scan: checked-in patients first, then by time. */
+export function scanQueue(appointments: Appointment[]): Appointment[] {
+  return appointments
+    .filter((a) => a.needs_scanning && (a.status === "checked_in" || a.status === "booked"))
+    .sort((a, b) => {
+      const inA = a.status === "checked_in" ? 0 : 1;
+      const inB = b.status === "checked_in" ? 0 : 1;
+      return inA - inB || a.starts_at.localeCompare(b.starts_at);
+    });
+}
+
+/** Tests still awaited, plus any that arrived today so a tick can be undone. */
+export function scanChecklist(tests: RequestedTest[], today: string): RequestedTest[] {
+  return tests
+    .filter((t) => t.status === "pending" || (t.arrived_at !== null && localDay(new Date(t.arrived_at)) === today))
+    .sort((a, b) => b.requested_at.localeCompare(a.requested_at) || a.name.localeCompare(b.name));
+}
+
+export type BulkState = "needs_patient" | "needs_category" | "ready" | "saving" | "saved" | "error";
+
+export const bulkState: Record<BulkState, { label: string; tone: PillTone }> = {
+  needs_patient: { label: "Needs patient", tone: "neutral" },
+  needs_category: { label: "Needs category", tone: "amber" },
+  ready: { label: "Ready to save", tone: "brand" },
+  saving: { label: "Saving…", tone: "neutral" },
+  saved: { label: "Saved to file", tone: "ok" },
+  error: { label: "Not saved", tone: "danger" },
+};
+
+export interface BulkRow extends ScanFile {
+  patient: ScanPatient | null;
+}
+
+export function bulkRowState(row: BulkRow): BulkState {
+  if (row.status === "saved" || row.status === "saving") return row.status;
+  if (!row.patient) return "needs_patient";
+  if (!row.slot) return "needs_category";
+  return row.status === "error" ? "error" : "ready";
+}

@@ -1,6 +1,9 @@
-export type TestId = string;
-export type MedId = "estriol" | "e2gel" | "prom" | "vitd";
+import type { OrderCreate, OrderDelivery, OrderKind } from "@/lib/api/emr/orders";
+import { ApiError } from "@/lib/api/emr/errors";
 
+export type TestId = string;
+
+/** The clinic's usual test names, keyed by the code saved on each requested test. */
 export const testNames: Record<TestId, string> = {
   ferritin: "Ferritin", vitd: "Vitamin D", b12: "B12", tsh: "TSH", ft4: "Free T4", ft3: "Free T3",
   tpo: "TPO", dheas: "DHEA-S", cbc: "CBC", cmp: "CMP", insulin: "Fasting insulin", hba1c: "HbA1c",
@@ -17,6 +20,7 @@ export interface TestSet {
   ids: TestId[];
 }
 
+/** Clinic panel presets: one click adds a whole set. */
 export const testSets: TestSet[] = [
   { name: "Baseline – all", ids: ["ferritin", "vitd", "b12", "tsh", "ft4", "ft3", "tpo", "dheas", "cbc", "cmp", "insulin", "hba1c", "lipids"] },
   { name: "Baseline – optional", ids: ["ggt", "hscrp", "homocys", "apob", "lpa", "iodine", "prl", "rt3"] },
@@ -28,64 +32,119 @@ export const testSets: TestSet[] = [
   { name: "Fertility", ids: ["fsh", "lh", "e2", "amh", "prog", "tsh", "prl", "rubella", "semen"] },
 ];
 
-/** Insertion order of this object drives the order of the checklist chips. */
-export const initialTests: Record<TestId, boolean> = {
-  ferritin: true, vitd: true, tsh: true, lipids: true, hba1c: true, lpa: true, tvus: true,
+/** A test on the checklist; `checked` false keeps the chip visible but leaves it off the request. */
+export interface TestLine {
+  code: string;
+  name: string;
+  checked: boolean;
+}
+
+/** Adds the set's tests (ticked) after the ones already listed, keeping their order. */
+export function addTests(lines: TestLine[], add: { code: string; name: string }[]): TestLine[] {
+  const next = [...lines];
+  for (const test of add) {
+    const at = next.findIndex((l) => l.code === test.code);
+    if (at === -1) next.push({ ...test, checked: true });
+    else next[at] = { ...next[at], checked: true };
+  }
+  return next;
+}
+
+export function setTests(set: TestSet): { code: string; name: string }[] {
+  return set.ids.map((code) => ({ code, name: testNames[code] ?? code }));
+}
+
+/** A slug the backend accepts as a test code, for a test typed in by name. */
+export function testCode(name: string): string {
+  const slug = name
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 64);
+  if (slug) return slug;
+  // Names with no Latin letters (e.g. Arabic) still need distinct codes.
+  let hash = 0;
+  for (const c of name.trim()) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  return hash ? `test_${hash.toString(36)}` : "other";
+}
+
+/** "Lab request: Baseline – all + PCOS" when whole sets are ticked, else a count. */
+export function testsTitle(lines: TestLine[]): string {
+  const on = new Set(lines.filter((l) => l.checked).map((l) => l.code));
+  const sets = testSets.filter((s) => s.ids.every((id) => on.has(id))).map((s) => s.name);
+  if (sets.length) return `Lab request: ${sets.join(" + ")}`;
+  return `Lab request: ${on.size} ${on.size === 1 ? "test" : "tests"}`;
+}
+
+/** How a request or prescription leaves the clinic, as the doctor sees it. */
+export type DeliveryChoice = "email_lab" | "email_patient" | "print" | "in_clinic";
+
+export const testDeliveries: { id: DeliveryChoice; label: string }[] = [
+  { id: "email_lab", label: "Email to the lab" },
+  { id: "email_patient", label: "Email to the patient" },
+  { id: "print", label: "Print and give to the patient" },
+  { id: "in_clinic", label: "Done in clinic (e.g. swabs)" },
+];
+
+export const rxDeliveries: { id: DeliveryChoice; label: string }[] = [
+  { id: "print", label: "Print and give to the patient" },
+  { id: "email_patient", label: "Email to the patient" },
+];
+
+export const deliveryLabel: Record<OrderDelivery, string> = {
+  email: "Emailed",
+  print: "Printed",
+  in_clinic: "Done in clinic",
 };
 
-export interface Medication {
-  id: MedId;
-  name: string;
-  sig: string;
-  kind: string;
+export interface MedicineLine {
+  /** Catalog item id; null for a medicine typed in by hand. */
+  prescription_item: string | null;
+  drug: string;
+  dose: string;
+  directions: string;
 }
 
-export const medications: Medication[] = [
-  { id: "estriol", name: "Estriol 0.1% vaginal cream", sig: "0.5 g nightly for 2 weeks, then twice weekly", kind: "Vaginal · Not locked" },
-  { id: "e2gel", name: "Estradiol gel 0.06%", sig: "2 pumps (1.5 mg) daily to the skin", kind: "Systemic estrogen" },
-  { id: "prom", name: "Micronised progesterone 100 mg (Prometrium)", sig: "1 capsule nightly", kind: "Endometrial protection" },
-  { id: "vitd", name: "Vitamin D3 2000 IU", sig: "1 daily", kind: "Supplement" },
-];
-
-export const initialMeds: Record<MedId, boolean> = { estriol: true, e2gel: true, prom: false, vitd: false };
-
-export interface PrescriptionBlock {
-  tag: string;
+interface OrderDraft {
+  patient: string;
+  kind: OrderKind;
+  delivery: DeliveryChoice;
+  labEmail?: string;
   title: string;
-  text: string;
-  action: string;
-  target: "visit" | "orders";
+  notes?: string;
+  tests?: TestLine[];
+  medicines?: MedicineLine[];
 }
 
-/** R7 / R10 hard blocks derived from the selected medications. */
-export function deriveBlocks(meds: Record<MedId, boolean>): PrescriptionBlock[] {
-  const blocks: PrescriptionBlock[] = [];
-  if (meds.e2gel) {
-    blocks.push({
-      tag: "Red · R7 · Locked",
-      title: "Postmenopausal bleeding not yet confirmed",
-      text: "Systemic HRT is locked until R7 is confirmed with a reason on the Summary page.",
-      action: "Go to alert",
-      target: "visit",
-    });
+/** The request body for one order. Email to the patient leaves `sent_to` blank (the server uses theirs). */
+export function orderBody(draft: OrderDraft): OrderCreate {
+  const body: OrderCreate = {
+    patient: draft.patient,
+    kind: draft.kind,
+    title: draft.title.trim(),
+    delivery: draft.delivery === "email_lab" || draft.delivery === "email_patient" ? "email" : draft.delivery,
+    notes: draft.notes?.trim() ?? "",
+  };
+  if (draft.delivery === "email_lab") body.sent_to = draft.labEmail?.trim() ?? "";
+  if (draft.kind === "tests") {
+    body.tests = (draft.tests ?? []).filter((t) => t.checked).map(({ code, name }) => ({ code, name }));
+  } else {
+    body.medicines = (draft.medicines ?? []).map((m) => ({
+      prescription_item: m.prescription_item,
+      drug: m.drug.trim(),
+      dose: m.dose.trim(),
+      directions: m.directions.trim(),
+    }));
   }
-  if (meds.e2gel && !meds.prom) {
-    blocks.push({
-      tag: "Red · R10 · Locked",
-      title: "Uterus present: systemic estrogen without progesterone or LNG-IUS",
-      text: "Add endometrial protection, such as micronised progesterone.",
-      action: "Add progesterone",
-      target: "orders",
-    });
-  }
-  return blocks;
+  return body;
 }
 
-export const sentLog = [
-  { title: "Lab request: Baseline – all + hormones", detail: "Emailed to the lab · 11 Oct 2026 09:52 · Dr. Gohar" },
-  { title: "Transvaginal ultrasound request", detail: "Printed and given to the patient · 11 Oct 2026 09:55" },
-  { title: "Swabs: vaginal + NAAT", detail: "Taken in clinic · 11 Oct 2026" },
-];
-
-export const labDelivery = ["Email to lab · [Clinic's usual lab]", "Email to patient", "Print"];
-export const rxDelivery = ["Print and give to patient", "Email to patient"];
+/** The server's message plus any field messages (e.g. a bad lab email address). */
+export function issueErrorMessage(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError) || err.status === 0) return fallback;
+  const details = Object.values(err.fields).flat().filter((m) => m && m !== err.message);
+  const hint = err.code === "MAILBOX_NOT_READY" ? "Set up the clinic mailbox, or choose Print instead." : "";
+  return [err.message, ...details, hint].filter(Boolean).join(" ");
+}

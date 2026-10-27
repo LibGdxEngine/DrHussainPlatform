@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
-import { roleDefs } from "../data";
-import type { InviteRole } from "../types";
+import { inviteRoles, type InviteRole } from "../data";
 
 interface RolePickerProps {
   value: InviteRole;
@@ -10,9 +9,9 @@ interface RolePickerProps {
 export function RolePicker({ value, onChange }: RolePickerProps) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[13px] font-medium text-ink-2">Role</span>
-      <div role="radiogroup" aria-label="Role" className="grid grid-cols-3 gap-2">
-        {roleDefs.map((r) => {
+      <span id="role-label" className="text-[13px] font-medium text-ink-2">Role</span>
+      <div role="radiogroup" aria-labelledby="role-label" className="grid gap-2 sm:grid-cols-2">
+        {inviteRoles.map((r) => {
           const on = r.id === value;
           return (
             <button
@@ -29,9 +28,7 @@ export function RolePicker({ value, onChange }: RolePickerProps) {
               )}
             >
               <strong className="text-sm font-semibold">{r.label}</strong>
-              <span className={cn("text-[11px] leading-normal", on ? "text-ok-ink" : "text-muted")}>
-                {r.hint}
-              </span>
+              <span className={cn("text-xs leading-normal", on ? "text-ok-ink" : "text-muted")}>{r.hint}</span>
             </button>
           );
         })}
