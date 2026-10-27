@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from corsheaders.defaults import default_headers
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -39,7 +41,14 @@ INSTALLED_APPS = [
     'product.mail.apps.MailConfig',
     'product.alerts.apps.AlertsConfig',
     'product.activity.apps.ActivityConfig',
+    'product.appointments.apps.AppointmentsConfig',
+    'product.intake.apps.IntakeConfig',
+    'product.orders.apps.OrdersConfig',
+    'product.staff.apps.StaffConfig',
 ]
+
+# Headers the EMR sends besides the defaults: the clinic it acts for, and the patient form's session.
+CORS_ALLOW_HEADERS = (*default_headers, 'x-organization-id', 'x-intake-session')
 
 MIDDLEWARE = [
     'core.middleware.api_errors.ApiErrorMiddleware',
@@ -106,7 +115,8 @@ AUTH_USER_MODEL = 'accounts.User'
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+# The clinic's local time: day boundaries for the schedule ("today", ?date=) follow it.
+TIME_ZONE = os.environ.get('TIME_ZONE', 'UTC')
 USE_I18N = True
 USE_TZ = True
 
@@ -153,6 +163,8 @@ REST_FRAMEWORK = {
         'auth_otp': os.environ.get('THROTTLE_OTP', '10/min'),
         'auth_password': os.environ.get('THROTTLE_PASSWORD', '5/min'),
         'auth_signup': os.environ.get('THROTTLE_SIGNUP', '10/min'),
+        # The patient form's public endpoints: opening a link, the date-of-birth check, saving.
+        'intake': os.environ.get('THROTTLE_INTAKE', '30/min'),
     },
     # Reverse proxies in front of Django (the gateway Caddy, plus the host's), so throttling keys on
     # the real client address. Unset, the whole X-Forwarded-For chain is the identity.
@@ -188,6 +200,14 @@ SPECTACULAR_SETTINGS = {
         'ResultsCaseStatusEnum': 'product.review.models.ResultsCase.Status',
         'ResultsCaseKindEnum': 'product.review.models.ResultsCase.Kind',
         'MailSecurityEnum': 'product.mail.models.Security',
+        'VisitKindEnum': 'product.appointments.models.VisitKind',
+        'AppointmentStatusEnum': 'product.appointments.models.Appointment.Status',
+        'IntakeFormKindEnum': 'product.intake.models.IntakeForm.Kind',
+        'IntakeFormStatusEnum': 'product.intake.models.IntakeForm.Status',
+        'YesNoEnum': 'product.intake.serializers.YES_NO',
+        'OrderKindEnum': 'product.orders.models.Order.Kind',
+        'RequestedTestStatusEnum': 'product.orders.models.RequestedTest.Status',
+        'InvitationStatusEnum': 'apps.organizations.models.Invitation.Status',
     },
 }
 
@@ -312,6 +332,9 @@ MAIL_ALLOW_PLATFORM_FALLBACK = os.environ.get('MAIL_ALLOW_PLATFORM_FALLBACK', 'f
 MAIL_SMTP_BACKEND = os.environ.get('MAIL_SMTP_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 MAIL_TIMEOUT_SECONDS = int(os.environ.get('MAIL_TIMEOUT_SECONDS', 30))
 MAIL_POLL_SECONDS = int(os.environ.get('MAIL_POLL_SECONDS', 120))
+
+# Public address of the EMR frontend: patient form links and staff invitations point here.
+EMR_PUBLIC_URL = os.environ.get('EMR_PUBLIC_URL', 'http://localhost').rstrip('/')
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BEAT_SCHEDULE = {

@@ -86,6 +86,15 @@ class AuthSessionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(self.refresh(refreshed.data["refresh"]).status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_login_records_last_sign_in(self):
+        self.assertIsNone(self.user.last_login)
+        response = self.client.post(reverse("auth:login"), {
+            "identifier": self.user.email, "password": "Password123!",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertIsNotNone(self.user.last_login)
+
     def test_legacy_login_issues_revocable_session_tokens(self):
         response = self.client.post(reverse("api_token_obtain_pair"), {
             "identifier": self.user.email, "password": "Password123!",

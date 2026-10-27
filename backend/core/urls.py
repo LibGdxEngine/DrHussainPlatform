@@ -52,4 +52,8 @@ urlpatterns = [
     path('api/product/mail/', include('product.mail.urls', namespace='mail')),
     path('api/product/alerts/', include('product.alerts.urls', namespace='alerts')),
     path('api/product/activity/', include('product.activity.urls', namespace='activity')),
+    path('api/product/appointments/', include('product.appointments.urls', namespace='appointments')),
+    path('api/product/intake/', include('product.intake.urls', namespace='intake')),
+    path('api/product/orders/', include('product.orders.urls', namespace='orders')),
+    path('api/product/staff/', include('product.staff.urls', namespace='staff')),
 ]

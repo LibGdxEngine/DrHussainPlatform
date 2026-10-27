@@ -1,4 +1,5 @@
 from core.api_errors import validation_error_response, error_response
+from django.contrib.auth.models import update_last_login
 from django.core.exceptions import ValidationError
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -76,6 +77,7 @@ class LoginView(APIView):
         try:
             user = authenticate_user(identifier=identifier, password=password, request=request)
             tokens = issue_tokens_for_user(user)
+            update_last_login(None, user)
             record_audit_log('auth.signin', 'accounts.user', actor=user, resource_id=user.pk,
                              ip_address=client_ip(request))
             return Response(tokens, status=status.HTTP_200_OK)

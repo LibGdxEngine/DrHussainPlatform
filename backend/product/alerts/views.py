@@ -20,7 +20,7 @@ from .services import acknowledge
 ]))
 class PatientAlertViewSet(OrganizationScopedMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     """Alert rules that fired on patients' results. The doctor acknowledges each with a reason."""
-    queryset = PatientAlert.objects.select_related('rule', 'rule_version', 'value', 'acknowledged_by')
+    queryset = PatientAlert.objects.select_related('rule', 'rule_version', 'value', 'acknowledged_by', 'patient')
     serializer_class = PatientAlertSerializer
 
     def get_permissions(self):
