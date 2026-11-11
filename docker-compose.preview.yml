@@ -1,0 +1,84 @@
+# Preview overlay for running the development stack on a shared VPS.
+#
+# - The server's existing edge Caddy owns 80/443, so only this stack's Caddy is
+#   published, on PREVIEW_PORT. It also joins the external `vclinic_edge` network
+#   so the edge Caddy can route a hostname to `vclinic-dev-caddy:80` if desired.
+# - Leaves the observability stack out (enable with `--profile observability`
+#   only on a host with spare memory and a free telemetry subnet).
+# - Bounds memory and worker concurrency so neighbouring projects keep headroom.
+#
+# Used via COMPOSE_FILE=docker-compose.yml:docker-compose.preview.yml in .env.
+
+services:
+  db:
+    ports: !reset []
+    restart: unless-stopped
+    mem_limit: 384m
+
+  redis:
+    ports: !reset []
+    restart: unless-stopped
+    mem_limit: 128m
+
+  # Reached only over the project network (backend/worker use mailserver:3025/3143).
+  mailserver:
+    ports: !reset []
+    restart: unless-stopped
+    mem_limit: 384m
+
+  # Backend services also read .env for settings the base file does not forward
+  # (mail/media encryption keys, EMR_PUBLIC_URL, TIME_ZONE, throttle rates).
+  # Values set under `environment` in the base file still take precedence.
+  backend:
+    ports: !reset []
+    networks: !reset [default]
+    restart: unless-stopped
+    mem_limit: 768m
+    env_file: [.env]
+
+  celery_worker:
+    networks: !reset [default]
+    restart: unless-stopped
+    mem_limit: 1g
+    env_file: [.env]
+    command: celery -A core worker -l info -Q celery,maintenance,ocr --concurrency=1
+
+  celery_beat:
+    networks: !reset [default]
+    restart: unless-stopped
+    mem_limit: 256m
+    env_file: [.env]
+
+  frontend:
+    ports: !reset []
+    networks: !reset [default]
+    restart: unless-stopped
+    mem_limit: 2g
+    environment:
+      - ALLOWED_DEV_ORIGINS=${PREVIEW_DOMAIN}
+
+  caddy:
+    ports: !override
+      - "${PREVIEW_PORT:-8095}:80"
+    restart: unless-stopped
+    mem_limit: 128m
+    networks: !override
+      default:
+      edge:
+        aliases: [vclinic-dev-caddy]
+
+  otel-collector:
+    profiles: [observability]
+  loki:
+    profiles: [observability]
+  tempo:
+    profiles: [observability]
+  prometheus:
+    profiles: [observability]
+  grafana:
+    profiles: [observability]
+
+networks:
+  edge:
+    name: vclinic_edge
+    external: true

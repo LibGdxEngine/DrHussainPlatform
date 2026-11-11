@@ -1,4 +1,4 @@
-.PHONY: help up down build restart ps logs logs-backend logs-frontend logs-worker logs-beat shell backend-shell frontend-shell beat-shell makemigrations migrate createsuperuser seed check test-backend test-frontend api-generate api-check clean prod-up prod-down prod-build
+.PHONY: help up down build restart ps logs logs-backend logs-frontend logs-worker logs-beat shell backend-shell frontend-shell beat-shell makemigrations migrate createsuperuser seed seed-preview check test-backend test-frontend api-generate api-check clean prod-up prod-down prod-build
 
 .PHONY: init test-init
 PYTHON ?= python3
@@ -35,6 +35,7 @@ help:
 	@echo "  migrate           - Apply database migrations across platform apps"
 	@echo "  makemigrations    - Create new database migrations"
 	@echo "  seed              - Seed database with demo admin, organization & plans"
+	@echo "  seed-preview      - Seed base data plus login-ready clinic staff for previews"
 	@echo "  createsuperuser   - Create a superuser interactively"
 	@echo "  check             - Run Django system configuration checks"
 	@echo "  shell             - Open Django interactive Python shell"
@@ -106,6 +107,9 @@ migrate:
 
 makemigrations:
 	docker compose exec backend python manage.py makemigrations
+
+seed-preview:
+	docker compose exec backend python scripts/seed_preview_data.py
 
 seed:
 	docker compose exec backend python scripts/seed_dev_data.py

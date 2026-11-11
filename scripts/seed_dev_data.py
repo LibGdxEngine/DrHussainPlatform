@@ -9,6 +9,9 @@ from pathlib import Path
 
 # Add backend to sys.path
 BASE_DIR = Path(__file__).resolve().parent.parent / "backend"
+if not BASE_DIR.is_dir():
+    # Inside the backend container scripts/ is mounted at /app/scripts, beside the code.
+    BASE_DIR = BASE_DIR.parent
 sys.path.insert(0, str(BASE_DIR))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings.dev")

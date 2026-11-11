@@ -60,6 +60,11 @@ if all([DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT]):
 # CORS settings for dev
 CORS_ALLOW_ALL_ORIGINS = True
 
+# Needed when the dev stack is served over HTTPS behind a proxy (e.g. a preview host).
+CSRF_TRUSTED_ORIGINS = [
+    origin for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if origin
+]
+
 # Mirrors the database fallback above: use Redis when it is pointed at, otherwise stay
 # in-process so tests and non-docker runs need no broker. Note that the idempotency lock
 # is only distributed when a real Redis is configured.
