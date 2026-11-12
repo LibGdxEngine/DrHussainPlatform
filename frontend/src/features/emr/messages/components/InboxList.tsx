@@ -60,7 +60,12 @@ function ThreadItem({ t, active, onSelect }: { t: MailThread; active: boolean; o
           ) : (
             <Pill tone="neutral" size="xs">Not matched</Pill>
           )}
-          {t.has_attachments ? <Pill tone="neutral" size="xs">📎 Attachments</Pill> : null}
+          {t.third_party ? (
+            <Pill tone="amber" size="xs">Third party{t.third_party_relation ? `: ${t.third_party_relation}` : ""}</Pill>
+          ) : null}
+          {t.patient && !t.has_inbound ? <Pill tone="neutral" size="xs">Sent, no reply yet</Pill> : null}
+          {t.archived ? <Pill tone="neutral" size="xs">Archived</Pill> : null}
+          {t.has_attachments ?<Pill tone="neutral" size="xs">📎 Attachments</Pill> : null}
         </span>
       </span>
     </button>
@@ -73,6 +78,7 @@ export function InboxList(props: InboxListProps) {
 
   return (
     <Panel aria-label="Mailbox" className="flex flex-col gap-3 px-3.5 py-4">
+      {patientFilter ? null : (
       <nav aria-label="Folders" className="flex flex-wrap gap-1 border-b border-line-soft px-1 pb-2">
         {folders.map((f) => {
           const on = f.id === folder;
@@ -98,17 +104,22 @@ export function InboxList(props: InboxListProps) {
           );
         })}
       </nav>
-      <SearchBox
-        className="flex-none px-1"
-        label="Search mail"
-        placeholder="Search sender, subject, patient or file number"
-        value={query}
-        onChange={props.onQuery}
-      />
-      <ChipGroup label="Filter" options={inboxFilters} value={filter} onChange={props.onFilter} className="px-1" />
+      )}
+      {patientFilter ? null : (
+        <>
+          <SearchBox
+            className="flex-none px-1"
+            label="Search mail"
+            placeholder="Search sender, subject, patient or file number"
+            value={query}
+            onChange={props.onQuery}
+          />
+          <ChipGroup label="Filter" options={inboxFilters} value={filter} onChange={props.onFilter} className="px-1" />
+        </>
+      )}
       {patientFilter ? (
         <div className="mx-1 flex items-center gap-2 rounded-[14px] bg-brand-wash px-3 py-2 text-[13px] text-brand-ink">
-          Showing emails for <strong>{patientFilter}</strong>
+          Every email with <strong>{patientFilter}</strong>, in all folders
           <button
             type="button"
             onClick={props.onClearPatient}

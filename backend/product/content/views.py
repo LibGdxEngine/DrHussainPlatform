@@ -6,7 +6,7 @@ from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
-from rest_framework import generics, mixins, permissions, status, viewsets
+from rest_framework import generics, mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -19,7 +19,7 @@ from product.tenancy import IsClinicLead, IsOrganizationMember, OrganizationScop
 from . import placeholders
 from .models import (
     AlertRule, AlertRuleVersion, ClinicProfile, EmailTemplate, EmailTemplateVersion, Leaflet, LeafletVersion,
-    PrescriptionItem, PrescriptionVersion, ScoreBandSet, ScoreBandVersion,
+    PrescriptionItem, PrescriptionVersion, ScoreBandSet, ScoreBandVersion, TemplateKind,
 )
 from .serializers import (
     AlertRuleBulkSerializer, AlertRuleSerializer, AlertRuleVersionSerializer, ClinicProfileSerializer,
@@ -31,6 +31,36 @@ from .serializers import (
 )
 from .starter import ensure_starter_content
 from .versioning import add_version
+
+
+def _check_wording(attrs, key: str):
+    """Templates may use the template placeholders; a system phrase only the slots listed for it."""
+    allowed = placeholders.allowed_placeholders(key)
+    errors = {}
+    for name in ('subject', 'body'):
+        problems = placeholders.validate_text(attrs.get(name, ''), allowed)
+        if problems:
+            errors[name] = problems
+    if errors:
+        raise serializers.ValidationError(errors)
+    return attrs
+
+
+class _TemplateWordingSerializer(TemplateWordingSerializer):
+    def validate(self, attrs):
+        return _check_wording(attrs, self.context['key'])
+
+
+class _TemplateCreateSerializer(EmailTemplateCreateSerializer):
+    def validate(self, attrs):
+        if not attrs['key'].startswith('phrase.') and attrs.get('kind') != TemplateKind.PHRASE:
+            return super().validate(attrs)
+        if not attrs['key'].startswith('phrase.') or attrs.get('kind') != TemplateKind.PHRASE:
+            raise serializers.ValidationError({'key': ['System phrases use kind "phrase" and a phrase.<name> key.']})
+        if EmailTemplate.objects.filter(organization=self.context['organization'], key=attrs['key'],
+                                        language=attrs.get('language', 'en')).exists():
+            raise serializers.ValidationError({'key': ['A template with this key and language already exists.']})
+        return _check_wording(attrs, attrs['key'])
 
 
 class ContentViewMixin(OrganizationScopedMixin):
@@ -89,7 +119,7 @@ class EmailTemplateViewSet(
 
     @extend_schema(request=EmailTemplateCreateSerializer, responses={201: EmailTemplateSerializer})
     def create(self, request, *args, **kwargs):
-        serializer = EmailTemplateCreateSerializer(data=request.data, context=self.get_serializer_context())
+        serializer = _TemplateCreateSerializer(data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         data = dict(serializer.validated_data)
         subject, body = data.pop('subject'), data.pop('body')
@@ -113,7 +143,7 @@ class EmailTemplateViewSet(
         if request.method == 'GET':
             history = template.versions.select_related('created_by', 'approved_by').order_by('-number')
             return Response(EmailTemplateVersionSerializer(history, many=True).data)
-        serializer = TemplateWordingSerializer(data=request.data)
+        serializer = _TemplateWordingSerializer(data=request.data, context={'key': template.key})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         version, created = add_version(template, EmailTemplateVersion, {'subject': data['subject'], 'body': data['body']},
@@ -230,7 +260,7 @@ class PrescriptionViewSet(
 # --- Alert rules ----------------------------------------------------------------------------------
 
 RULE_FIELDS = ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled',
-              'lab_test_code', 'lab_check', 'vital')
+              'lab_test_code', 'lab_check', 'vital', 'answer_check', 'medicine_terms')
 
 
 class AlertRuleViewSet(

@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { contentApi, type Leaflet, type Prescription } from "@/lib/api/emr/content";
 import { documentsApi, type PatientDocument } from "@/lib/api/emr/documents";
-import { ApiError, apiErrorMessage } from "@/lib/api/emr/errors";
-import { resultsApi } from "@/lib/api/emr/results";
+import { apiErrorMessage } from "@/lib/api/emr/errors";
+import { resultsApi, type ResultValue, type ValueCheck } from "@/lib/api/emr/results";
 import { reviewApi, type Draft, type ResultsCaseDetail } from "@/lib/api/emr/review";
 import { DocumentPreview } from "../../documents/components/DocumentPreview";
 import { formatDay } from "../../format";
@@ -20,12 +20,15 @@ import { ChipGroup } from "../../ui/ChipGroup";
 import { Field, TextArea, TextInput } from "../../ui/Fields";
 import { Panel } from "../../ui/Panel";
 import { Pill } from "../../ui/Pill";
+import {
+  approveBlock, canDraftAnyway, choicesRequest, positiveSections, recipientFor, savedSectionPicks,
+  sectionPicksChanged, valuesForCheck, type SectionPicks,
+} from "../draft";
 import { actionLabel, caseFlag, caseStatus, routeLabel } from "../labels";
-
-function reviewError(err: unknown, fallback: string) {
-  if (err instanceof ApiError && err.status === 403) return "Only the doctor can do this.";
-  return apiErrorMessage(err, fallback);
-}
+import type { TranslationInput } from "../translation";
+import { isCaseHold, isRedAlertHold, reviewError } from "./reviewError";
+import { SectionPrescriptions } from "./SectionPrescriptions";
+import { TranslationPanel } from "./TranslationPanel";
 
 /** One case: the original report, the values read from it, and the draft, side by side. */
 export function CaseScreen({ caseId }: { caseId: string }) {
@@ -33,6 +36,13 @@ export function CaseScreen({ caseId }: { caseId: string }) {
   const [document, setDocument] = useState<PatientDocument | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<NoticeState>(null);
+  // Bumped when sending was held by a red alert, so the alerts panel shows the one that opened since.
+  const [alertsKey, setAlertsKey] = useState(0);
+  // Typed translations live here so a rebuilt draft (after saving one part) keeps the others.
+  const [translations, setTranslations] = useState<{ id: string; inputs: Record<string, TranslationInput> }>({
+    id: caseId, inputs: {},
+  });
+  const translationInputs = translations.id === caseId ? translations.inputs : {};
 
   useEffect(() => {
     let cancelled = false;
@@ -65,11 +75,38 @@ export function CaseScreen({ caseId }: { caseId: string }) {
       return true;
     } catch (err) {
       setNotice({ tone: "error", text: reviewError(err, "Could not save.") });
+      if (isRedAlertHold(err)) setAlertsKey((k) => k + 1);
+      if (isCaseHold(err)) {
+        // The case is now flagged with the reason: show it and the actions that are available.
+        await reviewApi.get(caseId).then((next) => setLoaded({ id: caseId, detail: next }), () => undefined);
+      }
       return false;
     } finally {
       setBusy(false);
     }
   }
+
+  const checkValue = (value: ResultValue, body: ValueCheck) =>
+    act(async () => {
+      await resultsApi.checkValue(value.id, body);
+      // Once no value needs a check the case is routed again, so reload it.
+      return reviewApi.get(caseId);
+    }, Object.keys(body).length ? "Value corrected." : "Value confirmed as read.");
+
+  const translation = {
+    inputs: translationInputs,
+    onInput: (key: string, input: TranslationInput) =>
+      setTranslations((prev) => ({ id: caseId, inputs: { ...(prev.id === caseId ? prev.inputs : {}), [key]: input } })),
+    onSaved: (next: ResultsCaseDetail, key: string, done: string) => {
+      setLoaded({ id: caseId, detail: next });
+      setTranslations((prev) => {
+        const inputs = { ...(prev.id === caseId ? prev.inputs : {}) };
+        delete inputs[key];
+        return { id: caseId, inputs };
+      });
+      setNotice({ tone: "ok", text: done });
+    },
+  };
 
   if (!detail) {
     return (
@@ -114,7 +151,7 @@ export function CaseScreen({ caseId }: { caseId: string }) {
             <Panel aria-label="Values" className="flex flex-col gap-3 p-5">
               <h2 className="m-0 text-lg font-semibold">Values read from the report</h2>
               {report.values.length ? (
-                <ResultValuesTable values={report.values} />
+                <ResultValuesTable values={valuesForCheck(report.values)} onCheck={checkValue} busy={busy} />
               ) : (
                 <p className="m-0 text-[13px] text-muted">No values were read.</p>
               )}
@@ -137,10 +174,13 @@ export function CaseScreen({ caseId }: { caseId: string }) {
         ) : null}
         <div className="flex flex-col gap-4 xl:col-span-2 2xl:col-span-1">
           <AlertsList
+            refreshKey={alertsKey}
             patient={detail.patient.id}
+            report={detail.report?.id}
+            title={detail.report ? "Alerts for this case" : "Open alerts for this patient"}
             onAcknowledged={() => void act(() => reviewApi.get(detail.id), "Alert acknowledged.")}
           />
-          <DecisionPanel detail={detail} busy={busy} act={act} />
+          <DecisionPanel detail={detail} busy={busy} act={act} translation={translation} />
           <ActionLog detail={detail} />
         </div>
       </div>
@@ -150,11 +190,21 @@ export function CaseScreen({ caseId }: { caseId: string }) {
 
 type Act = (run: () => Promise<ResultsCaseDetail>, done: string) => Promise<boolean>;
 
-function DecisionPanel({ detail, busy, act }: { detail: ResultsCaseDetail; busy: boolean; act: Act }) {
+interface TranslationState {
+  inputs: Record<string, TranslationInput>;
+  onInput: (key: string, input: TranslationInput) => void;
+  onSaved: (detail: ResultsCaseDetail, key: string, done: string) => void;
+}
+
+function DecisionPanel({
+  detail, busy, act, translation,
+}: { detail: ResultsCaseDetail; busy: boolean; act: Act; translation: TranslationState }) {
   if (detail.status === "flagged") return <FlaggedPanel detail={detail} busy={busy} act={act} />;
   if (detail.status === "awaiting_plan") return <PlanPanel detail={detail} busy={busy} act={act} />;
   if (detail.status === "drafted" && detail.draft) {
-    return <DraftPanel key={detail.draft.id} detail={detail} draft={detail.draft} busy={busy} act={act} />;
+    return (
+      <DraftPanel key={detail.draft.id} detail={detail} draft={detail.draft} busy={busy} act={act} translation={translation} />
+    );
   }
   return <SentPanel detail={detail} />;
 }
@@ -163,6 +213,7 @@ function FlaggedPanel({ detail, busy, act }: { detail: ResultsCaseDetail; busy: 
   const [reason, setReason] = useState("");
   const patientDoubt = detail.flag_reasons.some((r) => r.startsWith("patient_"));
   const smear = detail.report_detail?.report_type === "smear_abnormal";
+  const valuesToCheck = !canDraftAnyway(detail.flag_reasons);
   return (
     <Panel aria-label="Needs the doctor" className="flex flex-col gap-3 p-5">
       <h2 className="m-0 text-lg font-semibold">Needs the doctor</h2>
@@ -184,7 +235,13 @@ function FlaggedPanel({ detail, busy, act }: { detail: ResultsCaseDetail; busy: 
           Confirm it is this patient
         </ActionButton>
       ) : null}
-      {!patientDoubt && !smear ? (
+      {valuesToCheck ? (
+        <p role="note" className="m-0 rounded-xl bg-brand-wash px-3 py-2.5 text-[13px] text-brand-ink">
+          A value in this report has not been checked. Use “Check this value” on each marked value in “Values read from
+          the report”; the case is drafted once every value is checked. Drafting anyway is not available for this.
+        </p>
+      ) : null}
+      {!patientDoubt && !smear && !valuesToCheck ? (
         <div className="flex flex-col gap-2 border-t border-line pt-3">
           <Field label="Draft anyway: why is this report fine to answer?">
             <TextInput value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Vitamin D not needed" />
@@ -209,40 +266,72 @@ function PlanPanel({ detail, busy, act }: { detail: ResultsCaseDetail; busy: boo
     <Panel aria-label="Choose the plan" className="flex flex-col gap-3 p-5">
       <h2 className="m-0 text-lg font-semibold">Abnormal smear: choose the plan</h2>
       <p className="m-0 text-[13px] leading-[1.7] text-muted">
-        Repeat in 12 months or less, or colposcopy, then possibly cryotherapy or LLETZ. The matching cervical smear
-        email (sections 2 to 14) is drafted after you choose.
+        Each plan is a cervical smear email section from Clinic settings → Email templates. The draft is built from the
+        chosen plan&apos;s approved wording after you choose. A plan without approved wording cannot be chosen yet.
       </p>
       <div className="flex flex-col gap-1.5">
         {detail.smear_plans.map((plan) => (
           <button
             key={plan.key}
             type="button"
-            disabled={busy || !plan.approved}
+            disabled={busy || !plan.has_approved_wording}
             onClick={() => void act(() => reviewApi.choosePlan(detail.id, plan.key), `Plan chosen: ${plan.name}.`)}
-            className="flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-white px-3 py-2.5 text-start text-[13px] hover:border-brand disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex cursor-pointer flex-wrap items-center gap-2 rounded-xl border border-line bg-white px-3 py-2.5 text-start text-[13px] hover:border-brand disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {plan.name}
-            {!plan.approved ? <span className="ms-auto text-xs text-muted">No approved wording yet</span> : null}
+            <span className="font-medium">{plan.name}</span>
+            {plan.has_approved_wording ? (
+              <Pill tone="ok" size="xs" className="ms-auto">Approved wording loaded</Pill>
+            ) : (
+              <Pill tone="neutral" size="xs" className="ms-auto">No approved wording yet</Pill>
+            )}
           </button>
         ))}
+        {!detail.smear_plans.length ? (
+          <p className="m-0 text-[13px] text-muted">No cervical smear plan sections are set up in Clinic settings yet.</p>
+        ) : null}
       </div>
       <RejectBox detail={detail} busy={busy} act={act} />
     </Panel>
   );
 }
 
-function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; draft: Draft; busy: boolean; act: Act }) {
+const prescriptionLabel = (p: Prescription) => `${p.drug}${p.dose ? `, ${p.dose}` : ""}`;
+
+interface DraftPanelProps {
+  detail: ResultsCaseDetail;
+  draft: Draft;
+  busy: boolean;
+  act: Act;
+  translation: TranslationState;
+}
+
+function DraftPanel({ detail, draft, busy, act, translation }: DraftPanelProps) {
   const [subject, setSubject] = useState(draft.subject);
   const [body, setBody] = useState(draft.body);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [leaflets, setLeaflets] = useState<Leaflet[]>([]);
+  const [listError, setListError] = useState<string | null>(null);
   const [chosen, setChosen] = useState<string[]>(draft.prescriptions.map((p) => p.item));
+  const sections = useMemo(() => positiveSections(draft), [draft]);
+  const savedPicks = useMemo(() => savedSectionPicks(draft), [draft]);
+  const [picks, setPicks] = useState<SectionPicks>(savedPicks);
   const [followUp, setFollowUp] = useState(draft.follow_up ?? "");
+  const [toThreadContact, setToThreadContact] = useState(false);
   const dirty = subject !== draft.subject || body !== draft.body;
   const optionsChanged =
     followUp !== (draft.follow_up ?? "") ||
-    chosen.slice().sort().join() !== draft.prescriptions.map((p) => p.item).sort().join();
+    (sections.length
+      ? sectionPicksChanged(savedPicks, picks)
+      : chosen.slice().sort().join() !== draft.prescriptions.map((p) => p.item).sort().join());
   const attached = useMemo(() => new Set(draft.leaflets.map((l) => l.leaflet)), [draft.leaflets]);
+  const arabic = draft.language === "ar";
+  const recipient = recipientFor(detail, toThreadContact);
+  const block = approveBlock({
+    dirty, openSlots: draft.open_slots, missingTranslations: draft.missing_translations, recipient: recipient.address,
+  });
+  // Choices not yet rebuilt into the draft travel with any rebuild, so a language change keeps them.
+  const choices = choicesRequest(draft, { prescriptions: chosen, sectionPicks: picks, followUp });
+  const contact = recipient.relation ? `the patient's ${recipient.relation.toLowerCase()}` : "someone other than the patient";
 
   useEffect(() => {
     let cancelled = false;
@@ -252,7 +341,9 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
         setPrescriptions(p);
         setLeaflets(l);
       },
-      () => undefined,
+      (err: unknown) => {
+        if (!cancelled) setListError(apiErrorMessage(err, "Could not load the prescriptions and leaflets."));
+      },
     );
     return () => {
       cancelled = true;
@@ -264,19 +355,50 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
     void act(() => reviewApi.options(detail.id, changes), done);
   };
 
+  function chooseThreadContact(on: boolean) {
+    const ask = `This thread is with ${contact} (${recipient.threadContact}). Send this email to them instead of the patient's own address?`;
+    if (on && !window.confirm(ask)) return;
+    setToThreadContact(on);
+  }
+
   return (
     <Panel aria-label="Draft" className="flex flex-col gap-3.5 p-5">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="m-0 text-lg font-semibold">Draft email</h2>
-        <Pill tone="neutral" size="xs">{draft.language === "ar" ? "Arabic" : "English"}</Pill>
+        <Pill tone="neutral" size="xs">{arabic ? "Arabic" : "English"}</Pill>
         {draft.edited ? <Pill tone="brand" size="xs">Edited</Pill> : null}
-        <span className="ms-auto text-xs text-muted">To {detail.patient.email || "— no email on file"}</span>
+        <span className="ms-auto text-xs text-muted">To {recipient.address || "— no email on file"}</span>
       </div>
 
-      {detail.patient.preferred_language === "ar" && draft.language !== "ar" ? (
+      {detail.flag_reasons.length ? (
+        <ul className="m-0 flex flex-col gap-1 rounded-xl bg-warn-wash px-3 py-2.5 ps-7 text-[13px] text-warn-ink">
+          {detail.flag_reasons.map((r) => <li key={r}>{caseFlag(r)}</li>)}
+        </ul>
+      ) : null}
+
+      {recipient.thirdParty ? (
+        <div className="flex flex-col gap-2 rounded-xl bg-brand-wash px-3 py-2.5 text-[13px] text-brand-ink">
+          <span>
+            This reply thread is with {contact} ({recipient.threadContact}). The email goes to{" "}
+            {toThreadContact ? "the thread contact" : "the patient's own address"}:{" "}
+            <strong className="font-semibold">{recipient.address || "no email on file"}</strong>.
+          </span>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={toThreadContact} disabled={busy} onChange={(e) => chooseThreadContact(e.target.checked)} />
+            Send to the thread contact instead ({recipient.threadContact})
+          </label>
+        </div>
+      ) : null}
+
+      {detail.patient.preferred_language === "ar" && !arabic ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-brand-wash px-3 py-2.5 text-[13px] text-brand-ink">
           This patient prefers Arabic. The draft is in English unless you ask for Arabic.
-          <ActionButton size="sm" className="ms-auto" disabled={busy} onClick={() => rebuild({ language: "ar" }, "Arabic draft built.")}>
+          <ActionButton
+            size="sm"
+            className="ms-auto"
+            disabled={busy}
+            onClick={() => rebuild({ ...choices, language: "ar" }, "Arabic draft built.")}
+          >
             Make an Arabic draft
           </ActionButton>
         </div>
@@ -284,7 +406,16 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
 
       <fieldset className="m-0 flex flex-col gap-2 rounded-2xl border border-line p-3.5">
         <legend className="px-1 text-[13px] font-medium text-ink-2">Choices (rebuild the draft)</legend>
-        {prescriptions.length ? (
+        {listError ? <span role="alert" className="text-xs text-danger-ink">{listError}</span> : null}
+        {sections.length ? (
+          <SectionPrescriptions
+            sections={sections}
+            prescriptions={prescriptions}
+            picks={picks}
+            onChange={setPicks}
+            label={prescriptionLabel}
+          />
+        ) : prescriptions.length ? (
           <div className="flex flex-col gap-1">
             <span className="text-xs text-muted">Prescription</span>
             {prescriptions.map((p) => (
@@ -294,13 +425,13 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
                   checked={chosen.includes(p.id)}
                   onChange={() => setChosen((c) => (c.includes(p.id) ? c.filter((x) => x !== p.id) : [...c, p.id]))}
                 />
-                {p.drug}{p.dose ? `, ${p.dose}` : ""}
+                {prescriptionLabel(p)}
               </label>
             ))}
           </div>
-        ) : (
+        ) : !listError ? (
           <span className="text-xs text-muted">No prescriptions in Clinic settings yet.</span>
-        )}
+        ) : null}
         <Field label="Follow-up to offer">
           <TextInput value={followUp} onChange={(e) => setFollowUp(e.target.value)} placeholder="e.g. Repeat bloods in 3 months" />
         </Field>
@@ -308,24 +439,47 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
           <ActionButton
             size="sm"
             disabled={busy || !optionsChanged}
-            onClick={() => rebuild({ prescriptions: chosen, follow_up: followUp }, "Draft rebuilt with your choices.")}
+            onClick={() => rebuild(choices, "Choices saved. The draft was rebuilt with them.")}
           >
-            Rebuild draft
+            Save choices and rebuild
           </ActionButton>
+          {optionsChanged ? <span className="text-xs text-warn-ink">Choices not saved yet.</span> : null}
           <ChipGroup
             label="Language"
+            className="ms-auto"
             options={[{ id: "en", label: "English" }, { id: "ar", label: "Arabic" }]}
-            value={draft.language === "ar" ? "ar" : "en"}
-            onChange={(language) => rebuild({ language }, language === "ar" ? "Arabic draft built." : "English draft built.")}
+            value={arabic ? "ar" : "en"}
+            onChange={(language) => {
+              if (language === draft.language) return;
+              rebuild({ ...choices, language }, language === "ar" ? "Arabic draft built." : "English draft built.");
+            }}
           />
         </div>
       </fieldset>
 
+      {arabic && draft.missing_translations.length ? (
+        <TranslationPanel
+          caseId={detail.id}
+          missing={draft.missing_translations}
+          inputs={translation.inputs}
+          onInput={translation.onInput}
+          busy={busy}
+          onSaved={translation.onSaved}
+        />
+      ) : null}
+
       <Field label="Subject">
-        <TextInput value={subject} onChange={(e) => setSubject(e.target.value)} dir="auto" />
+        <TextInput value={subject} onChange={(e) => setSubject(e.target.value)} dir={arabic ? "rtl" : "auto"} lang={draft.language} />
       </Field>
       <Field label="Email">
-        <TextArea rows={14} value={body} onChange={(e) => setBody(e.target.value)} dir="auto" className="text-[13px]" />
+        <TextArea
+          rows={14}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          dir={arabic ? "rtl" : "auto"}
+          lang={draft.language}
+          className="text-[13px]"
+        />
       </Field>
       {draft.open_slots.length ? (
         <div role="alert" className="rounded-xl bg-warn-wash px-3 py-2.5 text-[13px] text-warn-ink">
@@ -333,7 +487,10 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
           {draft.open_slots.map((slot) => (
             <mark key={slot} className="mx-0.5 rounded bg-warn-tint px-1 text-warn-ink">{slot}</mark>
           ))}
-          <span className="block text-xs">Replace each [[…]] in the email with the right wording, then save.</span>
+          <span className="block text-xs">
+            Replace each [[…]] in the email with the right wording, then save.
+            {draft.missing_translations.length ? " Parts to translate are done in the translation boxes above." : ""}
+          </span>
         </div>
       ) : null}
 
@@ -375,16 +532,20 @@ function DraftPanel({ detail, draft, busy, act }: { detail: ResultsCaseDetail; d
           Save edits
         </ActionButton>
         <ActionButton
-          disabled={busy || dirty || Boolean(draft.open_slots.length) || !detail.patient.email}
+          disabled={busy || Boolean(block)}
+          title={block ?? undefined}
           onClick={() => {
-            if (window.confirm(`Send this email to ${detail.patient.email}?`)) {
-              void act(() => reviewApi.approve(detail.id), "Approved. The email is on its way.");
+            if (window.confirm(`Send this email to ${recipient.address}?`)) {
+              void act(
+                () => reviewApi.approve(detail.id, recipient.thirdParty && toThreadContact),
+                "Approved. The email is on its way.",
+              );
             }
           }}
         >
           Approve and send
         </ActionButton>
-        {dirty ? <span className="text-xs text-warn-ink">Save your edits before approving.</span> : null}
+        {block ? <span className="text-xs text-warn-ink">{block}</span> : null}
       </div>
       <p className="m-0 text-xs text-muted">
         Built from {draft.template_versions.map((t) => `${t.name} v${t.number}`).join(", ") || "—"}.
@@ -434,6 +595,9 @@ function SentPanel({ detail }: { detail: ResultsCaseDetail }) {
         <div className="flex flex-col gap-2 rounded-2xl border border-line bg-canvas-2 p-4 text-[13px]">
           <span className="text-xs text-muted">
             To {sent.to_address} · approved by {sent.approved_by_name}
+            {sent.to_thread_contact_confirmed_by_name
+              ? ` · sent to the thread contact, confirmed by ${sent.to_thread_contact_confirmed_by_name}`
+              : ""}
             {sent.sent_at ? ` · sent ${formatDay(sent.sent_at)}` : ""}
             {sent.status === "failed" ? ` · failed (${sent.error})` : ""}
           </span>

@@ -11,8 +11,17 @@ KNOWN_UNITS = {
         'ng/ml', 'ng/dl', 'pg/ml', 'ug/dl', 'µg/dl', 'ug/l', 'µg/l', 'miu/ml', 'miu/l', 'uiu/ml', 'µiu/ml',
         'μiu/ml', 'iu/l', 'iu/ml', 'u/l', 'u/ml', 'x10^9/l', 'x10^12/l', '10^9/l', '10^12/l', '10^3/ul',
         '10^6/ul', 'x10³/µl', 'fl', 'pg', 'mm/hr', 'mm/h', 'sec', 'ratio', 'cells/ul', 'mmol/mol',
+        'ml/min/1.73m2', 'ml/min/1.73m²',
     ]
 }
+
+# Words a lab prints beside a reference range ("<30 postmenopausal", "Adult female 13 - 150"). Any
+# other word, or a stray number, left in the reference means the line may not have been read right.
+REFERENCE_WORDS = frozenset({
+    'adult', 'adults', 'female', 'females', 'male', 'males', 'women', 'men', 'woman', 'man',
+    'postmenopausal', 'post-menopausal', 'premenopausal', 'pre-menopausal', 'menopausal',
+    'follicular', 'luteal', 'ovulatory', 'mid-cycle', 'midcycle', 'phase', 'ref', 'reference', 'range',
+})
 
 # OCR reads a capital I as a lower-case l: "mlU/L" is mIU/L.
 OCR_UNIT_FIXES = {'mlu/l': 'mIU/L', 'mlu/ml': 'mIU/mL', 'ulu/ml': 'uIU/mL', 'µlu/ml': 'µIU/mL', 'lu/l': 'IU/L'}
@@ -33,11 +42,20 @@ NEGATIVE_WORDS = ('not detected', 'negative', 'absent', 'not isolated', 'non-rea
 _QUALITATIVE = '|'.join(re.escape(w) for w in sorted(NEGATIVE_WORDS + POSITIVE_WORDS, key=len, reverse=True))
 
 _NAME = r'(?P<name>[A-Za-z][A-Za-z0-9 ,.()/+\-]*?[A-Za-z0-9)])'
+_NAME_ONLY = re.compile(r'[A-Za-z][A-Za-z0-9 ,.()/+\-]*[A-Za-z0-9)]')
 _NUMBER = r'[<>≤≥]?\s?\d+(?:[.,]\d+)?'
-_NUMERIC_ROW = re.compile(
-    rf'^{_NAME}\s*:?\s+(?P<value>{_NUMBER})\s*(?P<flag>\b(?:HH|LL|H|L|High|Low)\b|\*)?\s*'
-    r'(?P<rest>.*)$'
+# A value ends at a space, the end of the line, or a printed flag glued to it ("5.6H", "3.1*"), so
+# "TSH 3rd generation 3.1" is never read as TSH 3.
+_VALUE = re.compile(
+    rf'(?P<value>{_NUMBER})(?=\s|$|(?:HH|LL|H|L|\*)(?:\s|$))\s*'
+    r'(?P<flag>(?:HH|LL|H|L|High|Low)(?=\s|$)|\*)?\s*(?P<rest>.*)$'
 )
+# A number run into letters ("45ng/mL", OCR's "4.O" or "2.l"): read, but always checked by the doctor.
+_GLUED = re.compile(rf'(?P<value>{_NUMBER})(?P<tail>[^\s\d][^\s]*)\s*(?P<rest>.*)$')
+# "4,500" may be four and a half or four thousand five hundred.
+_THOUSANDS = re.compile(r'^[<>≤≥]?\d{1,3},\d{3}$')
+_PRINTED_FLAGS = {'H', 'L', 'HH', 'LL', 'HIGH', 'LOW', '*'}
+_BARE_NUMBER = re.compile(r'[<>≤≥]?\d+(?:[.,]\d+)?[*]?')
 _QUALITATIVE_ROW = re.compile(rf'^{_NAME}\s*:?\s+(?P<value>{_QUALITATIVE})\b(?P<rest>.*)$', re.IGNORECASE)
 _RANGE = re.compile(rf'\(?\s*(?P<low>\d+(?:[.,]\d+)?)\s*(?:-|–|—|to)\s*(?P<high>\d+(?:[.,]\d+)?)\s*\)?')
 _BOUND = re.compile(r'\(?\s*(?P<op>[<>≤≥])\s*(?P<num>\d+(?:[.,]\d+)?)\s*\)?')
@@ -58,6 +76,10 @@ class ParsedRow:
     ref_text: str = ''
     flag: str = ''
     unreadable: bool = False
+    # Why the reading is uncertain ('' when it is not): the doctor confirms or corrects the value.
+    check_reason: str = ''
+    # The report lines (whitespace collapsed) the row was read from.
+    source_lines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -101,33 +123,57 @@ def parse_date(text: str | None) -> date | None:
         return None
 
 
-def _parse_reference(rest: str) -> tuple[str, Decimal | None, Decimal | None, str]:
-    """Split what follows the value into unit and reference range."""
+@dataclass
+class _Reference:
+    unit: str = ''
+    low: Decimal | None = None
+    high: Decimal | None = None
+    text: str = ''
+    # A flag printed after the unit ("32 ng/mL L 13 - 150").
+    printed_flag: str = ''
+    # Something other than the range, the unit, a flag or a reference word is left over.
+    leftover: bool = False
+
+
+def _parse_reference(rest: str) -> _Reference:
+    """Split what follows the value into unit and reference range, and notice anything left over."""
     rest = rest.strip()
     first = rest.split()[0] if rest else ''
-    unit = known_unit(first)
-    if unit:
+    ref = _Reference(unit=known_unit(first))
+    if ref.unit:
         rest = rest[len(first):].strip()
-    ref_text = rest.strip(' ()[]')
-    low = high = None
+    ref.text = rest.strip(' ()[]')
+    remainder = rest
     if match := _RANGE.search(rest):
-        low, high = to_decimal(match['low']), to_decimal(match['high'])
+        ref.low, ref.high = to_decimal(match['low']), to_decimal(match['high'])
+        remainder = f'{rest[:match.start()]} {rest[match.end():]}'
     elif match := _BOUND.search(rest):
         number = to_decimal(match['num'])
         if match['op'] in '<≤':
-            high = number
+            ref.high = number
         else:
-            low = number
-    if not unit:
+            ref.low = number
+        remainder = f'{rest[:match.start()]} {rest[match.end():]}'
+    if not ref.unit:
         # Some labs print the unit after the range: "13 - 150 ng/mL".
         for token in reversed(rest.split()):
             if unit := known_unit(token):
-                ref_text = ref_text.replace(token, '').strip(' ()[]')
+                ref.unit = unit
+                ref.text = ref.text.replace(token, '').strip(' ()[]')
+                remainder = remainder.replace(token, ' ')
                 break
-    return unit, low, high, ref_text
+    for token in re.sub(r'[()\[\]]', ' ', remainder).split():
+        token = token.strip(':;,')
+        if not ref.printed_flag and token.upper() in _PRINTED_FLAGS:
+            ref.printed_flag = token
+        elif any(ch.isdigit() for ch in token) or (
+            any(ch.isalpha() for ch in token) and token.casefold() not in REFERENCE_WORDS
+        ):
+            ref.leftover = True
+    return ref
 
 
-def _row_flag(value: Decimal | None, value_text: str, printed: str, low, high) -> str:
+def row_flag(value: Decimal | None, value_text: str, printed: str, low, high) -> str:
     printed = (printed or '').strip().upper()
     if printed in {'H', 'HH', 'HIGH'}:
         return 'H'
@@ -151,44 +197,125 @@ def qualitative_flag(value_text: str) -> str:
     return 'A' if any(text.startswith(word) for word in POSITIVE_WORDS) else ''
 
 
-def parse_rows(text: str, known_test: Callable[[str], bool]) -> list[ParsedRow]:
+def _sentence_case(text: str) -> str:
+    """'DETECTED' and 'not detected' are stored as 'Detected' and 'Not detected'."""
+    return text[:1].upper() + text[1:].lower()
+
+
+def _splits(line: str):
+    """
+    Every (name, what follows) split of a line at a space, the name a plausible test name. A name
+    never holds a bare number or a unit, so "Testosterone, total 0.9 nmol/L" is not a name.
+    """
+    for gap in re.finditer(r'\s+', line):
+        name = line[:gap.start()].rstrip(':').rstrip()
+        if not _NAME_ONLY.fullmatch(name):
+            continue
+        if any(_BARE_NUMBER.fullmatch(token) or known_unit(token) for token in name.split()):
+            break
+        yield name, line[gap.end():].lstrip(':').lstrip()
+
+
+def _glued_tail_is_plausible(tail: str) -> bool:
+    # A unit run into the number, or OCR reading a digit or decimal point as a letter.
+    return bool(known_unit(tail)) or tail[0] in '.,OoIl'
+
+
+def _numeric_row(line: str, known_test: Callable[[str], bool], expected_unit: Callable[[str], str]):
+    # The name is the longest catalogue name the value can follow; then a catalogue name followed by a
+    # glued value; with neither, the shortest name.
+    candidates = [(name, match) for name, rest in _splits(line) if (match := _VALUE.match(rest))]
+    known = [c for c in candidates if known_test(c[0])]
+    glued = [] if known else [
+        (name, match) for name, rest in _splits(line)
+        if known_test(name) and (match := _GLUED.match(rest)) and _glued_tail_is_plausible(match['tail'])
+    ]
+    reasons = []
+    if glued:
+        name, match = glued[-1]
+        # A glued unit is then read as the unit; anything else is left over in the reference.
+        value_text, printed, rest = match['value'].replace(' ', ''), '', f"{match['tail']} {match['rest']}"
+        reasons.append('value_glued')
+    elif known or candidates:
+        name, match = known[-1] if known else candidates[0]
+        value_text, printed, rest = match['value'].replace(' ', ''), match['flag'], match['rest']
+    else:
+        return None
+    ref = _parse_reference(rest)
+    is_known = known_test(name)
+    if not (is_known or ref.unit or ref.low is not None or ref.high is not None):
+        return None
+    if _THOUSANDS.match(value_text):
+        reasons.append('ambiguous_comma')
+    if ref.leftover:
+        reasons.append('ref_leftover')
+    if is_known and expected_unit(name) and not ref.unit:
+        reasons.append('unit_missing')
+    if not is_known:
+        reasons.append('name_unknown')
+    value = to_decimal(value_text)
+    return ParsedRow(
+        name=name, value_text=value_text, value_numeric=value, unit=ref.unit, ref_low=ref.low,
+        ref_high=ref.high, ref_text=ref.text,
+        flag=row_flag(value, value_text, printed or ref.printed_flag, ref.low, ref.high),
+        check_reason=reasons[0] if reasons else '',
+    )
+
+
+def _unreadable_row(line: str, known_test: Callable[[str], bool]):
+    """
+    A known test followed by an attempted value that cannot be read ("Ferritin ?? ng/mL"): show it
+    to the doctor, never guess it. Titles such as "Cervical cytology - smear" are skipped.
+    """
+    words = line.split()
+    for size in range(min(5, len(words) - 1), 0, -1):
+        name = ' '.join(words[:size]).rstrip(':')
+        rest = words[size:]
+        looks_like_value = any(ch.isdigit() or ch in '?#*' for ch in ''.join(rest)) or any(
+            known_unit(token) for token in rest
+        )
+        if looks_like_value and known_test(name):
+            return ParsedRow(name=name, value_text=' '.join(rest)[:255], unreadable=True)
+    return None
+
+
+def parse_rows(text: str, known_test: Callable[[str], bool],
+               expected_unit: Callable[[str], str] = lambda name: '') -> list[ParsedRow]:
     """
     Read one result per line. A line counts as a result only when its name is a catalog test or it
     carries a recognised unit or reference range, so headers and footers are not mistaken for values.
+    `expected_unit(name)` is the unit the catalogue expects for a test ('' for none); a numeric
+    result printed without it is marked for checking. Any doubt about a reading sets check_reason.
     """
+    lines = [' '.join(raw_line.split()) for raw_line in text.splitlines()]
     rows = []
-    for raw_line in text.splitlines():
-        line = ' '.join(raw_line.split())
+    index = 0
+    while index < len(lines):
+        line, sources = lines[index], [lines[index]]
+        index += 1
         if len(line) < 3:
             continue
+        split = False
+        name_only = line.rstrip(':').rstrip()
+        if (index < len(lines) and _NAME_ONLY.fullmatch(name_only) and known_test(name_only)
+                and _VALUE.match(lines[index])):
+            # The test name on one line and its value on the next.
+            sources.append(lines[index])
+            line, split = f'{name_only} {lines[index]}', True
+            index += 1
         if match := _QUALITATIVE_ROW.match(line):
-            if known_test(match['name']):
-                value = match['value'].strip()
-                rows.append(ParsedRow(name=match['name'], value_text=value, flag=qualitative_flag(value)))
-            continue
-        if match := _NUMERIC_ROW.match(line):
-            name, value_text = match['name'].strip(), match['value'].replace(' ', '')
-            unit, low, high, ref_text = _parse_reference(match['rest'])
-            if not (known_test(name) or unit or low is not None or high is not None):
+            if not known_test(match['name']):
                 continue
-            value = to_decimal(value_text)
-            rows.append(ParsedRow(
-                name=name, value_text=value_text, value_numeric=value, unit=unit, ref_low=low, ref_high=high,
-                ref_text=ref_text, flag=_row_flag(value, value_text, match['flag'], low, high),
-            ))
-            continue
-        # A known test followed by an attempted value that cannot be read ("Ferritin ?? ng/mL"):
-        # show it to the doctor, never guess it. Titles such as "Cervical cytology - smear" are skipped.
-        words = line.split()
-        for size in range(min(5, len(words) - 1), 0, -1):
-            name = ' '.join(words[:size]).rstrip(':')
-            rest = words[size:]
-            looks_like_value = any(ch.isdigit() or ch in '?#*' for ch in ''.join(rest)) or any(
-                known_unit(token) for token in rest
-            )
-            if looks_like_value and known_test(name):
-                rows.append(ParsedRow(name=name, value_text=' '.join(rest)[:255], unreadable=True))
-                break
+            value = _sentence_case(match['value'].strip())
+            row = ParsedRow(name=match['name'], value_text=value, flag=qualitative_flag(value))
+        else:
+            row = _numeric_row(line, known_test, expected_unit) or _unreadable_row(line, known_test)
+            if row is None:
+                continue
+        if split and not row.check_reason:
+            row.check_reason = 'split_line'
+        row.source_lines = sources
+        rows.append(row)
     return rows
 
 
@@ -246,9 +373,10 @@ def parse_lab_name(text: str) -> str:
     return ''
 
 
-def parse_report(text: str, known_test: Callable[[str], bool]) -> ParsedReport:
+def parse_report(text: str, known_test: Callable[[str], bool],
+                 expected_unit: Callable[[str], str] = lambda name: '') -> ParsedReport:
     return ParsedReport(
-        rows=parse_rows(text, known_test),
+        rows=parse_rows(text, known_test, expected_unit),
         identifiers=parse_identifiers(text),
         lab_name=parse_lab_name(text),
         collected_on=parse_collected_on(text),

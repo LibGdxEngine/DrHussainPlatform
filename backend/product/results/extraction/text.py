@@ -18,19 +18,39 @@ class ExtractionError(Exception):
         self.code = code
 
 
+# An OCR word read with less confidence than this makes its whole line uncertain.
+MIN_OCR_CONFIDENCE = 80
+
+
 @dataclass
 class ExtractedText:
     text: str
     method: str  # 'text' or 'ocr'
+    # OCR lines (whitespace collapsed) holding a word read with low confidence.
+    uncertain_lines: frozenset[str] = frozenset()
 
 
-def _ocr(image) -> str:
+def _ocr(image) -> tuple[str, set[str]]:
+    """The page's text, line by line, and the lines with a word OCR was not sure of."""
     import pytesseract
 
     try:
-        return _BIDI_MARKS.sub('', pytesseract.image_to_string(image, lang=settings.RESULTS_OCR_LANGUAGES))
+        data = pytesseract.image_to_data(image, lang=settings.RESULTS_OCR_LANGUAGES,
+                                         output_type=pytesseract.Output.DICT)
     except pytesseract.TesseractNotFoundError as exc:
         raise ExtractionError('ocr_unavailable') from exc
+    lines: dict[tuple, tuple[list[str], list[bool]]] = {}
+    for index, word in enumerate(data['text']):
+        word = _BIDI_MARKS.sub('', word or '').strip()
+        if not word:
+            continue
+        key = (data['page_num'][index], data['block_num'][index], data['par_num'][index], data['line_num'][index])
+        words, unsure = lines.setdefault(key, ([], []))
+        words.append(word)
+        unsure.append(float(data['conf'][index]) < MIN_OCR_CONFIDENCE)
+    text = '\n'.join(' '.join(words) for words, _ in lines.values())
+    uncertain = {' '.join(words) for words, unsure in lines.values() if any(unsure)}
+    return text, uncertain
 
 
 def extract_text(file, content_type: str) -> ExtractedText:
@@ -55,7 +75,8 @@ def _extract(file, content_type: str) -> ExtractedText:
 
         try:
             with Image.open(file) as image:
-                return ExtractedText(_ocr(image), 'ocr')
+                text, uncertain = _ocr(image)
+                return ExtractedText(text, 'ocr', frozenset(uncertain))
         except UnidentifiedImageError as exc:
             raise ExtractionError('unreadable_document') from exc
 
@@ -67,11 +88,12 @@ def _extract(file, content_type: str) -> ExtractedText:
             pages = pdf.pages[:max_pages]
             if len(pdf.pages) > max_pages:
                 raise ExtractionError('too_many_pages')
-            texts, used_ocr = [], False
+            texts, used_ocr, uncertain = [], False, set()
             for page in pages:
                 text = page.extract_text(x_tolerance=1.5, layout=True) or ''
                 if len(text.strip()) < MIN_TEXT_CHARS_PER_PAGE:
-                    text = _ocr(page.to_image(resolution=settings.RESULTS_OCR_DPI).original)
+                    text, unsure = _ocr(page.to_image(resolution=settings.RESULTS_OCR_DPI).original)
+                    uncertain |= unsure
                     used_ocr = True
                 texts.append(text)
     except ExtractionError:
@@ -86,4 +108,4 @@ def _extract(file, content_type: str) -> ExtractedText:
     text = '\n'.join(texts)
     if not text.strip():
         raise ExtractionError('no_text_found')
-    return ExtractedText(text, 'ocr' if used_ocr else 'text')
+    return ExtractedText(text, 'ocr' if used_ocr else 'text', frozenset(uncertain))

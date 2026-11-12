@@ -10,7 +10,7 @@ import { ActionButton } from "../../ui/Action";
 import { ChipGroup } from "../../ui/ChipGroup";
 import { TextInput } from "../../ui/Fields";
 import { Panel } from "../../ui/Panel";
-import { filterOptions } from "../data";
+import { filterOptions, matchesFilter } from "../data";
 import type { RuleEdit, RuleFilter } from "../types";
 import { MrsBandsRow } from "./MrsBandsRow";
 import { RuleRow } from "./RuleRow";
@@ -61,7 +61,7 @@ export function RulesBoard() {
   const savedBands = mrs?.current?.bands ?? [];
   const bandsChanged = bandEdits !== null && bandEdits.some((v, i) => v !== String(savedBands[i]?.min));
   const changeCount = changed.length + (bandsChanged ? 1 : 0);
-  const shown = (rules ?? []).filter((r) => filter === "all" || r.level === filter);
+  const shown = (rules ?? []).filter((r) => matchesFilter(r, filter));
 
   const edit = (code: string, change: RuleEdit) =>
     setEdits((prev) => ({ ...prev, [code]: { ...prev[code], ...change } }));
@@ -95,7 +95,7 @@ export function RulesBoard() {
       <SettingsHeader
         tab="rules"
         title="Alert rules"
-        description="Each rule maps to a line in the forms spec (R1–R40, and more as the list grows). Change a cut-off here when guidelines change, with no developer needed. Every change is versioned and logged."
+        description="Each rule maps to a line in the clinic's forms spec, and the list grows as rules are added. Rules marked as checked automatically run on the patient's form answers, lab results or examination; the others are for the doctor to apply. Change a cut-off here when guidelines change, with no developer needed. Every change is versioned and logged."
         actions={
           <>
             <span className="text-[13px] font-semibold text-warn-ink" aria-live="polite">
@@ -123,7 +123,7 @@ export function RulesBoard() {
           options={filterOptions(rules ?? [])}
           value={filter}
           onChange={setFilter}
-          className="flex-nowrap px-5 py-[18px]"
+          className="px-5 py-[18px]"
         />
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-[13px]">
@@ -157,6 +157,10 @@ export function RulesBoard() {
                     onChangeA={(v) => edit(r.code, { threshold_a: v })}
                     onChangeB={(v) => edit(r.code, { threshold_b: v })}
                     onToggle={() => edit(r.code, { enabled: !(e.enabled ?? r.enabled ?? true) })}
+                    onRuleSaved={(next) => {
+                      setRules((prev) => (prev ?? []).map((x) => (x.id === next.id ? next : x)));
+                      setNotice({ tone: "ok", text: `${next.code}: medicine names saved as v${next.version}.` });
+                    }}
                   />
                 );
               })}

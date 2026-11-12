@@ -5,6 +5,7 @@ import { ActionButton } from "@/features/emr/ui/Action";
 import { Field, TextArea, TextInput } from "@/features/emr/ui/Fields";
 import { Panel } from "@/features/emr/ui/Panel";
 import { cn } from "@/lib/utils";
+import { inFlight } from "@/lib/inFlight";
 import { alertsApi, type PatientAlert } from "@/lib/api/emr/alerts";
 import { contentApi, type Prescription } from "@/lib/api/emr/content";
 import { apiErrorMessage } from "@/lib/api/emr/errors";
@@ -55,7 +56,7 @@ export function OrdersWorkspace({ patient, isLead, clinicName }: OrdersWorkspace
 
   useEffect(() => {
     let cancelled = false;
-    ordersApi.list(patient.id).then(
+    inFlight(`orders:${patient.id}`, () => ordersApi.list(patient.id)).then(
       (list) => {
         if (!cancelled) setOrders([...list].sort((a, b) => b.created_at.localeCompare(a.created_at)));
       },

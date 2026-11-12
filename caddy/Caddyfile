@@ -31,6 +31,20 @@
 {$DOMAIN_NAME:http://localhost} {
 	encode gzip zstd
 
+	# Security headers on every response. HSTS comes from the environment (leave HSTS_HEADER empty
+	# for plain-HTTP development; production sets e.g. max-age=31536000; includeSubDomains).
+	# The CSP is a baseline only (framing, plugins, base URI); a strict script/style CSP is open work.
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		X-Frame-Options SAMEORIGIN
+		Content-Security-Policy "frame-ancestors 'self'; object-src 'none'; base-uri 'self'"
+		-Server
+	}
+	@hsts expression `"{$HSTS_HEADER:}" != ""`
+	header @hsts Strict-Transport-Security "{$HSTS_HEADER:}"
+
 	# Route includes the prefix itself and every asset, API, and WebSocket path.
 	@observability path /observability /observability/*
 	handle @observability {
@@ -54,6 +68,13 @@
 	}
 
 	respond /internal/observability/auth/ 404
+
+	# The patient form's public endpoints take small JSON bodies only (the backend checks the same,
+	# INTAKE_MAX_BODY_BYTES); a larger body is refused before it reaches Django.
+	@public_intake path /api/product/intake/public/*
+	request_body @public_intake {
+		max_size 512KB
+	}
 
     reverse_proxy /api/auth/* frontend:3000
     reverse_proxy /api/bff/* frontend:3000

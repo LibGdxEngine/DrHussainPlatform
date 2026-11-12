@@ -6,6 +6,9 @@
 # - Leaves the observability stack out (enable with `--profile observability`
 #   only on a host with spare memory and a free telemetry subnet).
 # - Bounds memory and worker concurrency so neighbouring projects keep headroom.
+# - Runs what a clinic would see in production: the frontend is the production build (no bind
+#   mount, no dev server), the backend runs with DEBUG off (core.settings.preview), and Caddy uses
+#   the production Caddyfile, so the security headers are the real ones.
 #
 # Used via COMPOSE_FILE=docker-compose.yml:docker-compose.preview.yml in .env.
 
@@ -35,12 +38,17 @@ services:
     restart: unless-stopped
     mem_limit: 768m
     env_file: [.env]
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings.preview
+      - ALLOW_DEMO_SEED=1
 
   celery_worker:
     networks: !reset [default]
     restart: unless-stopped
     mem_limit: 1g
     env_file: [.env]
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings.preview
     command: celery -A core worker -l info -Q celery,maintenance,ocr --concurrency=1
 
   celery_beat:
@@ -48,20 +56,42 @@ services:
     restart: unless-stopped
     mem_limit: 256m
     env_file: [.env]
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings.preview
 
+  # Production build of the frontend (Dockerfile.prod, `node server.js`), not `next dev`. The source
+  # bind mount and the dev command are removed so the image's own build is what runs.
+  # AUTH_SESSION_REDIS_URL (the token cache) and the other variables come from the base file's
+  # `environment` list, which merges with this one; it is repeated here so a change to either
+  # list cannot silently drop it.
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
+    volumes: !reset []
+    command: !reset null
     ports: !reset []
     networks: !reset [default]
     restart: unless-stopped
-    mem_limit: 2g
+    mem_limit: 768m
     environment:
-      - ALLOWED_DEV_ORIGINS=${PREVIEW_DOMAIN}
+      - NODE_ENV=production
+      - AUTH_SESSION_REDIS_URL=${AUTH_SESSION_REDIS_URL:-redis://redis:6379/2}
 
   caddy:
     ports: !override
       - "${PREVIEW_PORT:-8095}:80"
     restart: unless-stopped
     mem_limit: 128m
+    # The production Caddyfile (security headers); DOMAIN_NAME=:80 makes it answer on any host name,
+    # as the development Caddyfile does. Set HSTS_HEADER in .env once the edge serves HTTPS.
+    environment:
+      - DOMAIN_NAME=:80
+      - HSTS_HEADER=${HSTS_HEADER:-}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
     networks: !override
       default:
       edge:

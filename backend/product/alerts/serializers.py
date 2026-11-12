@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from product.patients.models import Patient
+
 from .models import PatientAlert
 
 
@@ -13,14 +15,24 @@ class PatientAlertSerializer(serializers.ModelSerializer):
     acknowledged_by_name = serializers.SerializerMethodField()
     patient_name = serializers.CharField(source='patient.full_name', read_only=True)
     file_number = serializers.CharField(source='patient.file_number', read_only=True)
+    source = serializers.SerializerMethodField(help_text='What fired it: lab (a result), vital (an examination) '
+                                                         'or answer (a patient form).')
 
     class Meta:
         model = PatientAlert
         fields = ['id', 'patient', 'patient_name', 'file_number', 'code', 'field', 'rule_version', 'level', 'message',
-                  'detail', 'value_text', 'result_date', 'report', 'examination', 'examined_on', 'status',
-                  'acknowledged_by_name', 'acknowledged_at', 'reason',
+                  'detail', 'value_text', 'result_date', 'report', 'examination', 'examined_on', 'intake_form',
+                  'source', 'status', 'acknowledged_by_name', 'acknowledged_at', 'reason',
                   'created_at', 'closed_at']
         read_only_fields = fields
+
+    def get_source(self, obj) -> str:
+        if obj.intake_form_id:
+            return 'answer'
+        if obj.examination_id or obj.value_id:
+            return 'vital' if obj.examination_id else 'lab'
+        version = obj.rule_version  # nothing linked, e.g. "never measured"
+        return 'answer' if version.answer_check and not version.lab_check else 'vital' if version.vital else 'lab'
 
     def get_value_text(self, obj) -> str:
         return f'{obj.value.value_text} {obj.value.unit}'.strip() if obj.value else ''
@@ -32,3 +44,13 @@ class PatientAlertSerializer(serializers.ModelSerializer):
 
 class AcknowledgeSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=500)
+
+
+class EvaluateSerializer(serializers.Serializer):
+    patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.none())
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        organization = self.context.get('organization')
+        if organization is not None:
+            self.fields['patient'].queryset = Patient.objects.filter(organization=organization)

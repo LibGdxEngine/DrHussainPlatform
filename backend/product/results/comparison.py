@@ -22,6 +22,11 @@ class Comparison:
     change: str
     previous: ResultValue | None = None
     reasons: list[str] = field(default_factory=list)
+    # Remarks on a comparison that still stands, e.g. 'lab_differs' when the labs differ but the
+    # unit and range match.
+    notes: list[str] = field(default_factory=list)
+    # (current lab, previous lab) when the labs differ; empty otherwise.
+    labs: tuple[str, str] | tuple[()] = ()
 
 
 def _norm(text: str) -> str:
@@ -34,6 +39,7 @@ def previous_result(value: ResultValue) -> ResultValue | None:
         return None
     earlier = ResultValue.objects.filter(
         patient_id=value.patient_id, lab_test_id=value.lab_test_id, report__in_history=True, unreadable=False,
+        needs_check=False,
     ).exclude(report_id=value.report_id).select_related('report')
     if value.result_date:
         earlier = earlier.filter(Q(result_date__lt=value.result_date) | Q(
@@ -66,7 +72,7 @@ def previous_results(values) -> dict:
         return previous
     history = ResultValue.objects.filter(
         patient_id__in={v.patient_id for v in wanted}, lab_test_id__in={v.lab_test_id for v in wanted},
-        report__in_history=True, unreadable=False,
+        report__in_history=True, unreadable=False, needs_check=False,
     ).select_related('report')
     by_test = defaultdict(list)
     for candidate in history:
@@ -92,27 +98,34 @@ def compare(value: ResultValue, previous=_LOOK_UP) -> Comparison:
     if previous is None:
         return Comparison(Change.FIRST)
 
-    # Unlike results are shown side by side for the doctor; a change is never stated.
+    # Unlike results are shown side by side for the doctor; a change is never stated. A different
+    # lab alone does not block: with the same unit and range the values compare, with a note.
     reasons = []
     if _norm(value.unit) != _norm(previous.unit):
         reasons.append('unit_differs')
-    if _norm(value.lab_name) != _norm(previous.lab_name):
-        reasons.append('lab_differs')
+    lab_differs = _norm(value.lab_name) != _norm(previous.lab_name)
     if (value.ref_low, value.ref_high, _norm(value.ref_text)) != (previous.ref_low, previous.ref_high, _norm(previous.ref_text)):
         reasons.append('reference_range_differs')
     if value.unreadable:
         reasons.append('value_unreadable')
+    if value.needs_check:
+        reasons.append('value_needs_check')
     censored = any(v.value_text[:1] in '<>≤≥' for v in (value, previous))
     if censored:
         reasons.append('value_is_a_limit')
+    notes, labs = (['lab_differs'], (value.lab_name, previous.lab_name)) if lab_differs else ([], ())
     if reasons:
-        return Comparison(Change.NOT_COMPARABLE, previous, reasons)
+        if lab_differs:
+            reasons.insert(1 if reasons[0] == 'unit_differs' else 0, 'lab_differs')
+        return Comparison(Change.NOT_COMPARABLE, previous, reasons, notes, labs)
 
     if value.value_numeric is not None and previous.value_numeric is not None:
         if value.value_numeric > previous.value_numeric:
-            return Comparison(Change.UP, previous)
-        if value.value_numeric < previous.value_numeric:
-            return Comparison(Change.DOWN, previous)
-        return Comparison(Change.SAME, previous)
-    same = _norm(value.value_text) == _norm(previous.value_text)
-    return Comparison(Change.SAME if same else Change.CHANGED, previous)
+            change = Change.UP
+        elif value.value_numeric < previous.value_numeric:
+            change = Change.DOWN
+        else:
+            change = Change.SAME
+    else:
+        change = Change.SAME if _norm(value.value_text) == _norm(previous.value_text) else Change.CHANGED
+    return Comparison(change, previous, notes=notes, labs=labs)

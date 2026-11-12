@@ -14,7 +14,7 @@ class ReportParser:
     def detects(self, text: str) -> bool:
         raise NotImplementedError
 
-    def parse(self, text: str, known_test: Callable[[str], bool]) -> ParsedReport:
+    def parse(self, text: str, known_test: Callable[[str], bool], expected_unit: Callable[[str], str]) -> ParsedReport:
         raise NotImplementedError
 
 
@@ -24,8 +24,8 @@ class GenericLineParser(ReportParser):
     def detects(self, text: str) -> bool:
         return True
 
-    def parse(self, text, known_test):
-        return parse_report(text, known_test)
+    def parse(self, text, known_test, expected_unit):
+        return parse_report(text, known_test, expected_unit)
 
 
 # Lab-specific parsers go first; the generic one is the fallback.

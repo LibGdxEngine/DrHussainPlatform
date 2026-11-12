@@ -9,6 +9,8 @@ Template placeholders.
 import re
 from dataclasses import dataclass, field
 
+from .starter import STARTER_PHRASES
+
 AUTOMATIC = {
     'patient.first_name': "The patient's first name.",
     'patient.full_name': "The patient's full name.",
@@ -25,6 +27,7 @@ AUTOMATIC = {
     'doctor.name': "The doctor's name.",
     'today': "Today's date.",
     'patient.question': "In a reply: the patient's own words, without the quoted earlier email.",
+    'comparison.attention': 'The current results outside the reference range, or a line saying all are within it.',
 }
 CHOSEN_IN_REVIEW = {
     'prescription': 'The prescription the doctor picks from the list in review.',
@@ -32,14 +35,27 @@ CHOSEN_IN_REVIEW = {
 }
 ALL = {**AUTOMATIC, **CHOSEN_IN_REVIEW}
 
+# The placeholders each system phrase may use (a phrase is a short line, not a template).
+PHRASE_SLOTS = {key: frozenset(slots) for key, (_, _, slots) in STARTER_PHRASES.items()}
+
 _PLACEHOLDER = re.compile(r'\{\{\s*([^{}]*?)\s*\}\}')
 _BLANK = re.compile(r'\[\[\s*([^\[\]]*?)\s*\]\]')
 
 
-def validate_text(text: str) -> list[str]:
-    """Problems that would stop a template being saved."""
+def placeholder_names(text: str) -> set[str]:
+    return set(_PLACEHOLDER.findall(text or ''))
+
+
+def allowed_placeholders(key: str):
+    """What a template or phrase with this key may use."""
+    return PHRASE_SLOTS.get(key, frozenset()) if key.startswith('phrase.') else ALL
+
+
+def validate_text(text: str, allowed=None) -> list[str]:
+    """Problems that would stop a template (or, with `allowed`, a phrase) being saved."""
+    allowed = ALL if allowed is None else allowed
     errors = []
-    unknown = sorted({name for name in _PLACEHOLDER.findall(text) if name not in ALL})
+    unknown = sorted({name for name in _PLACEHOLDER.findall(text) if name not in allowed})
     if unknown:
         errors.append('Unknown placeholder: ' + ', '.join(f'{{{{{n}}}}}' for n in unknown) + '.')
     stripped = _BLANK.sub('', _PLACEHOLDER.sub('', text))
@@ -86,6 +102,7 @@ SAMPLE_VALUES = {
     'results.table': 'Ferritin: 32 ng/mL (13–150)\nTSH: 1.8 mIU/L (0.4–4.0)',
     'results.abnormal': 'Ferritin: 32 ng/mL (low for the clinic target of 50–150)',
     'comparison.table': 'Ferritin: 21 ng/mL on 3 Jul 2026 → 32 ng/mL on 3 Oct 2026 (up)',
+    'comparison.attention': 'Ferritin: 32 ng/mL (low)',
     'result.name': 'Chlamydia trachomatis',
     'result.value': 'Detected',
     'today': '25 Oct 2026',

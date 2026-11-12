@@ -1,0 +1,37 @@
+{
+  "templates": [
+    {
+      "key": "results",
+      "language": "en",
+      "name": "Results email",
+      "subject": "EXAMPLE subject - replace",
+      "body": "EXAMPLE ONLY, NOT CLINIC WORDING.\n\n{{results.table}}\n\n[[Clinic wording for the results email]]"
+    },
+    {
+      "key": "smear_section_5",
+      "language": "en",
+      "name": "EXAMPLE smear plan name - replace",
+      "subject": "EXAMPLE subject - replace",
+      "body": "EXAMPLE ONLY.\n\n[[Clinic wording for this plan]]"
+    },
+    {
+      "key": "phrase.default_subject",
+      "language": "en",
+      "body": "EXAMPLE default subject - replace"
+    }
+  ],
+  "prescriptions": [
+    {
+      "drug": "EXAMPLE drug name - replace",
+      "dose": "EXAMPLE dose",
+      "directions": "EXAMPLE directions"
+    }
+  ],
+  "leaflets": [
+    {
+      "title": "EXAMPLE leaflet - replace",
+      "pdf_path": "placeholder-leaflet.pdf",
+      "default_for": ["results"]
+    }
+  ]
+}

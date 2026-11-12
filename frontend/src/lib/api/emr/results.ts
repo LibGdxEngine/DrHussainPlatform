@@ -10,6 +10,14 @@ export type InvestigationReport = Schemas["InvestigationReport"];
 export type ResultValue = Schemas["ResultValue"];
 export type ResultComparison = Schemas["Comparison"];
 export type ManualEntry = Schemas["ManualEntryRequest"];
+/** Why a value needs the doctor's check before it is used (ResultValue.check_reason). */
+export type CheckReason =
+  | "value_glued" | "ambiguous_comma" | "ref_leftover" | "unit_missing" | "name_unknown" | "split_line"
+  | "ocr_low_confidence";
+/** Corrections for an uncertain value; fields left out are confirmed as read. */
+export type ValueCheck = Schemas["ValueCheckRequest"];
+/** A remark on a comparison that still stands; `labs` is [this lab, earlier lab] when they differ. */
+export type ComparisonNote = "lab_differs";
 
 export const resultsApi = {
   /** The whole catalog (it is small and bounded). */
@@ -33,6 +41,12 @@ export const resultsApi = {
   /** Doctor only: the flagged report belongs to this patient. */
   confirm: (id: string) => apiClient.post<InvestigationReport>(`/product/results/reports/${id}/confirm/`),
   saveManualValues: (body: ManualEntry) => apiClient.post<InvestigationReport>("/product/results/manual-values/", body),
+  /**
+   * Doctor only: confirm or correct a value marked needs_check. Returns the report; once no value
+   * needs a check its uncertain_value flag clears and the results case is routed again.
+   */
+  checkValue: (id: string, body: ValueCheck = {}) =>
+    apiClient.post<InvestigationReport>(`/product/results/values/${id}/check/`, body),
   history: (patient: string, test?: string, page = 1) =>
     apiClient.get<Page<ResultValue>>("/product/results/history/", { query: { patient, test, page } }),
 };

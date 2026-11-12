@@ -1,53 +1,86 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from product.appointments.models import Appointment
 from product.patients.models import Patient
 
+from .catalogue import ADDABLE_MODULES, AnswerError, clean_answers
 from .models import MRS_ITEMS, IntakeForm
+from .services import history_summary
 
-VISIT_REASONS = [
-    'routine', 'heavy', 'bleed', 'pain', 'contra', 'ttc', 'pcos', 'dis', 'uri', 'pms', 'smear', 'breast',
-    'meno', 'hrt', 'lib', 'other',
-]
+# Named in settings (ENUM_NAME_OVERRIDES 'YesNoEnum') for the yes/no choice sets in the API.
 YES_NO = [('yes', 'Yes'), ('no', 'No')]
-YES_NO_UNSURE = [*YES_NO, ('unsure', 'Not sure')]
-SIDE_EFFECTS = ['breast', 'bloat', 'head', 'sleepy', 'mood', 'acne', 'hair', 'facial']
-
-
-class MedicineAnswerSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=120)
-    still_taking = serializers.BooleanField(default=True)
-
-
-class AnswersSerializer(serializers.Serializer):
-    """What the patient can answer. Unknown keys are dropped, so the stored form stays predictable."""
-    # Full history
-    reasons = serializers.ListField(child=serializers.ChoiceField(choices=VISIT_REASONS), required=False,
-                                    max_length=len(VISIT_REASONS))
-    other_reason = serializers.CharField(max_length=500, required=False, allow_blank=True)
-    last_period = serializers.CharField(max_length=40, required=False, allow_blank=True)
-    period_status = serializers.ChoiceField(choices=['reg', 'irr', 'stopped', 'horm', 'hyst'], required=False)
-    bleed_after_year = serializers.ChoiceField(choices=YES_NO, required=False)
-    menopause_age = serializers.IntegerField(min_value=20, max_value=70, required=False, allow_null=True)
-    uterus = serializers.ChoiceField(choices=YES_NO, required=False)
-    pregnant = serializers.ChoiceField(choices=YES_NO_UNSURE, required=False)
-    intermenstrual = serializers.ChoiceField(choices=YES_NO, required=False)
-    # Follow-up
-    overall = serializers.ChoiceField(choices=['much', 'better', 'same', 'worse'], required=False)
-    adherence = serializers.ChoiceField(choices=['yes', 'some', 'stop'], required=False)
-    adherence_reason = serializers.CharField(max_length=500, required=False, allow_blank=True)
-    side_effects = serializers.ListField(child=serializers.ChoiceField(choices=SIDE_EFFECTS), required=False,
-                                         max_length=len(SIDE_EFFECTS))
-    bleeding = serializers.ChoiceField(choices=YES_NO, required=False)
-    medicines = MedicineAnswerSerializer(many=True, required=False, max_length=20)
-    # Both
-    notes = serializers.CharField(max_length=2000, required=False, allow_blank=True)
 
 
 class FormSaveSerializer(serializers.Serializer):
-    answers = AnswersSerializer(required=False, default=dict)
+    """The answers are checked against the question catalogue (intake/catalogue.py) for the form's kind."""
+    answers = serializers.JSONField(required=False, default=dict,
+                                    help_text='Question id -> answer, as the catalogue describes.')
     mrs = serializers.ListField(child=serializers.IntegerField(min_value=0, max_value=4), min_length=MRS_ITEMS,
                                 max_length=MRS_ITEMS, required=False, allow_null=True)
+
+    def validate_answers(self, value):
+        try:
+            return clean_answers(value, self.context.get('kind', IntakeForm.Kind.FULL))
+        except AnswerError as exc:
+            raise serializers.ValidationError(getattr(exc, 'fields', None) or str(exc))
+
+
+class CatalogueOptionSerializer(serializers.Serializer):
+    value = serializers.JSONField(help_text='A string, or a 0-3 score for the mood questions.')
+    label = serializers.CharField()
+
+
+class CatalogueFieldSerializer(serializers.Serializer):
+    """One column of a repeating-row question."""
+    id = serializers.CharField()
+    label = serializers.CharField()
+    type = serializers.ChoiceField(choices=['single', 'text', 'number', 'date', 'tick'])
+    options = CatalogueOptionSerializer(many=True, required=False)
+    required = serializers.BooleanField(default=False)
+    default = serializers.JSONField(required=False)
+    min = serializers.IntegerField(required=False)
+    max = serializers.IntegerField(required=False)
+    max_length = serializers.IntegerField(required=False)
+
+
+class CatalogueQuestionSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    label = serializers.CharField(help_text='Forms-doc wording.')
+    type = serializers.ChoiceField(choices=['single', 'multi', 'number', 'scale', 'text', 'date', 'tick', 'rows',
+                                            'mrs'])
+    options = CatalogueOptionSerializer(many=True, required=False)
+    fields = CatalogueFieldSerializer(many=True, required=False)
+    show_if = serializers.JSONField(required=False, help_text='A catalogue condition.')
+    required = serializers.JSONField(default=False, help_text='true, or a catalogue condition.')
+    carry_forward = serializers.BooleanField()
+    inferred = serializers.BooleanField(default=False,
+                                        help_text='Not a question in the forms doc; to confirm with the clinic.')
+    also_in = serializers.ListField(child=serializers.CharField(), default=list,
+                                    help_text='Other sections that ask it when its own section is closed.')
+    rules = serializers.ListField(child=serializers.CharField(), default=list)
+    flag = serializers.JSONField(required=False,
+                                 help_text='Answer values highlighted for the doctor, or "any" for any answer.')
+    min = serializers.IntegerField(required=False)
+    max = serializers.IntegerField(required=False)
+    max_length = serializers.IntegerField(required=False)
+    max_rows = serializers.IntegerField(required=False)
+    not_sure = serializers.BooleanField(default=False, help_text='Number questions: "not_sure" is accepted.')
+
+
+class CatalogueSectionSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    title = serializers.CharField()
+    kinds = serializers.ListField(child=serializers.ChoiceField(choices=IntakeForm.Kind.choices))
+    addable = serializers.BooleanField()
+    opens_when = serializers.JSONField(help_text='A catalogue condition.')
+    intro = serializers.CharField(required=False)
+    questions = CatalogueQuestionSerializer(many=True)
+
+
+class CatalogueSerializer(serializers.Serializer):
+    version = serializers.CharField()
+    sections = CatalogueSectionSerializer(many=True)
 
 
 class TokenSerializer(serializers.Serializer):
@@ -89,7 +122,13 @@ class PatientFormSerializer(serializers.Serializer):
     mrs = serializers.ListField(child=serializers.IntegerField(), allow_null=True)
     previous_mrs = MrsPointSerializer(many=True)
     current_medicines = serializers.ListField(child=serializers.CharField(),
-                                              help_text='From the latest prescription, for the patient to confirm.')
+                                              help_text='Her current medicines (product.medicines), to confirm.')
+    catalogue = CatalogueSerializer(help_text='Every section and question; the form evaluates visibility live.')
+    previous_answers = serializers.DictField(
+        child=serializers.JSONField(),
+        help_text='Carry-forward answers from her earlier complete forms, newest first, to confirm or edit.')
+    patient_age = serializers.IntegerField(allow_null=True)
+    extra_modules = serializers.ListField(child=serializers.ChoiceField(choices=ADDABLE_MODULES))
 
 
 class IntakeFormSerializer(serializers.ModelSerializer):
@@ -111,13 +150,37 @@ class IntakeFormSerializer(serializers.ModelSerializer):
         return bool(obj.patient.email)
 
 
+class SummaryRowSerializer(serializers.Serializer):
+    question = serializers.CharField()
+    label = serializers.CharField()
+    value = serializers.CharField(allow_blank=True)
+    highlight = serializers.BooleanField(help_text='The answer feeds a red or amber rule and may set it off.')
+    not_answered = serializers.BooleanField()
+
+
+class SummaryModuleSerializer(serializers.Serializer):
+    module = serializers.CharField()
+    title = serializers.CharField()
+    rows = SummaryRowSerializer(many=True)
+
+
 class IntakeFormDetailSerializer(IntakeFormSerializer):
     answers = serializers.JSONField(read_only=True)
     mrs = serializers.ListField(child=serializers.IntegerField(), read_only=True, allow_null=True)
+    history_summary = serializers.SerializerMethodField()
+    rule_errors = serializers.JSONField(read_only=True)
+    extra_modules = serializers.ListField(child=serializers.CharField(), read_only=True)
 
     class Meta(IntakeFormSerializer.Meta):
-        fields = IntakeFormSerializer.Meta.fields + ['answers', 'mrs']
+        fields = IntakeFormSerializer.Meta.fields + [
+            'answers', 'mrs', 'history_summary', 'rules_evaluated_at', 'rule_errors', 'extra_modules',
+            'catalogue_version',
+        ]
         read_only_fields = fields
+
+    @extend_schema_field(SummaryModuleSerializer(many=True))
+    def get_history_summary(self, obj):
+        return history_summary(obj)
 
 
 class IntakeFormLinkSerializer(serializers.Serializer):
@@ -130,6 +193,9 @@ class IntakeFormCreateSerializer(serializers.Serializer):
     appointment = serializers.PrimaryKeyRelatedField(queryset=Appointment.objects.none(), required=False)
     kind = serializers.ChoiceField(choices=IntakeForm.Kind.choices, required=False)
     send_email = serializers.BooleanField(default=False)
+    extra_modules = serializers.ListField(child=serializers.ChoiceField(choices=ADDABLE_MODULES), required=False,
+                                          max_length=len(ADDABLE_MODULES),
+                                          help_text='Modules to add on top of the ones her answers open.')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

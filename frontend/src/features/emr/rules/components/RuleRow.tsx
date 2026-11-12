@@ -3,16 +3,13 @@ import type { AlertRule } from "@/lib/api/emr/content";
 import { formatDay } from "../../format";
 import { Pill, type PillTone } from "../../ui/Pill";
 import { Switch } from "../../ui/Switch";
-import { levelLabel } from "../data";
+import { cutoffNotSet, levelLabel, ruleChecks, usesMedicineTerms } from "../data";
+import { MedicineTermsEditor } from "./MedicineTermsEditor";
 import type { RuleLevel } from "../types";
 
 const levelTone: Record<RuleLevel, PillTone> = { red: "red", amber: "amber", reminder: "reminder" };
 
 export const cell = "border-b border-line-soft px-2 py-2.5";
-
-const checkText: Record<string, string> = {
-  gt: "above the cut-off", gte: "at or above", lt: "below the cut-off", lte: "at or below", never_measured: "never measured",
-};
 
 const thresholdInput =
   "min-h-8 rounded-[10px] border border-hatch bg-brand-wash text-center text-[13px] font-semibold outline-none focus:border-brand";
@@ -30,10 +27,13 @@ interface RuleRowProps {
   onChangeA: (value: string) => void;
   onChangeB: (value: string) => void;
   onToggle: () => void;
+  /** A change saved on its own (medicine names), with the rule's new version. */
+  onRuleSaved: (rule: AlertRule) => void;
 }
 
 /** One alert rule: id, field, editable sentence, level, doctor message, on/off. */
-export function RuleRow({ rule, a, b, enabled, edited, onChangeA, onChangeB, onToggle }: RuleRowProps) {
+export function RuleRow({ rule, a, b, enabled, edited, onChangeA, onChangeB, onToggle, onRuleSaved }: RuleRowProps) {
+  const checks = ruleChecks(rule);
   return (
     <tr className={cn(!enabled && "opacity-50", edited && "bg-warn-wash")}>
       <td className={cn(cell, "ps-5 font-emr-mono text-xs font-medium")}>
@@ -47,11 +47,16 @@ export function RuleRow({ rule, a, b, enabled, edited, onChangeA, onChangeB, onT
       </td>
       <td className={cell}>
         {rule.field}
-        {rule.lab_check ? (
-          <span className="mt-1 block text-[11px] text-brand-ink">
-            Checked on results ({checkText[rule.lab_check] ?? rule.lab_check} · {rule.lab_test_code})
-          </span>
-        ) : null}
+        {checks.length ? (
+          checks.map((check) => (
+            <span key={check.kind} className="mt-1 block text-[11px] text-brand-ink">
+              Checked automatically · {check.text}
+            </span>
+          ))
+        ) : (
+          <span className="mt-1 block text-[11px] font-semibold text-warn-ink">Not checked automatically</span>
+        )}
+        {usesMedicineTerms(rule) ? <MedicineTermsEditor rule={rule} onSaved={onRuleSaved} /> : null}
       </td>
       <td className={cell}>
         <div className="flex flex-wrap items-center gap-1.5 text-ink-2">
@@ -65,6 +70,11 @@ export function RuleRow({ rule, a, b, enabled, edited, onChangeA, onChangeB, onT
           ) : null}
           {rule.post}
         </div>
+        {cutoffNotSet(a, b) ? (
+          <span className="mt-1 block text-[11px] font-semibold text-warn-ink">
+            Cut-off not set: type a number{checks.length ? " so the automatic check can run" : ""}.
+          </span>
+        ) : null}
       </td>
       <td className={cell}>
         <Pill tone={levelTone[rule.level]} size="xs">

@@ -34,6 +34,11 @@ def _has(text: str, terms) -> list[str]:
     return [t for t in terms if re.search(rf'(?<![a-z]){re.escape(t)}(?![a-z])', text)]
 
 
+def _finding_case(term: str) -> str:
+    """Abbreviations stay in capitals ("LSIL", "CIN 2"); words are sentence case ("Atypical squamous")."""
+    return term.upper() if len(term) <= 6 else term[:1].upper() + term[1:]
+
+
 def classify(text: str, test_codes: set[str], has_numeric: bool, positive_codes: set[str] = frozenset()) -> Classification:
     """
     `positive_codes` are tests with a detected / abnormal result. A blood panel that also lists a
@@ -43,7 +48,7 @@ def classify(text: str, test_codes: set[str], has_numeric: bool, positive_codes:
     if _has(lowered, SMEAR_TERMS):
         abnormal = _has(lowered, SMEAR_ABNORMAL_TERMS)
         if abnormal:
-            return Classification(ReportType.SMEAR_ABNORMAL, smear_finding=abnormal[0].upper())
+            return Classification(ReportType.SMEAR_ABNORMAL, smear_finding=_finding_case(abnormal[0]))
         if _has(lowered, SMEAR_NORMAL_TERMS):
             return Classification(ReportType.SMEAR_NORMAL, smear_finding='NILM')
         # A smear we cannot read is handled like an abnormal one: the doctor sees it, no draft.

@@ -1,15 +1,8 @@
-import type { IntakeAnswers } from "@/lib/api/emr/intake";
+import type { CatalogueQuestion, CatalogueSection, IntakeAnswers } from "@/lib/api/emr/intake";
 
 export interface VisitReason {
-  id: ReasonId;
+  id: string;
   label: string;
-  /** Reasons that open the menopause (MRS) questions. */
-  menopause?: boolean;
-}
-
-export interface FormModule {
-  name: string;
-  minutes: string;
 }
 
 export interface Option<T extends string = string> {
@@ -17,27 +10,35 @@ export interface Option<T extends string = string> {
   label: string;
 }
 
-/** What the patient can answer; the backend drops anything else. */
+/** The patient's answers, keyed by catalogue question id. */
 export type Answers = IntakeAnswers;
-export type ReasonId = NonNullable<Answers["reasons"]>[number];
-export type PeriodStatus = NonNullable<Answers["period_status"]>;
-export type OverallFeeling = NonNullable<Answers["overall"]>;
-export type Adherence = NonNullable<Answers["adherence"]>;
-export type SideEffect = NonNullable<Answers["side_effects"]>[number];
-export type YesNo = NonNullable<Answers["uterus"]>;
-export type YesNoUnsure = NonNullable<Answers["pregnant"]>;
-export type Medicine = NonNullable<Answers["medicines"]>[number];
 
 export type FormKind = "full" | "followup";
 
-/** One screen of the form after the date-of-birth check. */
-export type StepId = "reasons" | "periods" | "mrs" | "notes" | "progress" | "treatment" | "review";
+/** The MRS step of a follow-up form, which the follow-up section does not list as a question. */
+export const MRS_STEP = "mrs";
+export const REVIEW_STEP = "review";
+
+/**
+ * One screen of the form after the date-of-birth check: one topic, made of one catalogue section (or
+ * consecutive sections with the same title), the follow-up MRS, or the check-and-send screen.
+ */
+export interface Step {
+  id: string;
+  title: string;
+  intro?: string;
+  /** The questions asked on this screen, in order (only those shown for the current answers). */
+  questions: CatalogueQuestion[];
+  sections: CatalogueSection[];
+  /** This screen asks the 11 MRS items. */
+  mrs: boolean;
+}
 
 /** The 11 MRS answers; null until the patient picks a score. */
 export type MrsDraft = (number | null)[];
 
 export interface ReviewRow {
-  step: StepId;
+  step: string;
   label: string;
   value: string;
 }

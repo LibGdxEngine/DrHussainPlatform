@@ -1,12 +1,9 @@
 import type { MrsPoint } from "@/lib/api/emr/intake";
 import { cn } from "@/lib/utils";
-import { overallOptions } from "../data";
 import { progressBars, progressMessage } from "../logic";
-import { ChoiceGroup, Question } from "./controls";
-import type { StepProps } from "./ReasonStep";
 
-/** Earlier symptom (MRS) scores from this patient's previous forms. */
-function ProgressChart({ points }: { points: MrsPoint[] }) {
+/** Earlier symptom (MRS) scores from this patient's previous forms, shown at the top of a follow-up. */
+export function ProgressChart({ points }: { points: MrsPoint[] }) {
   const bars = progressBars(points);
   const message = progressMessage(points);
   if (!bars.length) {
@@ -42,24 +39,5 @@ function ProgressChart({ points }: { points: MrsPoint[] }) {
       </ul>
       {message ? <span className="text-[13px] text-brand-deep">{message}</span> : null}
     </figure>
-  );
-}
-
-/** Follow-up opening: earlier scores, then how the patient feels now. */
-export function ProgressStep({ answers, onChange, previous }: StepProps & { previous: MrsPoint[] }) {
-  return (
-    <>
-      <ProgressChart points={previous} />
-      <Question label="Since your last visit, how are you feeling?" className="gap-2.5 [&>span]:text-base">
-        <ChoiceGroup
-          label="Since your last visit, how are you feeling"
-          columns={2}
-          size="lg"
-          options={overallOptions}
-          value={answers.overall}
-          onChange={(v) => onChange({ overall: v })}
-        />
-      </Question>
-    </>
   );
 }

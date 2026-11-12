@@ -6,6 +6,7 @@ from product.patients.models import Patient
 from product.records.models import Document, DocumentSlot
 
 from .models import MailAttachment, MailMessage, MailThread, Mailbox, Security
+from .services import sender_is_patient
 
 
 class MailboxSerializer(serializers.ModelSerializer):
@@ -72,14 +73,22 @@ class ThreadPatientSerializer(serializers.Serializer):
 class MailThreadSerializer(serializers.ModelSerializer):
     patient = ThreadPatientSerializer(read_only=True, allow_null=True)
     suggested_patient = ThreadPatientSerializer(read_only=True, allow_null=True)
+    suggestion_kind = serializers.SerializerMethodField(help_text="'third_party' when the suggested file belongs to "
+                                                                   "someone other than the sender; else 'sender'.")
     preview = serializers.SerializerMethodField()
     has_attachments = serializers.SerializerMethodField()
 
     class Meta:
         model = MailThread
-        fields = ['id', 'subject', 'contact_email', 'contact_name', 'patient', 'suggested_patient', 'last_message_at',
-                  'has_inbound', 'has_outbound', 'unread', 'archived', 'preview', 'has_attachments']
+        fields = ['id', 'subject', 'contact_email', 'contact_name', 'patient', 'suggested_patient', 'suggestion_kind',
+                  'third_party', 'third_party_relation', 'last_message_at', 'has_inbound', 'has_outbound', 'unread',
+                  'archived', 'preview', 'has_attachments']
         read_only_fields = fields
+
+    def get_suggestion_kind(self, obj) -> str:
+        if obj.suggested_patient_id is None:
+            return ''
+        return 'sender' if sender_is_patient(obj.contact_email, obj.suggested_patient) else 'third_party'
 
     @staticmethod
     def _prefetched_messages(obj):
@@ -157,6 +166,11 @@ class _ClinicScoped(serializers.Serializer):
 class LinkPatientSerializer(_ClinicScoped):
     scoped = {'patient': Patient}
     patient = serializers.PrimaryKeyRelatedField(queryset=Patient.objects.none(), allow_null=True)
+    confirm_third_party = serializers.BooleanField(
+        default=False, help_text='Required when the sender is not the patient (for example a relative).')
+    relation = serializers.CharField(
+        max_length=64, required=False, allow_blank=True,
+        help_text="Who the sender is to the patient; required with confirm_third_party.")
 
 
 class ThreadUpdateSerializer(serializers.Serializer):
@@ -169,6 +183,8 @@ class ReplySerializer(_ClinicScoped):
     body = serializers.CharField()
     documents = serializers.PrimaryKeyRelatedField(many=True, queryset=Document.objects.none(), required=False,
                                                    help_text="Documents from the patient's file to attach.")
+    confirm_third_party = serializers.BooleanField(
+        default=False, help_text='Required when the thread is with a third party rather than the patient.')
 
 
 class SaveAttachmentSerializer(serializers.Serializer):

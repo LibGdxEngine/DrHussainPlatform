@@ -539,6 +539,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/product/alerts/evaluate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Check alerts now: run every rule for the patient and return her open alerts. */
+        post: operations["product_alerts_evaluate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/product/appointments/": {
         parameters: {
             query?: never;
@@ -1773,6 +1790,23 @@ export interface paths {
         patch: operations["product_results_tests_partial_update"];
         trace?: never;
     };
+    "/api/product/results/values/{id}/check/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description The doctor confirms or corrects an uncertain value; the report's case is then routed again. */
+        post: operations["product_results_values_check_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/product/review/cases/": {
         parameters: {
             query?: never;
@@ -1912,6 +1946,30 @@ export interface paths {
          *     action below is the doctor's, logged with its time; approving is the only way an email is sent.
          */
         post: operations["product_review_cases_reject_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/product/review/cases/{id}/translations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The parts of an Arabic draft still in English, with the English to translate; or save the
+         *     doctor's translation of one part (the draft is rebuilt with it).
+         */
+        get: operations["product_review_cases_translations_list"];
+        put?: never;
+        /**
+         * @description The parts of an Arabic draft still in English, with the English to translate; or save the
+         *     doctor's translation of one part (the draft is rebuilt with it).
+         */
+        post: operations["product_review_cases_translations_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2519,13 +2577,6 @@ export interface components {
             file_number: string;
             full_name: string;
         };
-        /**
-         * @description * `yes` - yes
-         *     * `some` - some
-         *     * `stop` - stop
-         * @enum {string}
-         */
-        AdherenceEnum: "yes" | "some" | "stop";
         AlertRule: {
             /** Format: uuid */
             readonly id: string;
@@ -2551,6 +2602,44 @@ export interface components {
              *     * `waist` - Waist
              */
             vital?: components["schemas"]["VitalEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * @description Named check over the patient form answers.
+             *
+             *     * `age_or_years_since_period` - Age, or years since the last period or menopause, 2 / 3
+             *     * `alcohol_units` - Units or drinks per week, 9
+             *     * `bleeding_after_year` - Any bleeding 12 months after the last period, 3
+             *     * `breast_cancer` - Breast cancer (ever), 6A
+             *     * `breast_concern` - Breast lump, discharge or skin change, 10b
+             *     * `coronary_disease` - Heart attack, angina or known coronary disease, 6A
+             *     * `desire_bother` - Low desire that bothers you, 10
+             *     * `fh_breast_cancer` - Family history of breast cancer, 8
+             *     * `fh_ovarian_brca` - Family history of ovarian cancer or a cancer gene, 8
+             *     * `fh_premature_cvd` - Family history of heart attack or stroke at a young age, 8
+             *     * `fh_vte` - Family history of blood clots, 8
+             *     * `intermenstrual_bleeding` - Bleeding between periods or after sex, 3
+             *     * `liver_disease` - Active liver disease, 6A
+             *     * `lng_ius_date` - LNG-IUS insertion date, 5
+             *     * `mammogram_date` - Last mammogram date, 5
+             *     * `medicine_listed` - A listed supplement or medicine, 7
+             *     * `menopause_age` - Age at menopause, 3
+             *     * `migraine_aura` - Migraine with aura, 6B
+             *     * `mrs_heart` - MRS item 2, heart discomfort, 4
+             *     * `peanut_allergy_progesterone` - Peanut allergy with a current medicine, 7
+             *     * `pelvic_pain_fever` - Pelvic pain with fever, 10b
+             *     * `phq2_gad2` - PHQ-2 or GAD-2 score, 6D
+             *     * `pregnancy_complications` - Pregnancy complications, 5
+             *     * `pregnancy_pain_bleeding` - Could you be pregnant, with pain or bleeding, 5 / 10b
+             *     * `self_harm` - Self-harm question, 6D
+             *     * `smear_date` - Last cervical smear date, 5
+             *     * `smoking` - Smoker / vaper, 6B
+             *     * `stroke_tia` - Stroke or mini-stroke (TIA), 6A
+             *     * `unexplained_bleeding` - Unexplained vaginal bleeding now, 6A
+             *     * `utis_per_year` - Urine infections in the last year, 10
+             *     * `vte` - Blood clot in leg or lung (DVT/PE), 6A
+             */
+            answer_check?: components["schemas"]["AnswerCheckEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Medicine names the rule needs among the current medicines, e.g. prometrium. */
+            medicine_terms?: string[];
             /** Format: int64 */
             sort_order?: number;
             readonly version: number;
@@ -2592,6 +2681,44 @@ export interface components {
              *     * `waist` - Waist
              */
             vital?: components["schemas"]["VitalEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * @description Named check over the patient form answers.
+             *
+             *     * `age_or_years_since_period` - Age, or years since the last period or menopause, 2 / 3
+             *     * `alcohol_units` - Units or drinks per week, 9
+             *     * `bleeding_after_year` - Any bleeding 12 months after the last period, 3
+             *     * `breast_cancer` - Breast cancer (ever), 6A
+             *     * `breast_concern` - Breast lump, discharge or skin change, 10b
+             *     * `coronary_disease` - Heart attack, angina or known coronary disease, 6A
+             *     * `desire_bother` - Low desire that bothers you, 10
+             *     * `fh_breast_cancer` - Family history of breast cancer, 8
+             *     * `fh_ovarian_brca` - Family history of ovarian cancer or a cancer gene, 8
+             *     * `fh_premature_cvd` - Family history of heart attack or stroke at a young age, 8
+             *     * `fh_vte` - Family history of blood clots, 8
+             *     * `intermenstrual_bleeding` - Bleeding between periods or after sex, 3
+             *     * `liver_disease` - Active liver disease, 6A
+             *     * `lng_ius_date` - LNG-IUS insertion date, 5
+             *     * `mammogram_date` - Last mammogram date, 5
+             *     * `medicine_listed` - A listed supplement or medicine, 7
+             *     * `menopause_age` - Age at menopause, 3
+             *     * `migraine_aura` - Migraine with aura, 6B
+             *     * `mrs_heart` - MRS item 2, heart discomfort, 4
+             *     * `peanut_allergy_progesterone` - Peanut allergy with a current medicine, 7
+             *     * `pelvic_pain_fever` - Pelvic pain with fever, 10b
+             *     * `phq2_gad2` - PHQ-2 or GAD-2 score, 6D
+             *     * `pregnancy_complications` - Pregnancy complications, 5
+             *     * `pregnancy_pain_bleeding` - Could you be pregnant, with pain or bleeding, 5 / 10b
+             *     * `self_harm` - Self-harm question, 6D
+             *     * `smear_date` - Last cervical smear date, 5
+             *     * `smoking` - Smoker / vaper, 6B
+             *     * `stroke_tia` - Stroke or mini-stroke (TIA), 6A
+             *     * `unexplained_bleeding` - Unexplained vaginal bleeding now, 6A
+             *     * `utis_per_year` - Urine infections in the last year, 10
+             *     * `vte` - Blood clot in leg or lung (DVT/PE), 6A
+             */
+            answer_check?: components["schemas"]["AnswerCheckEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Medicine names the rule needs among the current medicines, e.g. prometrium. */
+            medicine_terms?: string[];
             note?: string;
             /** Format: int64 */
             sort_order?: number;
@@ -2613,31 +2740,49 @@ export interface components {
             lab_test_code?: string;
             lab_check?: components["schemas"]["LabCheckEnum"] | components["schemas"]["BlankEnum"];
             vital?: components["schemas"]["VitalEnum"] | components["schemas"]["BlankEnum"];
+            answer_check?: string;
+            medicine_terms?: unknown;
             /** @description Why it changed. */
             note?: string;
             readonly created_by_name: string;
             /** Format: date-time */
             readonly created_at: string;
         };
-        /** @description What the patient can answer. Unknown keys are dropped, so the stored form stays predictable. */
-        AnswersRequest: {
-            reasons?: components["schemas"]["ReasonsEnum"][];
-            other_reason?: string;
-            last_period?: string;
-            period_status?: components["schemas"]["PeriodStatusEnum"];
-            bleed_after_year?: components["schemas"]["YesNoEnum"];
-            menopause_age?: number | null;
-            uterus?: components["schemas"]["YesNoEnum"];
-            pregnant?: components["schemas"]["PregnantEnum"];
-            intermenstrual?: components["schemas"]["YesNoEnum"];
-            overall?: components["schemas"]["OverallEnum"];
-            adherence?: components["schemas"]["AdherenceEnum"];
-            adherence_reason?: string;
-            side_effects?: components["schemas"]["SideEffectsEnum"][];
-            bleeding?: components["schemas"]["YesNoEnum"];
-            medicines?: components["schemas"]["MedicineAnswerRequest"][];
-            notes?: string;
-        };
+        /**
+         * @description * `age_or_years_since_period` - Age, or years since the last period or menopause, 2 / 3
+         *     * `alcohol_units` - Units or drinks per week, 9
+         *     * `bleeding_after_year` - Any bleeding 12 months after the last period, 3
+         *     * `breast_cancer` - Breast cancer (ever), 6A
+         *     * `breast_concern` - Breast lump, discharge or skin change, 10b
+         *     * `coronary_disease` - Heart attack, angina or known coronary disease, 6A
+         *     * `desire_bother` - Low desire that bothers you, 10
+         *     * `fh_breast_cancer` - Family history of breast cancer, 8
+         *     * `fh_ovarian_brca` - Family history of ovarian cancer or a cancer gene, 8
+         *     * `fh_premature_cvd` - Family history of heart attack or stroke at a young age, 8
+         *     * `fh_vte` - Family history of blood clots, 8
+         *     * `intermenstrual_bleeding` - Bleeding between periods or after sex, 3
+         *     * `liver_disease` - Active liver disease, 6A
+         *     * `lng_ius_date` - LNG-IUS insertion date, 5
+         *     * `mammogram_date` - Last mammogram date, 5
+         *     * `medicine_listed` - A listed supplement or medicine, 7
+         *     * `menopause_age` - Age at menopause, 3
+         *     * `migraine_aura` - Migraine with aura, 6B
+         *     * `mrs_heart` - MRS item 2, heart discomfort, 4
+         *     * `peanut_allergy_progesterone` - Peanut allergy with a current medicine, 7
+         *     * `pelvic_pain_fever` - Pelvic pain with fever, 10b
+         *     * `phq2_gad2` - PHQ-2 or GAD-2 score, 6D
+         *     * `pregnancy_complications` - Pregnancy complications, 5
+         *     * `pregnancy_pain_bleeding` - Could you be pregnant, with pain or bleeding, 5 / 10b
+         *     * `self_harm` - Self-harm question, 6D
+         *     * `smear_date` - Last cervical smear date, 5
+         *     * `smoking` - Smoker / vaper, 6B
+         *     * `stroke_tia` - Stroke or mini-stroke (TIA), 6A
+         *     * `unexplained_bleeding` - Unexplained vaginal bleeding now, 6A
+         *     * `utis_per_year` - Urine infections in the last year, 10
+         *     * `vte` - Blood clot in leg or lung (DVT/PE), 6A
+         * @enum {string}
+         */
+        AnswerCheckEnum: "age_or_years_since_period" | "alcohol_units" | "bleeding_after_year" | "breast_cancer" | "breast_concern" | "coronary_disease" | "desire_bother" | "fh_breast_cancer" | "fh_ovarian_brca" | "fh_premature_cvd" | "fh_vte" | "intermenstrual_bleeding" | "liver_disease" | "lng_ius_date" | "mammogram_date" | "medicine_listed" | "menopause_age" | "migraine_aura" | "mrs_heart" | "peanut_allergy_progesterone" | "pelvic_pain_fever" | "phq2_gad2" | "pregnancy_complications" | "pregnancy_pain_bleeding" | "self_harm" | "smear_date" | "smoking" | "stroke_tia" | "unexplained_bleeding" | "utis_per_year" | "vte";
         Appointment: {
             /** Format: uuid */
             readonly id: string;
@@ -2716,6 +2861,13 @@ export interface components {
              */
             send_form: boolean;
         };
+        ApproveRequest: {
+            /**
+             * @description A reply on a third-party thread: send to the thread contact, not the patient.
+             * @default false
+             */
+            send_to_thread_contact: boolean;
+        };
         AuditLog: {
             /** Format: uuid */
             readonly id: string;
@@ -2764,6 +2916,8 @@ export interface components {
             body_text: string;
             /** Format: date-time */
             sent_at: string;
+            third_party: boolean;
+            third_party_relation: string;
         };
         CaseReportSummary: {
             /** Format: uuid */
@@ -2775,6 +2929,95 @@ export interface components {
             /** Format: uuid */
             document: string;
             document_title: string;
+        };
+        Catalogue: {
+            version: string;
+            sections: components["schemas"]["CatalogueSection"][];
+        };
+        /** @description One column of a repeating-row question. */
+        CatalogueField: {
+            id: string;
+            label: string;
+            type: components["schemas"]["CatalogueFieldTypeEnum"];
+            options?: components["schemas"]["CatalogueOption"][];
+            /** @default false */
+            required: boolean;
+            default?: unknown;
+            min?: number;
+            max?: number;
+            max_length?: number;
+        };
+        /**
+         * @description * `single` - single
+         *     * `text` - text
+         *     * `number` - number
+         *     * `date` - date
+         *     * `tick` - tick
+         * @enum {string}
+         */
+        CatalogueFieldTypeEnum: "single" | "text" | "number" | "date" | "tick";
+        CatalogueOption: {
+            /** @description A string, or a 0-3 score for the mood questions. */
+            value: unknown;
+            label: string;
+        };
+        CatalogueQuestion: {
+            id: string;
+            /** @description Forms-doc wording. */
+            label: string;
+            type: components["schemas"]["CatalogueQuestionTypeEnum"];
+            options?: components["schemas"]["CatalogueOption"][];
+            fields?: components["schemas"]["CatalogueField"][];
+            /** @description A catalogue condition. */
+            show_if?: unknown;
+            /**
+             * @description true, or a catalogue condition.
+             * @default false
+             */
+            required: unknown;
+            carry_forward: boolean;
+            /**
+             * @description Not a question in the forms doc; to confirm with the clinic.
+             * @default false
+             */
+            inferred: boolean;
+            /** @description Other sections that ask it when its own section is closed. */
+            also_in?: string[];
+            rules?: string[];
+            /** @description Answer values highlighted for the doctor, or "any" for any answer. */
+            flag?: unknown;
+            min?: number;
+            max?: number;
+            max_length?: number;
+            max_rows?: number;
+            /**
+             * @description Number questions: "not_sure" is accepted.
+             * @default false
+             */
+            not_sure: boolean;
+        };
+        /**
+         * @description * `single` - single
+         *     * `multi` - multi
+         *     * `number` - number
+         *     * `scale` - scale
+         *     * `text` - text
+         *     * `date` - date
+         *     * `tick` - tick
+         *     * `rows` - rows
+         *     * `mrs` - mrs
+         * @enum {string}
+         */
+        CatalogueQuestionTypeEnum: "single" | "multi" | "number" | "scale" | "text" | "date" | "tick" | "rows" | "mrs";
+        CatalogueSection: {
+            id: string;
+            title: string;
+            kinds: components["schemas"]["IntakeFormKindEnum"][];
+            addable: boolean;
+            /** @description A catalogue condition. */
+            opens_when: unknown;
+            intro?: string;
+            questions: components["schemas"]["CatalogueQuestion"][];
         };
         /**
          * @description * `first` - first
@@ -2798,6 +3041,10 @@ export interface components {
         Comparison: {
             change: components["schemas"]["ChangeEnum"];
             reasons: string[];
+            /** @description Remarks on a comparison that stands, e.g. 'lab_differs'. */
+            notes: string[];
+            /** @description [this lab, previous lab] when they differ; empty otherwise. */
+            labs: string[];
             previous: components["schemas"]["PreviousValue"] | null;
         };
         ConnectionCheck: {
@@ -2930,8 +3177,11 @@ export interface components {
             readonly subject: string;
             readonly body: string;
             readonly open_slots: string[];
+            /** @description Template and phrase keys still in English; the draft cannot be sent until each is translated. */
+            readonly missing_translations: string[];
             readonly template_versions: components["schemas"]["DraftTemplate"][];
             readonly prescriptions: components["schemas"]["DraftPrescription"][];
+            readonly section_prescriptions: components["schemas"]["DraftSectionPrescription"][];
             readonly leaflets: components["schemas"]["DraftLeaflet"][];
             readonly follow_up: string;
             readonly attach_report: boolean;
@@ -2958,8 +3208,21 @@ export interface components {
             language?: components["schemas"]["DraftOptionsLanguageEnum"];
             leaflets?: string[];
             attach_report?: boolean;
+            /** @description Per positive result: {"sti_section_<test>": [prescription item id, ...]}. Only the sections given change; an empty list clears that section. */
+            section_prescriptions?: {
+                [key: string]: string[];
+            };
         };
         DraftPrescription: {
+            /** Format: uuid */
+            item: string;
+            number: number;
+            drug: string;
+            dose: string;
+            directions: string;
+        };
+        DraftSectionPrescription: {
+            section_key: string;
             /** Format: uuid */
             item: string;
             number: number;
@@ -3029,6 +3292,8 @@ export interface components {
             readonly approved_by_name: string;
             /** Format: date-time */
             approved_at?: string | null;
+            /** Format: uuid */
+            readonly translated_from: string | null;
         };
         EmailTemplateVersionRequest: {
             /** Format: int64 */
@@ -3039,6 +3304,10 @@ export interface components {
             note?: string;
             /** Format: date-time */
             approved_at?: string | null;
+        };
+        EvaluateRequest: {
+            /** Format: uuid */
+            patient: string;
         };
         Examination: {
             /** Format: uuid */
@@ -3120,6 +3389,24 @@ export interface components {
             readonly created_at: string;
         };
         /**
+         * @description * `menopause` - menopause
+         *     * `hormone_screen` - hormone_screen
+         *     * `sexual_detail` - sexual_detail
+         *     * `heavy` - heavy
+         *     * `bleed` - bleed
+         *     * `pain` - pain
+         *     * `contra` - contra
+         *     * `ttc` - ttc
+         *     * `pcos` - pcos
+         *     * `dis` - dis
+         *     * `uri` - uri
+         *     * `pms` - pms
+         *     * `smear` - smear
+         *     * `breast` - breast
+         * @enum {string}
+         */
+        ExtraModulesEnum: "menopause" | "hormone_screen" | "sexual_detail" | "heavy" | "bleed" | "pain" | "contra" | "ttc" | "pcos" | "dis" | "uri" | "pms" | "smear" | "breast";
+        /**
          * @description * `automatic` - automatic
          *     * `review` - review
          * @enum {string}
@@ -3141,8 +3428,10 @@ export interface components {
          * @enum {string}
          */
         FlagEnum: "H" | "L" | "A" | "N";
+        /** @description The answers are checked against the question catalogue (intake/catalogue.py) for the form's kind. */
         FormSaveRequest: {
-            answers?: components["schemas"]["AnswersRequest"];
+            /** @description Question id -> answer, as the catalogue describes. */
+            answers?: unknown;
             mrs?: number[] | null;
         };
         HelloResponse: {
@@ -3189,6 +3478,8 @@ export interface components {
             kind?: components["schemas"]["IntakeFormKindEnum"];
             /** @default false */
             send_email: boolean;
+            /** @description Modules to add on top of the ones her answers open. */
+            extra_modules?: components["schemas"]["ExtraModulesEnum"][];
         };
         IntakeFormDetail: {
             /** Format: uuid */
@@ -3219,6 +3510,12 @@ export interface components {
             readonly created_at: string;
             readonly answers: unknown;
             readonly mrs: number[] | null;
+            readonly history_summary: components["schemas"]["SummaryModule"][];
+            /** Format: date-time */
+            readonly rules_evaluated_at: string | null;
+            readonly rule_errors: unknown;
+            readonly extra_modules: string[];
+            readonly catalogue_version: string;
         };
         /**
          * @description * `full` - Full history
@@ -3449,6 +3746,13 @@ export interface components {
         LinkPatientRequest: {
             /** Format: uuid */
             patient: string | null;
+            /**
+             * @description Required when the sender is not the patient (for example a relative).
+             * @default false
+             */
+            confirm_third_party: boolean;
+            /** @description Who the sender is to the patient; required with confirm_third_party. */
+            relation?: string;
         };
         LoginRequest: {
             identifier: string;
@@ -3508,6 +3812,10 @@ export interface components {
             readonly contact_name: string;
             readonly patient: components["schemas"]["ThreadPatient"] | null;
             readonly suggested_patient: components["schemas"]["ThreadPatient"] | null;
+            /** @description 'third_party' when the suggested file belongs to someone other than the sender; else 'sender'. */
+            readonly suggestion_kind: string;
+            readonly third_party: boolean;
+            readonly third_party_relation: string;
             /** Format: date-time */
             readonly last_message_at: string;
             readonly has_inbound: boolean;
@@ -3527,6 +3835,10 @@ export interface components {
             readonly contact_name: string;
             readonly patient: components["schemas"]["ThreadPatient"] | null;
             readonly suggested_patient: components["schemas"]["ThreadPatient"] | null;
+            /** @description 'third_party' when the suggested file belongs to someone other than the sender; else 'sender'. */
+            readonly suggestion_kind: string;
+            readonly third_party: boolean;
+            readonly third_party_relation: string;
             /** Format: date-time */
             readonly last_message_at: string;
             readonly has_inbound: boolean;
@@ -3586,11 +3898,6 @@ export interface components {
             role: components["schemas"]["RoleEnum"];
             /** @description Owner or admin: medical notes, alerts, orders and settings. */
             is_lead: boolean;
-        };
-        MedicineAnswerRequest: {
-            name: string;
-            /** @default true */
-            still_taking: boolean;
         };
         Member: {
             /** Format: uuid */
@@ -3712,14 +4019,6 @@ export interface components {
             slug: string;
             is_active?: boolean;
         };
-        /**
-         * @description * `much` - much
-         *     * `better` - better
-         *     * `same` - same
-         *     * `worse` - worse
-         * @enum {string}
-         */
-        OverallEnum: "much" | "better" | "same" | "worse";
         PaginatedActivityList: {
             /** @example 123 */
             count: number;
@@ -4285,6 +4584,44 @@ export interface components {
              *     * `waist` - Waist
              */
             vital?: components["schemas"]["VitalEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * @description Named check over the patient form answers.
+             *
+             *     * `age_or_years_since_period` - Age, or years since the last period or menopause, 2 / 3
+             *     * `alcohol_units` - Units or drinks per week, 9
+             *     * `bleeding_after_year` - Any bleeding 12 months after the last period, 3
+             *     * `breast_cancer` - Breast cancer (ever), 6A
+             *     * `breast_concern` - Breast lump, discharge or skin change, 10b
+             *     * `coronary_disease` - Heart attack, angina or known coronary disease, 6A
+             *     * `desire_bother` - Low desire that bothers you, 10
+             *     * `fh_breast_cancer` - Family history of breast cancer, 8
+             *     * `fh_ovarian_brca` - Family history of ovarian cancer or a cancer gene, 8
+             *     * `fh_premature_cvd` - Family history of heart attack or stroke at a young age, 8
+             *     * `fh_vte` - Family history of blood clots, 8
+             *     * `intermenstrual_bleeding` - Bleeding between periods or after sex, 3
+             *     * `liver_disease` - Active liver disease, 6A
+             *     * `lng_ius_date` - LNG-IUS insertion date, 5
+             *     * `mammogram_date` - Last mammogram date, 5
+             *     * `medicine_listed` - A listed supplement or medicine, 7
+             *     * `menopause_age` - Age at menopause, 3
+             *     * `migraine_aura` - Migraine with aura, 6B
+             *     * `mrs_heart` - MRS item 2, heart discomfort, 4
+             *     * `peanut_allergy_progesterone` - Peanut allergy with a current medicine, 7
+             *     * `pelvic_pain_fever` - Pelvic pain with fever, 10b
+             *     * `phq2_gad2` - PHQ-2 or GAD-2 score, 6D
+             *     * `pregnancy_complications` - Pregnancy complications, 5
+             *     * `pregnancy_pain_bleeding` - Could you be pregnant, with pain or bleeding, 5 / 10b
+             *     * `self_harm` - Self-harm question, 6D
+             *     * `smear_date` - Last cervical smear date, 5
+             *     * `smoking` - Smoker / vaper, 6B
+             *     * `stroke_tia` - Stroke or mini-stroke (TIA), 6A
+             *     * `unexplained_bleeding` - Unexplained vaginal bleeding now, 6A
+             *     * `utis_per_year` - Urine infections in the last year, 10
+             *     * `vte` - Blood clot in leg or lung (DVT/PE), 6A
+             */
+            answer_check?: components["schemas"]["AnswerCheckEnum"] | components["schemas"]["BlankEnum"];
+            /** @description Medicine names the rule needs among the current medicines, e.g. prometrium. */
+            medicine_terms?: string[];
             note?: string;
             /** Format: int64 */
             sort_order?: number;
@@ -4371,8 +4708,10 @@ export interface components {
             send_follow_up_form?: boolean;
             expected_version?: number;
         };
+        /** @description The answers are checked against the question catalogue (intake/catalogue.py) for the form's kind. */
         PatchedFormSaveRequest: {
-            answers?: components["schemas"]["AnswersRequest"];
+            /** @description Question id -> answer, as the catalogue describes. */
+            answers?: unknown;
             mrs?: number[] | null;
         };
         PatchedLabTestRequest: {
@@ -4505,6 +4844,10 @@ export interface components {
             readonly examination: string | null;
             /** Format: date */
             readonly examined_on: string | null;
+            /** Format: uuid */
+            readonly intake_form: string | null;
+            /** @description What fired it: lab (a result), vital (an examination) or answer (a patient form). */
+            readonly source: string;
             readonly status: components["schemas"]["PatientAlertStatusEnum"];
             readonly acknowledged_by_name: string;
             /** Format: date-time */
@@ -4551,8 +4894,16 @@ export interface components {
             answers: unknown;
             mrs: number[] | null;
             previous_mrs: components["schemas"]["MrsPoint"][];
-            /** @description From the latest prescription, for the patient to confirm. */
+            /** @description Her current medicines (product.medicines), to confirm. */
             current_medicines: string[];
+            /** @description Every section and question; the form evaluates visibility live. */
+            catalogue: components["schemas"]["Catalogue"];
+            /** @description Carry-forward answers from her earlier complete forms, newest first, to confirm or edit. */
+            previous_answers: {
+                [key: string]: unknown;
+            };
+            patient_age: number | null;
+            extra_modules: components["schemas"]["ExtraModulesEnum"][];
         };
         PendingCount: {
             /** @description Requested tests not yet arrived. */
@@ -4560,15 +4911,6 @@ export interface components {
             /** @description Patients with at least one test still to arrive. */
             patients: number;
         };
-        /**
-         * @description * `reg` - reg
-         *     * `irr` - irr
-         *     * `stopped` - stopped
-         *     * `horm` - horm
-         *     * `hyst` - hyst
-         * @enum {string}
-         */
-        PeriodStatusEnum: "reg" | "irr" | "stopped" | "horm" | "hyst";
         PhoneChangeConfirmRequest: {
             /** Format: uuid */
             challenge_id: string;
@@ -4610,13 +4952,6 @@ export interface components {
             /** @description The cervical smear section, e.g. smear_section_5. */
             template: string;
         };
-        /**
-         * @description * `yes` - Yes
-         *     * `no` - No
-         *     * `unsure` - Not sure
-         * @enum {string}
-         */
-        PregnantEnum: "yes" | "no" | "unsure";
         PrescribedMedicine: {
             /** Format: uuid */
             readonly id: string;
@@ -4704,30 +5039,15 @@ export interface components {
         ReasonRequest: {
             reason: string;
         };
-        /**
-         * @description * `routine` - routine
-         *     * `heavy` - heavy
-         *     * `bleed` - bleed
-         *     * `pain` - pain
-         *     * `contra` - contra
-         *     * `ttc` - ttc
-         *     * `pcos` - pcos
-         *     * `dis` - dis
-         *     * `uri` - uri
-         *     * `pms` - pms
-         *     * `smear` - smear
-         *     * `breast` - breast
-         *     * `meno` - meno
-         *     * `hrt` - hrt
-         *     * `lib` - lib
-         *     * `other` - other
-         * @enum {string}
-         */
-        ReasonsEnum: "routine" | "heavy" | "bleed" | "pain" | "contra" | "ttc" | "pcos" | "dis" | "uri" | "pms" | "smear" | "breast" | "meno" | "hrt" | "lib" | "other";
         ReplyRequest: {
             body: string;
             /** @description Documents from the patient's file to attach. */
             documents?: string[];
+            /**
+             * @description Required when the thread is with a third party rather than the patient.
+             * @default false
+             */
+            confirm_third_party: boolean;
         };
         ReportIdentifiers: {
             name?: string;
@@ -4802,6 +5122,12 @@ export interface components {
             result_date?: string | null;
             lab_name?: string;
             unreadable?: boolean;
+            needs_check?: boolean;
+            check_reason?: string;
+            /** Format: uuid */
+            checked_by?: string | null;
+            /** Format: date-time */
+            checked_at?: string | null;
             source?: components["schemas"]["ResultSourceEnum"];
             readonly comparison: components["schemas"]["Comparison"];
         };
@@ -4924,6 +5250,8 @@ export interface components {
             message_id?: string;
             error?: string;
             readonly approved_by_name: string;
+            /** @description Who confirmed sending a reply to a third-party thread contact instead of the patient. */
+            readonly to_thread_contact_confirmed_by_name: string;
             /** Format: date-time */
             sent_at?: string | null;
             /** Format: date-time */
@@ -4945,18 +5273,6 @@ export interface components {
         Session: {
             session: string;
         };
-        /**
-         * @description * `breast` - breast
-         *     * `bloat` - bloat
-         *     * `head` - head
-         *     * `sleepy` - sleepy
-         *     * `mood` - mood
-         *     * `acne` - acne
-         *     * `hair` - hair
-         *     * `facial` - facial
-         * @enum {string}
-         */
-        SideEffectsEnum: "breast" | "bloat" | "head" | "sleepy" | "mood" | "acne" | "hair" | "facial";
         SignupRequest: {
             /** Format: email */
             email: string;
@@ -4985,8 +5301,11 @@ export interface components {
         SlotEnum: "lab" | "us" | "rad" | "path" | "paper" | "letter";
         SmearPlan: {
             key: string;
+            /** @description The template's name, shown on the plan button. */
             name: string;
             approved: boolean;
+            /** @description False: the plan cannot be chosen yet. */
+            has_approved_wording: boolean;
         };
         SocialAuthRequest: {
             token: string;
@@ -5020,6 +5339,19 @@ export interface components {
          * @enum {string}
          */
         SubscriptionStatusEnum: "trialing" | "active" | "past_due" | "canceled";
+        SummaryModule: {
+            module: string;
+            title: string;
+            rows: components["schemas"]["SummaryRow"][];
+        };
+        SummaryRow: {
+            question: string;
+            label: string;
+            value: string;
+            /** @description The answer feeds a red or amber rule and may set it off. */
+            highlight: boolean;
+            not_answered: boolean;
+        };
         SystemStatus: {
             database: string;
             redis: string;
@@ -5038,9 +5370,10 @@ export interface components {
          *     * `pathology` - Pathology results
          *     * `smear` - Cervical smear
          *     * `reply` - Reply about a prescription
+         *     * `phrase` - System phrase
          * @enum {string}
          */
-        TemplateKindEnum: "results" | "menopause" | "follow_up" | "infection" | "pathology" | "smear" | "reply";
+        TemplateKindEnum: "results" | "menopause" | "follow_up" | "infection" | "pathology" | "smear" | "reply" | "phrase";
         TemplatePreview: {
             subject: string;
             body: string;
@@ -5097,6 +5430,34 @@ export interface components {
         TokenVerifyRequest: {
             token: string;
         };
+        TranslationSaveRequest: {
+            key: string;
+            /** @default  */
+            subject: string;
+            body: string;
+            /**
+             * @description Also approve it, so later drafts in this language reuse it.
+             * @default false
+             */
+            keep_for_future: boolean;
+        };
+        /** @description One part of the draft still in English: what to translate. */
+        TranslationSource: {
+            key: string;
+            name: string;
+            is_phrase: boolean;
+            subject: string;
+            body: string;
+            /** @description Null: the clinic profile signature. */
+            english_version: number | null;
+            placeholders: string[];
+            /** @description A local translator suggestion, to be checked; usually none. */
+            suggestion: components["schemas"]["TranslationSuggestion"] | null;
+        };
+        TranslationSuggestion: {
+            subject: string;
+            body: string;
+        };
         UserProfile: {
             /** Format: uuid */
             readonly id: string;
@@ -5125,6 +5486,16 @@ export interface components {
          * @enum {string}
          */
         UserStatusEnum: "pending" | "active" | "blocked" | "deletion_pending";
+        /** @description The doctor's confirmation of one value; any field sent corrects what was read. */
+        ValueCheckRequest: {
+            value_text?: string;
+            unit?: string;
+            /** Format: decimal */
+            ref_low?: string | null;
+            /** Format: decimal */
+            ref_high?: string | null;
+            ref_text?: string;
+        };
         VerificationChallengeResponse: {
             /** @default true */
             verification_required: boolean;
@@ -5193,12 +5564,6 @@ export interface components {
             /** Format: uuid */
             event_id: string;
         };
-        /**
-         * @description * `yes` - Yes
-         *     * `no` - No
-         * @enum {string}
-         */
-        YesNoEnum: "yes" | "no";
         ApiErrorEnvelope: {
             error: {
                 code: string;
@@ -9235,6 +9600,8 @@ export interface operations {
                 patient?: string;
                 /** @description Only alerts fired by this report. */
                 report?: string;
+                /** @description case (with report): the alerts fired by this report plus the patient's open red answer alerts; no reminders. */
+                scope?: string;
                 /** @description open (default), acknowledged, resolved or all. */
                 status?: string;
             };
@@ -9368,6 +9735,121 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PatientAlert"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_alerts_evaluate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluateRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EvaluateRequest"];
+                "multipart/form-data": components["schemas"]["EvaluateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PatientAlert"][];
                 };
             };
             /** @description Invalid request or validation error. */
@@ -20791,6 +21273,124 @@ export interface operations {
             };
         };
     };
+    product_results_values_check_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this result value. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ValueCheckRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ValueCheckRequest"];
+                "multipart/form-data": components["schemas"]["ValueCheckRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationReport"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
     product_review_cases_list: {
         parameters: {
             query?: {
@@ -21031,7 +21631,13 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ApproveRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ApproveRequest"];
+                "multipart/form-data": components["schemas"]["ApproveRequest"];
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -21620,6 +22226,236 @@ export interface operations {
                 "application/json": components["schemas"]["ReasonRequest"];
                 "application/x-www-form-urlencoded": components["schemas"]["ReasonRequest"];
                 "multipart/form-data": components["schemas"]["ReasonRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultsCaseDetail"];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_translations_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranslationSource"][];
+                };
+            };
+            /** @description Invalid request or validation error. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Authentication failed or session expired. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Permission denied or required verification. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Resource not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Method not allowed. */
+            405: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Response format not acceptable. */
+            406: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unsupported media type. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Request throttled. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description Unexpected internal error. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+            /** @description A required service is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    product_review_cases_translations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this results case. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranslationSaveRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TranslationSaveRequest"];
+                "multipart/form-data": components["schemas"]["TranslationSaveRequest"];
             };
         };
         responses: {

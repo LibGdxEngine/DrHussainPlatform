@@ -44,6 +44,12 @@ def issue_order(organization, *, issued_by, tests=(), medicines=(), **fields) ->
                                              patient=order.patient, sent_by=issued_by)
             order.sent_to = to_address
             order.save(update_fields=['mail_message', 'sent_to', 'updated_at'])
+        if order.kind == Order.Kind.PRESCRIPTION:
+            # A new prescription changes her current medicines: R11, R32 and R34 depend on them.
+            from product.alerts.services import evaluate_patient_safely
+
+            patient = order.patient
+            transaction.on_commit(lambda: evaluate_patient_safely(patient))
     return order
 
 

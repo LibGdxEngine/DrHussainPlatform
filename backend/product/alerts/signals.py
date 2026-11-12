@@ -1,4 +1,4 @@
-"""A changed lab rule is applied to existing patients, not only to the next result that comes in."""
+"""A changed rule is applied to existing patients, not only to the next result or form that comes in."""
 import logging
 
 from django.core.cache import cache
@@ -16,7 +16,8 @@ def _rule_version_saved(sender, instance, created, raw=False, **kwargs):
         return
     from .models import PatientAlert
 
-    affects_results = bool(instance.lab_check) or PatientAlert.objects.filter(
+    checked = bool(instance.lab_check or instance.answer_check or instance.medicine_terms)
+    affects_results = checked or PatientAlert.objects.filter(
         rule_id=instance.rule_id, status=PatientAlert.Status.OPEN,
     ).exists()
     if not affects_results:

@@ -219,7 +219,8 @@ SPECTACULAR_SETTINGS = {
 from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    # Eight hours from sign-in (a working day); the web session is also capped at 8 h from login.
+    'REFRESH_TOKEN_LIFETIME': timedelta(hours=8),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
@@ -346,6 +347,9 @@ MAIL_ALLOW_PRIVATE_HOSTS = os.environ.get('MAIL_ALLOW_PRIVATE_HOSTS', 'false').l
 
 # Public address of the EMR frontend: patient form links and staff invitations point here.
 EMR_PUBLIC_URL = os.environ.get('EMR_PUBLIC_URL', 'http://localhost').rstrip('/')
+# Dotted path of a local translator class (product.review.translation.Translator) for suggested
+# translations; empty means none. It must run on this server with no network access.
+EMR_TRANSLATOR = os.environ.get('EMR_TRANSLATOR', '')
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 CELERY_BEAT_SCHEDULE = {
@@ -399,6 +403,9 @@ EXPIRED_TOKEN_RETENTION_DAYS = int(os.environ.get('EXPIRED_TOKEN_RETENTION_DAYS'
 INVITATION_EXPIRY_DAYS = int(os.environ.get('INVITATION_EXPIRY_DAYS', 7))
 TEMP_UPLOAD_RETENTION_HOURS = int(os.environ.get('TEMP_UPLOAD_RETENTION_HOURS', 24))
 DOCUMENT_MAX_UPLOAD_BYTES = int(os.environ.get('DOCUMENT_MAX_UPLOAD_BYTES', 25 * 1024 * 1024))
+# The largest request body the public (no sign-in) patient-form endpoints read, checked before the
+# JSON is parsed (DRF's parsers do not apply DATA_UPLOAD_MAX_MEMORY_SIZE). Caddy refuses the same.
+INTAKE_MAX_BODY_BYTES = int(os.environ.get('INTAKE_MAX_BODY_BYTES', 512 * 1024))
 # Fernet keys for patient files at rest, comma-separated: the first encrypts, all decrypt (rotation).
 MEDIA_ENCRYPTION_KEYS = os.environ.get('MEDIA_ENCRYPTION_KEYS', '')
 # Investigation reports are read on this server (PDF text layer, else Tesseract OCR). Adding 'ara'

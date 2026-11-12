@@ -54,7 +54,7 @@ function VisitSummary({ patient }: { patient: Patient }) {
   const uterus = readAnswers(form.data?.answered?.answers).uterus;
   const meta = [
     journey.next ? `Next: ${visitTitle[journey.next.kind]} · ${formatDay(journey.next.starts_at)}` : "",
-    form.data ? `Patient form: ${lowerFirst(formStatusText(form.data.latest))}` : "",
+    form.data ? `Patient form: ${lowerFirst(formStatusText(form.data.latestAny ?? form.data.latest))}` : "",
     uterus === "yes" ? "Uterus present" : uterus === "no" ? "No uterus" : "",
   ].filter(Boolean).join(" · ");
 
@@ -88,7 +88,7 @@ function VisitSummary({ patient }: { patient: Patient }) {
       <div className="grid grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] items-start gap-4">
         <div className="flex flex-col gap-4">
           <AlertsPanel patientId={patient.id} isLead={!!me?.is_lead} />
-          <PatientFormPanel form={form.data} error={form.error} />
+          <PatientFormPanel form={form.data} error={form.error} patientId={patient.id} />
           {form.data ? <ModuleTabs form={form.data.answered} /> : null}
         </div>
         <div className="flex flex-col gap-4">

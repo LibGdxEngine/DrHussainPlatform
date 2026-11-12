@@ -82,15 +82,22 @@ class PatientViewSet(
         confirm_duplicate = fields.pop('confirm_duplicate')
         organization = serializer.context['organization']
         similar = find_similar(organization, fields['full_name'], fields['date_of_birth'], fields.get('full_name_ar', ''))
-        if not confirm_duplicate and similar.exists():
+        if not confirm_duplicate and similar:
+            numbers = ', '.join(p.file_number for p in similar)
+            exact = any(p.match == 'exact' for p in similar)
+            message = (
+                f'A patient with the same name and date of birth is already registered (file {numbers}).'
+                if exact else
+                f'A patient with a very similar name and the same date of birth is already registered '
+                f'(file {numbers}). Check it is not the same person.'
+            )
             return error_response(
-                'DUPLICATE_PATIENT',
-                'A patient with the same name and date of birth is already registered.',
-                status=status.HTTP_409_CONFLICT,
-                context={'similar': SimilarPatientSerializer(similar, many=True).data},
+                'DUPLICATE_PATIENT', message, status=status.HTTP_409_CONFLICT,
+                context={'match': 'exact' if exact else 'near',
+                         'similar': SimilarPatientSerializer(similar, many=True).data},
             )
         patient = create_patient(organization, **fields)
-        audit(request, 'patient.created', patient, duplicate_confirmed=confirm_duplicate and similar.exists())
+        audit(request, 'patient.created', patient, duplicate_confirmed=confirm_duplicate and bool(similar))
         return Response(PatientSerializer(patient, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
 
     def retrieve(self, request, *args, **kwargs):

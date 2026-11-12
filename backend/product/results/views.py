@@ -12,10 +12,10 @@ from product.tenancy import IsClinicLead, OrganizationScopedMixin, get_request_o
 
 from .catalog import normalize_test_name
 from .models import InvestigationReport, LabTest, LabTestAlias, ResultValue
-from .pipeline import save_manual_values, should_read
+from .pipeline import check_value, save_manual_values, should_read
 from .serializers import (
     DocumentRefSerializer, InvestigationReportSerializer, LabTestSerializer, ManualEntrySerializer,
-    ResultValueSerializer,
+    ResultValueSerializer, ValueCheckSerializer,
 )
 from .tasks import read_report
 
@@ -145,6 +145,37 @@ class InvestigationReportViewSet(
         return Response(self.get_serializer(self.get_queryset().get(pk=report.pk)).data)
 
 
+class ResultValueViewSet(OrganizationScopedMixin, viewsets.GenericViewSet):
+    """One value read from a report."""
+    queryset = ResultValue.objects.select_related('lab_test', 'report')
+    serializer_class = ValueCheckSerializer
+    permission_classes = [IsClinicLead]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if self.action == 'check' and 'pk' in self.kwargs:
+            context['value'] = self.get_object()
+        return context
+
+    @extend_schema(request=ValueCheckSerializer, responses={200: InvestigationReportSerializer})
+    @action(detail=True, methods=['post'])
+    def check(self, request, pk=None):
+        """The doctor confirms or corrects an uncertain value; the report's case is then routed again."""
+        from product.review.services import route_report
+
+        value = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            report = check_value(value, user=request.user, corrections=serializer.validated_data)
+            audit(request, 'result_value.checked', value, patient_id=str(value.patient_id),
+                  report_id=str(report.pk), check_reason=value.check_reason,
+                  corrected=sorted(serializer.validated_data))
+            route_report(report, actor=request.user)
+        report = InvestigationReport.objects.prefetch_related('values__lab_test').get(pk=report.pk)
+        return Response(InvestigationReportSerializer(report).data)
+
+
 class ManualEntryView(OrganizationScopedMixin, generics.GenericAPIView):
     """Staff type key values from a report; they are stored exactly like values read from it."""
     queryset = InvestigationReport.objects.none()
@@ -166,9 +197,10 @@ class ManualEntryView(OrganizationScopedMixin, generics.GenericAPIView):
             user=request.user,
         )
         audit(request, 'report.values_entered', report, tests=[entry['test'] for entry in data['values']])
-        from product.alerts.services import evaluate_patient
+        from product.alerts.services import evaluate_patient_safely
 
-        evaluate_patient(document.patient)
+        # A rule that cannot be checked is recorded on the patient's form, never dropped.
+        evaluate_patient_safely(document.patient)
         report = InvestigationReport.objects.prefetch_related('values__lab_test').get(pk=report.pk)
         return Response(InvestigationReportSerializer(report).data)
 

@@ -32,6 +32,9 @@ class PatientAlert(BaseModel):
     # The examination that fired a vitals rule (blood pressure, BMI, waist).
     examination = models.ForeignKey('records.Examination', on_delete=models.SET_NULL, null=True, blank=True,
                                     related_name='alerts')
+    # The patient form whose answers fired an answer rule.
+    intake_form = models.ForeignKey('intake.IntakeForm', on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='alerts')
     detail = models.CharField(max_length=255, blank=True, default='')
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.OPEN, db_index=True)
     acknowledged_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,

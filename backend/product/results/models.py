@@ -140,7 +140,14 @@ class ResultValue(BaseModel):
     result_date = models.DateField(null=True, blank=True, db_index=True)
     lab_name = models.CharField(max_length=255, blank=True, default='')
     unreadable = models.BooleanField(default=False)
-    source = models.CharField(max_length=10, choices=Source.choices, default=Source.EXTRACTED)
+    # The reading is uncertain (e.g. text left over in the reference range): the doctor confirms or
+    # corrects it before it is compared, checked against rules or sent.
+    needs_check = models.BooleanField(default=False, db_index=True)
+    check_reason = models.CharField(max_length=64, blank=True, default='')
+    checked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name='+')
+    checked_at = models.DateTimeField(null=True, blank=True)
+    source =models.CharField(max_length=10, choices=Source.choices, default=Source.EXTRACTED)
     entered_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+',
     )

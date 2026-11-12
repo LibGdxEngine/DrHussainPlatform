@@ -2,7 +2,7 @@ import type { AlertRule } from "@/lib/api/emr/content";
 
 export type RuleLevel = AlertRule["level"];
 
-export type RuleFilter = "all" | RuleLevel;
+export type RuleFilter = "all" | RuleLevel | "unchecked";
 
 /** An unsaved edit to one rule: changed cut-offs and/or on/off. */
 export interface RuleEdit {

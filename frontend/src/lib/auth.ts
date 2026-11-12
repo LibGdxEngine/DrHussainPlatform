@@ -5,6 +5,7 @@ import { formatUserName } from "@/lib/backend-auth";
 import { authApi } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { logServerEvent } from "@/lib/telemetry/logger";
+import { SESSION_MAX_MS, accessTokenExpiry, needsRefresh, refreshOnce, sessionExpiredAt } from "@/lib/authRefresh";
 
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
@@ -68,6 +69,7 @@ export const authOptions: NextAuthOptions = {
         && session.invalidateAccessToken === token.accessToken) {
         return { ...token, accessToken: undefined, refreshToken: undefined, sessionExpired: true };
       }
+      if (trigger === "update") return token;
       if (account && account.provider !== "credentials") {
         if (!account.id_token) {
           throw new Error(`${account.provider} did not return an ID token.`);
@@ -75,6 +77,7 @@ export const authOptions: NextAuthOptions = {
         // Throwing aborts sign-in rather than leaving a session without backend tokens.
         const backend = await authApi.exchangeSocialToken(account.provider, { token: account.id_token });
         token.sessionExpired = false;
+        token.loginAt = Date.now();
         token.accessToken = backend.access;
         token.refreshToken = backend.refresh;
         token.username = formatUserName(backend.user, user?.email ?? account.provider);
@@ -86,12 +89,27 @@ export const authOptions: NextAuthOptions = {
 
       if (user) {
         token.sessionExpired = false;
+        token.loginAt = Date.now();
         token.accessToken = user.accessToken;
         token.refreshToken = user.refreshToken;
         token.username = user.name ?? undefined;
         token.email = user.email ?? undefined;
         token.phone = user.phone;
         token.requiresPhone = false;
+      }
+      if (!token.accessToken || !token.refreshToken || token.sessionExpired) return token;
+
+      const now = Date.now();
+      const ended = { ...token, accessToken: undefined, refreshToken: undefined, sessionExpired: true };
+      // The sign-in lasts 8 hours in all, however often the access token is renewed.
+      if (sessionExpiredAt(token.loginAt, now)) return ended;
+      if (needsRefresh(accessTokenExpiry(token.accessToken), now)) {
+        try {
+          const pair = await refreshOnce(token.refreshToken);
+          return { ...token, accessToken: pair.access, refreshToken: pair.refresh };
+        } catch {
+          return ended;
+        }
       }
       return token;
     },
@@ -111,6 +129,7 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: SESSION_MAX_MS / 1000,
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

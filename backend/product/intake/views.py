@@ -1,3 +1,4 @@
+from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import mixins, permissions, status, viewsets
@@ -12,6 +13,7 @@ from product.audit import audit, audit_access
 from product.mail.transport import MailboxNotReady
 from product.tenancy import OrganizationScopedMixin, get_request_organization
 
+from .catalogue import CATALOGUE_VERSION, SECTIONS
 from .models import IntakeForm
 from .serializers import (
     FormSaveSerializer, IntakeFormCreateSerializer, IntakeFormDetailSerializer, IntakeFormLinkSerializer,
@@ -19,8 +21,8 @@ from .serializers import (
     TokenSerializer, VerifySerializer,
 )
 from .services import (
-    LinkInvalid, NoRecipient, clinic_name, form_for_session, form_for_token, issue_form, link_for, rotate_link,
-    save_answers, send_by_email, verify,
+    AnswersIncomplete, LinkInvalid, NoRecipient, clinic_name, form_age, form_for_session, form_for_token, issue_form,
+    link_for, previous_answers, rotate_link, save_answers, send_by_email, verify,
 )
 
 SESSION_HEADER = 'HTTP_X_INTAKE_SESSION'
@@ -83,7 +85,8 @@ class IntakeFormViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.R
         data = serializer.validated_data
         form, token = issue_form(get_request_organization(request), data['patient'], data['kind'],
                                  appointment=data.get('appointment'), created_by=request.user,
-                                 delivery='' if data['send_email'] else IntakeForm.Delivery.COPIED)
+                                 delivery='' if data['send_email'] else IntakeForm.Delivery.COPIED,
+                                 extra_modules=data.get('extra_modules'))
         audit(request, 'intake.issued', form, patient_id=str(form.patient_id))
         if data['send_email']:
             return self._email(request, form)
@@ -138,6 +141,10 @@ class IntakeFormViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.R
 
 # --- The patient's phone --------------------------------------------------------------------------
 
+class BodyTooLarge(Exception):
+    """The request body is larger than settings.INTAKE_MAX_BODY_BYTES."""
+
+
 class PublicIntakeView(APIView):
     """No staff sign-in: the link's token, then the patient's date of birth, are the only keys."""
     authentication_classes = []
@@ -145,9 +152,22 @@ class PublicIntakeView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'intake'
 
+    def initial(self, request, *args, **kwargs):
+        # Before anything reads the body: DRF parses JSON without Django's upload size limit.
+        try:
+            length = int(request.META.get('CONTENT_LENGTH') or 0)
+        except ValueError:
+            length = 0
+        if length > settings.INTAKE_MAX_BODY_BYTES:
+            raise BodyTooLarge()
+        super().initial(request, *args, **kwargs)
+
     def handle_exception(self, exc):
         if isinstance(exc, LinkInvalid):
             return error_response(exc.code, str(exc), status=status.HTTP_410_GONE)
+        if isinstance(exc, BodyTooLarge):
+            return error_response('REQUEST_TOO_LARGE', 'This form is too large to send.',
+                                  status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         return super().handle_exception(exc)
 
     @staticmethod
@@ -202,11 +222,17 @@ class IntakeVerifyView(PublicIntakeView):
 
 class IntakeFormView(PublicIntakeView):
     def _payload(self, form):
-        from product.orders.services import current_medicines
+        from product.medicines import current_medicine_names
 
-        medicines = [' '.join(filter(None, [m.drug, m.dose])) for m in current_medicines(form.patient)]
-        return {**self._summary(form), 'answers': form.answers, 'mrs': form.mrs,
-                'previous_mrs': mrs_history(form.patient, exclude=form), 'current_medicines': medicines}
+        return {
+            **self._summary(form), 'answers': form.answers, 'mrs': form.mrs,
+            'previous_mrs': mrs_history(form.patient, exclude=form),
+            'current_medicines': current_medicine_names(form.patient, as_written=True),
+            'catalogue': {'version': CATALOGUE_VERSION, 'sections': SECTIONS},
+            'previous_answers': previous_answers(form.patient, kind=form.kind),
+            'patient_age': form_age(form),
+            'extra_modules': form.extra_modules,
+        }
 
     @extend_schema(responses={200: PatientFormSerializer, 410: OpenApiResponse(description='SESSION_EXPIRED')},
                    parameters=[OpenApiParameter('X-Intake-Session', str, OpenApiParameter.HEADER, required=True)],
@@ -221,9 +247,9 @@ class IntakeFormView(PublicIntakeView):
         """Save and finish later."""
         return self._save(request, submit=False)
 
-    @extend_schema(request=FormSaveSerializer, responses={200: PatientFormSerializer},
-                   parameters=[OpenApiParameter('X-Intake-Session', str, OpenApiParameter.HEADER, required=True)],
-                   auth=[])
+    @extend_schema(request=FormSaveSerializer, responses={
+        200: PatientFormSerializer, 400: OpenApiResponse(description='ANSWERS_INCOMPLETE (fields) or MRS_REQUIRED'),
+    }, parameters=[OpenApiParameter('X-Intake-Session', str, OpenApiParameter.HEADER, required=True)], auth=[])
     def post(self, request):
         """Send the form to the doctor. It can't be changed afterwards."""
         return self._save(request, submit=True)
@@ -232,13 +258,17 @@ class IntakeFormView(PublicIntakeView):
         form = self._session_form(request)
         if form.status == IntakeForm.Status.COMPLETE:
             return error_response('FORM_COMPLETE', 'You have already sent this form to the clinic.', status=409)
-        serializer = FormSaveSerializer(data=request.data)
+        serializer = FormSaveSerializer(data=request.data, context={'kind': form.kind})
         serializer.is_valid(raise_exception=True)
         mrs = serializer.validated_data.get('mrs')
         if submit and form.kind == IntakeForm.Kind.FOLLOW_UP and mrs is None and form.mrs is None:
             return error_response('MRS_REQUIRED', 'Answer the symptom questions before sending.',
                                   fields={'mrs': ['Answer the symptom questions before sending.']})
-        save_answers(form, serializer.validated_data['answers'], mrs, submit=submit)
+        try:
+            save_answers(form, serializer.validated_data['answers'], mrs, submit=submit)
+        except AnswersIncomplete as exc:
+            return error_response('ANSWERS_INCOMPLETE', str(exc),
+                                  fields={qid: ['Answer this question.'] for qid in exc.fields})
         if submit:
             record_audit_log('intake.submitted', 'intake.intakeform', resource_id=form.pk, ip_address=client_ip(request),
                              metadata={'organization_id': str(form.organization_id), 'patient_id': str(form.patient_id)})

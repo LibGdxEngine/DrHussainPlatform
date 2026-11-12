@@ -1,6 +1,7 @@
 import re
 import unicodedata
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from datetime import date, timedelta
 
 from django.db import transaction
@@ -73,14 +74,46 @@ def next_file_number(organization) -> str:
     return f'{FILE_NUMBER_PREFIX}{sequence.last_value:06d}'
 
 
-def find_similar(organization, full_name: str, date_of_birth: date, full_name_ar: str = ''):
-    """Existing files with the same name (English or Arabic) and date of birth, shown before a duplicate is created."""
-    names = Q()
-    for name in {normalize_name(full_name), normalize_name(full_name_ar)} - {''}:
-        names |= _name_query(name, exact=True)
-    if not names:
-        return Patient.objects.none()
-    return Patient.objects.filter(names, organization=organization, date_of_birth=date_of_birth)
+NEAR_MATCH_RATIO = 0.85
+_NAME_PREFIXES = {'al', 'el'}
+
+
+def fold_name(name: str) -> str:
+    """
+    A spelling-insensitive form of a name for near-duplicate checks: normalised, "al"/"el" words dropped,
+    letters only, doubled letters collapsed. 'Mona Hassan' and 'Mona Hasan' both give 'monahasan'.
+    """
+    words = [w for w in normalize_name(name).split() if w not in _NAME_PREFIXES]
+    letters = ''.join(ch for ch in ''.join(words) if ch.isalpha())
+    return re.sub(r'(.)\1+', r'\1', letters)
+
+
+def _is_near(folded_a: str, folded_b: str) -> bool:
+    if not folded_a or not folded_b:
+        return False
+    return folded_a == folded_b or SequenceMatcher(None, folded_a, folded_b).ratio() >= NEAR_MATCH_RATIO
+
+
+def find_similar(organization, full_name: str, date_of_birth: date, full_name_ar: str = '') -> list[Patient]:
+    """
+    Existing files with the same date of birth and the same name (`match='exact'`) or a very similar one
+    (`match='near'`: same folded spelling, or at least 85% alike). Shown before a duplicate is created.
+    """
+    wanted = {normalize_name(full_name), normalize_name(full_name_ar)} - {''}
+    if not wanted:
+        return []
+    folded = {fold_name(name) for name in wanted} - {''}
+    found = []
+    for patient in Patient.objects.filter(organization=organization, date_of_birth=date_of_birth).order_by('file_number'):
+        if {patient.normalized_name, patient.normalized_name_ar} & wanted:
+            patient.match = 'exact'
+        elif any(_is_near(fold_name(theirs), mine) for theirs in (patient.full_name, patient.full_name_ar)
+                 for mine in folded):
+            patient.match = 'near'
+        else:
+            continue
+        found.append(patient)
+    return sorted(found, key=lambda p: p.match != 'exact')
 
 
 @transaction.atomic

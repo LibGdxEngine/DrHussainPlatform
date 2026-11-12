@@ -5,7 +5,9 @@ import { apiClient } from "../browser";
 import type { Page } from "./page";
 
 type Schemas = components["schemas"];
-export type PatientAlert = Schemas["PatientAlert"];
+/** What fired the alert: a lab result, an examination (vitals) or her form answers. */
+export type AlertSource = "lab" | "vital" | "answer";
+export type PatientAlert = Omit<Schemas["PatientAlert"], "source"> & { source: AlertSource };
 export type Activity = Schemas["Activity"];
 export type ActivityPage = Schemas["PaginatedActivityList"];
 export type ActivityMember = Schemas["ActivityMember"];
@@ -24,8 +26,12 @@ export interface ActivityQuery {
 export const alertsApi = {
   list: (query: {
     patient?: string; report?: string; status?: "open" | "acknowledged" | "resolved" | "all"; page_size?: number;
+    /** "case" (with report): what this report fired plus the patient's open red answer alerts; no reminders. */
+    scope?: "case";
   }) =>
     apiClient.get<Page<PatientAlert>>("/product/alerts/", { query }),
+  /** Doctor only. "Check alerts now": runs every rule for the patient and returns her open alerts. */
+  evaluate: (patient: string) => apiClient.post<PatientAlert[]>("/product/alerts/evaluate/", { patient }),
   acknowledge: (id: string, reason: string) =>
     apiClient.post<PatientAlert>(`/product/alerts/${id}/acknowledge/`, { reason }),
 };

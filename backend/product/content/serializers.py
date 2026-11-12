@@ -4,6 +4,7 @@ from .models import (
     AlertLevel, AlertRule, AlertRuleVersion, LabCheck, ClinicProfile, EmailTemplate, EmailTemplateVersion, Leaflet,
     LeafletVersion, PrescriptionItem, PrescriptionVersion, ScoreBandSet, ScoreBandVersion, TemplatePart, VitalSign,
 )
+from .answer_checks import ANSWER_CHECKS
 from .placeholders import validate_text
 
 
@@ -29,7 +30,8 @@ class EmailTemplateVersionSerializer(VersionMetaMixin, serializers.ModelSerializ
     class Meta:
         model = EmailTemplateVersion
         fields = ['id', 'number', 'subject', 'body', 'note', 'created_by_name', 'created_at', 'approved',
-                  'approved_by_name', 'approved_at']
+                  'approved_by_name', 'approved_at', 'translated_from']
+        read_only_fields = ['translated_from']
 
     def get_approved(self, obj) -> bool:
         return obj.approved_at is not None
@@ -158,11 +160,12 @@ class AlertRuleVersionSerializer(VersionMetaMixin, serializers.ModelSerializer):
     class Meta:
         model = AlertRuleVersion
         fields = ['id', 'number', 'field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message',
-                  'enabled', 'lab_test_code', 'lab_check', 'vital', 'note', 'created_by_name', 'created_at']
+                  'enabled', 'lab_test_code', 'lab_check', 'vital', 'answer_check', 'medicine_terms', 'note',
+                  'created_by_name', 'created_at']
 
 
 _RULE_FIELDS = ('field', 'pre', 'threshold_a', 'mid', 'threshold_b', 'post', 'level', 'message', 'enabled',
-               'lab_test_code', 'lab_check', 'vital')
+               'lab_test_code', 'lab_check', 'vital', 'answer_check', 'medicine_terms')
 
 
 class AlertRuleSerializer(serializers.ModelSerializer):
@@ -180,6 +183,12 @@ class AlertRuleSerializer(serializers.ModelSerializer):
     lab_check = serializers.ChoiceField(choices=LabCheck.choices, allow_blank=True, required=False)
     vital = serializers.ChoiceField(choices=VitalSign.choices, allow_blank=True, required=False,
                                     help_text='Examination measurement the rule checks, e.g. bmi.')
+    answer_check = serializers.ChoiceField(choices=sorted(ANSWER_CHECKS.items()), allow_blank=True, required=False,
+                                           help_text='Named check over the patient form answers.')
+    medicine_terms = serializers.ListField(
+        child=serializers.CharField(max_length=80), max_length=20, required=False,
+        help_text='Medicine names the rule needs among the current medicines, e.g. prometrium.',
+    )
     note = serializers.CharField(max_length=255, allow_blank=True, required=False, write_only=True)
     version = serializers.IntegerField(read_only=True)
     changed_at = serializers.DateTimeField(read_only=True)
@@ -214,6 +223,12 @@ class AlertRuleSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'lab_test_code': ['That test is not in the clinic catalog.']})
         if check and check != LabCheck.NEVER_MEASURED and cut_off is None:
             raise serializers.ValidationError({'lab_check': ['A comparison needs a cut-off.']})
+        if 'medicine_terms' in attrs:
+            terms = {}
+            for term in (t.strip() for t in attrs['medicine_terms']):
+                if term:
+                    terms.setdefault(term.casefold(), term)
+            attrs['medicine_terms'] = list(terms.values())
         return attrs
 
     def to_representation(self, instance):

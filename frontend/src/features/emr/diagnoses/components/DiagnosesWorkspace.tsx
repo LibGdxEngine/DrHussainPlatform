@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ActionButton } from "@/features/emr/ui/Action";
 import { Field, SelectInput, TextArea, TextInput } from "@/features/emr/ui/Fields";
 import { Panel } from "@/features/emr/ui/Panel";
+import { inFlight } from "@/lib/inFlight";
 import { diagnosesApi, type Diagnosis, type DiagnosisStatus } from "@/lib/api/emr/diagnoses";
 import { ApiError, apiErrorMessage } from "@/lib/api/emr/errors";
 import type { Patient } from "@/lib/api/emr/patients";
@@ -29,7 +30,7 @@ export function DiagnosesWorkspace({ patient }: { patient: Patient }) {
 
   useEffect(() => {
     let cancelled = false;
-    diagnosesApi.list(patient.id).then((items) => { if (!cancelled) setRecords(items); })
+    inFlight(`diagnoses:${patient.id}`, () => diagnosesApi.list(patient.id)).then((items) => { if (!cancelled) setRecords(items); })
       .catch((err: unknown) => { if (!cancelled) setError(apiErrorMessage(err, "Could not load diagnoses.")); });
     return () => { cancelled = true; };
   }, [patient.id]);

@@ -9,10 +9,12 @@ import { ActionButton } from "@/features/emr/ui/Action";
 import { SelectInput, TextArea } from "@/features/emr/ui/Fields";
 import { Panel } from "@/features/emr/ui/Panel";
 import { Pill } from "@/features/emr/ui/Pill";
+import { inFlight } from "@/lib/inFlight";
 import { documentsApi, type PatientDocument } from "@/lib/api/emr/documents";
 import { ApiError, apiErrorMessage } from "@/lib/api/emr/errors";
 import { mailApi, type MailThreadDetail } from "@/lib/api/emr/mail";
 import { patientsApi, type Patient } from "@/lib/api/emr/patients";
+import { canConfirmThirdParty, isThirdPartyConfirm, replyNeedsConfirmation } from "../data";
 import { MessageBubble } from "./MessageBubble";
 
 interface ThreadPanelProps {
@@ -38,11 +40,19 @@ export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadP
   const [pick, setPick] = useState(thread.suggested_patient?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Linking a relative's email to a file, or replying to one, needs an explicit confirmation.
+  const [linking, setLinking] = useState(false);
+  const [relation, setRelation] = useState(thread.third_party_relation);
+  const [linkConfirmed, setLinkConfirmed] = useState(false);
+  const [replyNeedsConfirm, setReplyNeedsConfirm] = useState(false);
+  const [replyConfirmed, setReplyConfirmed] = useState(false);
+  const suggestedThirdParty = thread.suggestion_kind === "third_party";
+  const replyConfirmRequired = replyNeedsConfirmation(thread, replyNeedsConfirm);
 
   useEffect(() => {
     if (!patient) return;
     let cancelled = false;
-    documentsApi.list(patient.id).then((page) => !cancelled && setDocuments(page.results), () => undefined);
+    inFlight(`documents:${patient.id}`, () => documentsApi.list(patient.id)).then((page) => !cancelled && setDocuments(page.results), () => undefined);
     return () => {
       cancelled = true;
     };
@@ -60,13 +70,18 @@ export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadP
     };
   }, [query, patient]);
 
-  async function run(action: () => Promise<MailThreadDetail>) {
+  async function run(action: () => Promise<MailThreadDetail>, onConfirmNeeded?: () => void) {
     setBusy(true);
     setError(null);
     try {
       onChanged(await action());
       return true;
     } catch (err) {
+      if (onConfirmNeeded && isThirdPartyConfirm(err)) {
+        onConfirmNeeded();
+        setError(err.message);
+        return false;
+      }
       setError(err instanceof ApiError && err.status === 403 ? "Only the doctor can send from the clinic mailbox." : apiErrorMessage(err, "Could not do that."));
       return false;
     } finally {
@@ -108,6 +123,11 @@ export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadP
         <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
           Filed in
           <Pill tone="brand" size="sm">{patient.full_name} · {patient.file_number}</Pill>
+          {thread.third_party ? (
+            <Pill tone="amber" size="sm">
+              Third party{thread.third_party_relation ? `: ${thread.third_party_relation}` : ""}
+            </Pill>
+          ) : null}
           <button
             type="button"
             disabled={busy}
@@ -119,7 +139,12 @@ export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadP
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2 rounded-[18px] bg-warn-wash px-4 py-3 text-[13px] text-[#5a3d00]">
-          {thread.suggested_patient ? (
+          {thread.suggested_patient && suggestedThirdParty ? (
+            <span>
+              <Pill tone="amber" size="xs">Third party</Pill> This address isn&apos;t the patient&apos;s. The email
+              mentions <strong>{thread.suggested_patient.full_name}</strong>, who may be someone else&apos;s relative.
+            </span>
+          ) : thread.suggested_patient ? (
             <span>
               This address isn&apos;t in any file. The email mentions <strong>{thread.suggested_patient.full_name}</strong>.
             </span>
@@ -137,9 +162,61 @@ export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadP
             <option value="">Choose patient…</option>
             {options.map((p) => <option key={p.id} value={p.id}>{p.full_name} · {p.file_number}</option>)}
           </SelectInput>
-          <ActionButton size="sm" onClick={() => void run(() => mailApi.threads.link(thread.id, pick))} disabled={!pick || busy}>
-            Link to file
+          <ActionButton
+            size="sm"
+            disabled={!pick || busy}
+            onClick={() => {
+              // A relative's email is never linked in one click; the sender is checked on the server too.
+              if (suggestedThirdParty && pick === thread.suggested_patient?.id) {
+                setLinking(true);
+                return;
+              }
+              void run(() => mailApi.threads.link(thread.id, pick), () => setLinking(true));
+            }}
+          >
+            {linking ? "Review below" : "Link to file"}
           </ActionButton>
+          {linking ? (
+            <div className="flex w-full flex-col gap-2 rounded-[14px] border border-line-strong bg-white px-3 py-2.5 text-[13px] text-ink">
+              <strong className="font-semibold">
+                This email is from <span className="font-emr-mono">{thread.contact_email}</span>, not from the patient.
+              </strong>
+              <span>
+                Linking it files this email in the patient&apos;s record. Results emails go to the patient&apos;s own
+                address unless the doctor confirms otherwise.
+              </span>
+              <label className="flex flex-col gap-1 font-medium text-ink-2">
+                Who is the sender to the patient?
+                <input
+                  value={relation}
+                  onChange={(e) => setRelation(e.target.value)}
+                  maxLength={100}
+                  className="min-h-9 rounded-[14px] border border-field bg-white px-3 text-[13px] font-normal"
+                />
+              </label>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={linkConfirmed}
+                  onChange={(e) => setLinkConfirmed(e.target.checked)}
+                  className="mt-0.5"
+                />
+                I confirm this sender is not the patient and the email belongs in this file.
+              </label>
+              <span className="flex gap-2">
+                <ActionButton
+                  size="sm"
+                  disabled={busy || !pick || !canConfirmThirdParty(relation, linkConfirmed)}
+                  onClick={() => void run(() => mailApi.threads.link(thread.id, pick, { confirmThirdParty: true, relation: relation.trim() }))}
+                >
+                  Link as third party
+                </ActionButton>
+                <ActionButton variant="quiet" size="sm" disabled={busy} onClick={() => setLinking(false)}>
+                  Cancel
+                </ActionButton>
+              </span>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -162,6 +239,21 @@ export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadP
           Reply
           <TextArea rows={3} value={draft} onChange={(e) => setDraft(e.target.value)} className="resize-y leading-[1.7]" dir="auto" />
         </label>
+        {replyConfirmRequired ? (
+          <label className="flex items-start gap-2 rounded-[14px] bg-warn-wash px-3 py-2.5 text-[13px] text-[#5a3d00]">
+            <input
+              type="checkbox"
+              checked={replyConfirmed}
+              onChange={(e) => setReplyConfirmed(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              This reply goes to <span className="font-emr-mono">{thread.contact_email}</span>, who is not the patient
+              {thread.third_party_relation ? ` (${thread.third_party_relation})` : ""}. I confirm it is fine to send
+              this to them.
+            </span>
+          </label>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
           {patient && documents.length ? (
             <>
@@ -188,11 +280,12 @@ export function ThreadPanel({ thread, compose, fromAddress, onChanged }: ThreadP
           ) : null}
           <button
             type="button"
-            disabled={busy || !draft.trim()}
+            disabled={busy || !draft.trim() || (replyConfirmRequired && !replyConfirmed)}
             onClick={async () => {
-              if (await run(() => mailApi.threads.reply(thread.id, draft, attached))) {
+              if (await run(() => mailApi.threads.reply(thread.id, draft, attached, replyConfirmRequired && replyConfirmed), () => setReplyNeedsConfirm(true))) {
                 setDraft("");
                 setAttached([]);
+                setReplyConfirmed(false);
               }
             }}
             className="ms-auto min-h-11 cursor-pointer rounded-full bg-brand px-6 text-sm font-semibold text-white hover:bg-brand-ink disabled:cursor-not-allowed disabled:opacity-60"

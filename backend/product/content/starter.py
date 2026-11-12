@@ -6,6 +6,7 @@ Template wording is NOT clinical content from this file. Each template slot star
 placeholder pointing at the clinic's master copy; drafts are only built from approved versions.
 """
 from django.db import transaction
+from django.utils import timezone
 
 from apps.organizations.models import Organization
 
@@ -26,7 +27,7 @@ STARTER_ALERT_RULES = [
     ("R4", "DVT or PE (6a)", "= Yes", None, "", None, "", "red", "Avoid systemic HRT and combined pill"),
     ("R5", "Active liver disease (6a)", "= Yes", None, "", None, "", "red", "Avoid systemic HRT"),
     ("R6", "Current unexplained bleeding (6a)", "= Yes", None, "", None, "", "red", "Investigate before prescribing"),
-    ("R7", "Bleeding since last period (3)", "≥", "12", "months", None, "", "red", "Postmenopausal bleeding: exam and TVUS"),
+    ("R7", "Bleeding since last period (3)", "= Yes", None, "", None, "", "red", "Postmenopausal bleeding: exam and TVUS"),
     ("R8", "Postcoital or intermenstrual bleeding (3)", "= Yes", None, "", None, "", "red", "Exam, smear status, TVUS"),
     ("R9", "Bleeding on continuous combined HRT (12)", "after", "6", "months", None, "", "red", "Investigate before changing regimen"),
     ("R10", "Uterus present + prescription", "systemic estrogen without progestogen", None, "", None, "", "red", "Blocks prescription: add endometrial protection"),
@@ -34,7 +35,7 @@ STARTER_ALERT_RULES = [
     ("R12", "Possible pregnancy (5 / 10b)", "yes or unsure, with pain or bleeding", None, "", None, "", "red", "Rule out ectopic: β-hCG today"),
     ("R13", "Pelvic pain (10b)", "pain + fever", None, "", None, "", "red", "Possible PID"),
     ("R14", "Breast concern (10b)", "new lump, bloody discharge or skin change", None, "", None, "", "red", "Urgent breast referral"),
-    ("R15", "Self-harm question (6d)", "any answer other than \"Never\"", None, "", None, "", "red", "Same-day review"),
+    ("R15", "Self-harm question (6d)", "any answer other than 'Not at all'", None, "", None, "", "red", "Same-day review"),
     ("R16", "Age or time since last period (2, 3)", "age ≥", "60", "or >", "10", "years", "amber", "Weigh HRT benefit and risk; use transdermal"),
     ("R17", "Age at menopause (3)", "<", "45", "early; <", "40", "POI", "amber", "HRT until about 51 unless contraindicated"),
     ("R18", "Migraine (6b)", "with aura", None, "", None, "", "amber", "Transdermal only; no combined pill"),
@@ -50,7 +51,7 @@ STARTER_ALERT_RULES = [
     ("R28", "Pregnancy complications (5)", "preeclampsia, gestational diabetes or preterm birth", None, "", None, "", "amber", "Cardiovascular risk factor: lipids and BP"),
     ("R29", "PHQ-2 or GAD-2 (6d)", "score ≥", "3", "", None, "", "amber", "Complete PHQ-9 or GAD-7"),
     ("R30", "MRS item 2, heart discomfort (4)", "≥", "3", "", None, "", "amber", "Assess before attributing (ECG ± Holter)"),
-    ("R31", "Distressing low desire (10)", "\"Very much\"", None, "", None, "", "amber", "HSDD assessment"),
+    ("R31", "Distressing low desire (10)", "\"A lot\"", None, "", None, "", "amber", "HSDD assessment"),
     ("R32", "St John's Wort (7)", "listed", None, "", None, "", "amber", "Check interactions"),
     ("R33", "UTIs per year (10b)", "≥", "2", "and postmenopausal", None, "", "amber", "Offer vaginal estrogen"),
     ("R34", "Total testosterone (labs)", ">", "50", "ng/dL on treatment", None, "", "amber", "Above female range: reduce dose"),
@@ -77,6 +78,59 @@ STARTER_VITAL_CHECKS = {
     'R20': ('blood_pressure', 'gte'),
     'R21': ('bmi', 'gte'),
     'R22': ('waist', 'gt'),
+}
+
+# The starter rules checked against the patient's form answers: rule code -> answer check code
+# (content/answer_checks.py). The forms doc's rule-input table says which answers each one reads.
+STARTER_ANSWER_CHECKS = {
+    'R1': 'breast_cancer', 'R2': 'coronary_disease', 'R3': 'stroke_tia', 'R4': 'vte', 'R5': 'liver_disease',
+    'R6': 'unexplained_bleeding', 'R7': 'bleeding_after_year', 'R8': 'intermenstrual_bleeding',
+    'R11': 'peanut_allergy_progesterone', 'R12': 'pregnancy_pain_bleeding', 'R13': 'pelvic_pain_fever',
+    'R14': 'breast_concern', 'R15': 'self_harm', 'R16': 'age_or_years_since_period', 'R17': 'menopause_age',
+    'R18': 'migraine_aura', 'R19': 'smoking', 'R23': 'alcohol_units', 'R24': 'fh_breast_cancer',
+    'R25': 'fh_ovarian_brca', 'R26': 'fh_vte', 'R27': 'fh_premature_cvd', 'R28': 'pregnancy_complications',
+    'R29': 'phq2_gad2', 'R30': 'mrs_heart', 'R31': 'desire_bother', 'R32': 'medicine_listed',
+    'R33': 'utis_per_year', 'R36': 'mammogram_date', 'R37': 'smear_date', 'R38': 'lng_ius_date',
+}
+
+# Medicine names a rule needs among the patient's current medicines (matched normalised, as substrings).
+STARTER_MEDICINE_TERMS = {
+    'R11': ['prometrium', 'micronised progesterone', 'micronized progesterone'],
+    'R32': ["st john's wort", 'st johns wort', 'hypericum'],
+    'R34': ['testosterone'],
+}
+
+# System phrases: the short English lines the drafting code inserts, moved out of the code so the
+# clinic can reword and translate them. key -> (name, English text, allowed placeholders).
+# Text None: no English version is loaded; phrase.signature falls back to the clinic profile's
+# signature until the clinic approves one. Arabic versions are never created here.
+STARTER_PHRASES = {
+    'phrase.could_not_be_read': ('Result could not be read', 'could not be read', ()),
+    'phrase.flag_high': ('Result flag: high', 'high', ()),
+    'phrase.flag_low': ('Result flag: low', 'low', ()),
+    'phrase.flag_abnormal': ('Result flag: abnormal', 'abnormal', ()),
+    'phrase.reference': ('Reference range', 'reference {{range}}', ('range',)),
+    'phrase.change_higher': ('Change: higher', 'higher', ()),
+    'phrase.change_lower': ('Change: lower', 'lower', ()),
+    'phrase.change_unchanged': ('Change: unchanged', 'unchanged', ()),
+    'phrase.change_changed': ('Change: changed', 'changed', ()),
+    'phrase.not_compared': ('Not compared', 'measured differently, not compared', ()),
+    'phrase.all_within_range': ('All results within range', 'All results are within the reference range.', ()),
+    'phrase.above_range': ('Range: above', 'above the reference range', ()),
+    'phrase.below_range': ('Range: below', 'below the reference range', ()),
+    'phrase.back_within_range': ('Range: back within', 'back within the reference range', ()),
+    'phrase.toward_range': ('Range: closer', 'closer to the reference range', ()),
+    'phrase.further_from_range': ('Range: further', 'further from the reference range', ()),
+    'phrase.different_lab': ('Different lab', 'different lab: {{labs}}', ('labs',)),
+    'phrase.follow_up_heading': ('Follow-up heading', 'Follow-up: {{follow_up}}', ('follow_up',)),
+    'phrase.default_subject': ('Default subject', 'Your results', ()),
+    'phrase.signature': ('Signature', None, ()),
+}
+# The phrases whose text is the English that was hard-coded in review/services.py.
+MOVED_PHRASES = {
+    'phrase.could_not_be_read', 'phrase.flag_high', 'phrase.flag_low', 'phrase.flag_abnormal', 'phrase.reference',
+    'phrase.change_higher', 'phrase.change_lower', 'phrase.change_unchanged', 'phrase.change_changed',
+    'phrase.not_compared', 'phrase.all_within_range', 'phrase.default_subject',
 }
 
 # MRS total score bands, forms doc section 4.
@@ -128,10 +182,12 @@ def starter_templates() -> list[dict]:
 
 
 def _has_starter_content(organization) -> bool:
+    templates = EmailTemplate.objects.filter(organization=organization)
     return (
         AlertRule.objects.filter(organization=organization).exists()
         and ScoreBandSet.objects.filter(organization=organization, code='mrs').exists()
-        and EmailTemplate.objects.filter(organization=organization).exists()
+        and templates.exclude(kind=TemplateKind.PHRASE).exists()
+        and templates.filter(kind=TemplateKind.PHRASE).exists()
     )
 
 
@@ -153,13 +209,15 @@ def _load_starter_content(organization) -> None:
             AlertRuleVersion.objects.create(
                 rule=rule, number=1, field=field, pre=pre, threshold_a=a, mid=mid, threshold_b=b, post=post,
                 level=level, message=message, lab_test_code=test_code, lab_check=check, vital=vital,
+                answer_check=STARTER_ANSWER_CHECKS.get(code, ''), medicine_terms=STARTER_MEDICINE_TERMS.get(code, []),
                 note='Starter list from the forms doc', created_by=None,
             )
     if not ScoreBandSet.objects.filter(organization=organization, code='mrs').exists():
         band_set = ScoreBandSet.objects.create(organization=organization, code='mrs', name='MRS total score')
         ScoreBandVersion.objects.create(band_set=band_set, number=1, bands=STARTER_MRS_BANDS,
                                         note='Starter bands from the forms doc', created_by=None)
-    if not EmailTemplate.objects.filter(organization=organization).exists():
+    templates = EmailTemplate.objects.filter(organization=organization)
+    if not templates.exclude(kind=TemplateKind.PHRASE).exists():
         for spec in starter_templates():
             what = spec.pop('what')
             subject = spec.pop('subject', '')
@@ -168,4 +226,15 @@ def _load_starter_content(organization) -> None:
             EmailTemplateVersion.objects.create(
                 template=template, number=1, subject=subject, body=_placeholder(what),
                 note='Empty slot: replace with the clinic master copy', created_by=None,
+            )
+    if not templates.filter(kind=TemplateKind.PHRASE).exists():
+        now = timezone.now()
+        for position, (key, (name, text, _)) in enumerate(STARTER_PHRASES.items(), start=1):
+            if text is None:
+                continue
+            template = EmailTemplate.objects.create(organization=organization, key=key, name=name,
+                                                    kind=TemplateKind.PHRASE, sort_order=position * 10)
+            EmailTemplateVersion.objects.create(
+                template=template, number=1, body=text, approved_at=now, created_by=None,
+                note='System phrase moved from code' if key in MOVED_PHRASES else 'System phrase',
             )

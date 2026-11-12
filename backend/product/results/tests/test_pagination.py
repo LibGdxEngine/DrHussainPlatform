@@ -44,7 +44,8 @@ class PaginationTests(PrivateStorageMixin, APITestCase):
             ('/api/product/review/cases/', {}),
             ('/api/product/alerts/', {'status': 'all'}),
             ('/api/product/mail/threads/', {}),
-            ('/api/product/content/templates/', {}),
+            # The starter templates and system phrases are more than one default page.
+            ('/api/product/content/templates/', {'page_size': 100}),
             ('/api/product/content/alert-rules/', {}),
             ('/api/audit/', {}),
         ]

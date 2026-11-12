@@ -1,3 +1,5 @@
+import re
+
 from django.db.models.manager import BaseManager
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -7,6 +9,9 @@ from product.records.models import Document
 from .catalog import ensure_catalog, normalize_test_name
 from .comparison import compare, compare_many
 from .models import InvestigationReport, LabTest, LabTestAlias, ResultValue
+
+# A value as stored (14 digits, 4 after the point), optionally after a limit sign such as "<".
+NUMBER = re.compile(r'[<>≤≥]?-?\d{1,10}(?:[.,]\d{1,4})?')
 
 
 class AliasListField(serializers.ListField):
@@ -70,6 +75,10 @@ class PreviousValueSerializer(serializers.ModelSerializer):
 class ComparisonSerializer(serializers.Serializer):
     change = serializers.ChoiceField(choices=['first', 'up', 'down', 'same', 'changed', 'not_comparable'])
     reasons = serializers.ListField(child=serializers.CharField())
+    notes = serializers.ListField(child=serializers.CharField(),
+                                  help_text="Remarks on a comparison that stands, e.g. 'lab_differs'.")
+    labs = serializers.ListField(child=serializers.CharField(),
+                                 help_text='[this lab, previous lab] when they differ; empty otherwise.')
     previous = PreviousValueSerializer(allow_null=True)
 
 
@@ -97,7 +106,8 @@ class ResultValueSerializer(serializers.ModelSerializer):
         list_serializer_class = ResultValueListSerializer
         fields = [
             'id', 'report', 'test', 'raw_name', 'value_text', 'value_numeric', 'unit', 'ref_low', 'ref_high',
-            'ref_text', 'flag', 'abnormal', 'result_date', 'lab_name', 'unreadable', 'source', 'comparison',
+            'ref_text', 'flag', 'abnormal', 'result_date', 'lab_name', 'unreadable', 'needs_check', 'check_reason',
+            'checked_by', 'checked_at', 'source', 'comparison',
         ]
 
     @extend_schema_field(ComparisonSerializer)
@@ -107,6 +117,8 @@ class ResultValueSerializer(serializers.ModelSerializer):
         return {
             'change': result.change,
             'reasons': result.reasons,
+            'notes': result.notes,
+            'labs': list(result.labs),
             'previous': PreviousValueSerializer(result.previous).data if result.previous else None,
         }
 
@@ -179,12 +191,33 @@ class ManualEntrySerializer(serializers.Serializer):
         for index, entry in enumerate(attrs['values']):
             test = tests[entry['test']]
             value = entry['value'].strip()
-            if value and test.kind == LabTest.Kind.NUMERIC:
-                try:
-                    float(value.lstrip('<>≤≥').replace(',', '.'))
-                except ValueError:
-                    errors[f'values.{index}.value'] = [f'{test.name} must be a number.']
+            if value and test.kind == LabTest.Kind.NUMERIC and not NUMBER.fullmatch(value):
+                errors[f'values.{index}.value'] = [f'{test.name} must be a number.']
             entry['lab_test'] = test
         if errors:
             raise serializers.ValidationError(errors)
+        return attrs
+
+
+class ValueCheckSerializer(serializers.Serializer):
+    """The doctor's confirmation of one value; any field sent corrects what was read."""
+    value_text = serializers.CharField(max_length=255, required=False)
+    unit = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    ref_low = serializers.DecimalField(max_digits=14, decimal_places=4, required=False, allow_null=True)
+    ref_high = serializers.DecimalField(max_digits=14, decimal_places=4, required=False, allow_null=True)
+    ref_text = serializers.CharField(max_length=128, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        value = self.context['value']
+        if 'value_text' in attrs:
+            attrs['value_text'] = attrs['value_text'].strip()
+            numeric = value.lab_test is None or value.lab_test.kind == LabTest.Kind.NUMERIC
+            if numeric:
+                # Strict: float() would take nan, inf or 1e400, which cannot be stored.
+                if not NUMBER.fullmatch(attrs['value_text']):
+                    raise serializers.ValidationError({'value_text': ['The value must be a number.']})
+        low = attrs.get('ref_low', value.ref_low)
+        high = attrs.get('ref_high', value.ref_high)
+        if low is not None and high is not None and low > high:
+            raise serializers.ValidationError({'ref_high': ['The upper limit must not be below the lower one.']})
         return attrs

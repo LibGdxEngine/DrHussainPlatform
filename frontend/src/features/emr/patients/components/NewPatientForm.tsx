@@ -7,10 +7,12 @@ import { formatDay } from "@/features/emr/format";
 import { emrRoutes } from "@/features/emr/routes";
 import { ActionButton, ActionLink } from "@/features/emr/ui/Action";
 import { ChipGroup } from "@/features/emr/ui/ChipGroup";
-import { Field, TextInput } from "@/features/emr/ui/Fields";
+import { Field, SelectInput, TextInput } from "@/features/emr/ui/Fields";
 import { Panel } from "@/features/emr/ui/Panel";
+import { Pill } from "@/features/emr/ui/Pill";
 import { ApiError } from "@/lib/api/emr/errors";
-import { patientsApi, type Patient, type SimilarPatient } from "@/lib/api/emr/patients";
+import { patientsApi, type DuplicateMatch, type Patient, type SimilarPatient } from "@/lib/api/emr/patients";
+import { duplicateHeading, duplicateLabel, languageOptions, overallMatch, unplacedErrors, type PreferredLanguage } from "../logic";
 
 const emptyForm = {
   full_name: "",
@@ -33,12 +35,13 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-  const [similar, setSimilar] = useState<SimilarPatient[] | null>(null);
+  const [language, setLanguage] = useState<PreferredLanguage>("en");
+  const [duplicate, setDuplicate] = useState<{ message: string; match: DuplicateMatch; similar: SimilarPatient[] } | null>(null);
   const [created, setCreated] = useState<Patient | null>(null);
 
   const set = (key: keyof FormFields) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
-    setSimilar(null);
+    setDuplicate(null);
   };
 
   async function save(confirmDuplicate = false) {
@@ -50,15 +53,21 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
         ...form,
         whatsapp: form.whatsapp || form.mobile,
         first_contact_channel: channel,
+        preferred_language: language,
         confirm_duplicate: confirmDuplicate,
       });
       setCreated(patient);
-      setSimilar(null);
+      setDuplicate(null);
       setForm(emptyForm);
       onCreated(patient);
     } catch (err) {
       if (err instanceof ApiError && err.code === "DUPLICATE_PATIENT") {
-        setSimilar((err.context?.similar as SimilarPatient[] | undefined) ?? []);
+        const similar = (err.context?.similar as SimilarPatient[] | undefined) ?? [];
+        setDuplicate({
+          message: err.message,
+          match: overallMatch(similar, err.context?.match as DuplicateMatch | undefined),
+          similar,
+        });
       } else if (err instanceof ApiError) {
         setError(err.message);
         setFieldErrors(err.fields);
@@ -72,6 +81,8 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
 
   const fieldError = (key: string) =>
     fieldErrors[key]?.length ? <span className="text-xs font-normal text-danger-ink">{fieldErrors[key][0]}</span> : null;
+
+  const extraErrors = unplacedErrors(fieldErrors);
 
   return (
     <Panel aria-labelledby="np" className="flex flex-col gap-3.5 p-[22px]">
@@ -88,6 +99,7 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
         <div className="flex flex-col gap-1.5 text-[13px] font-medium text-ink-2">
           First contact via
           <ChipGroup label="First contact via" options={contactChannels} value={channel} onChange={setChannel} />
+          {fieldError("first_contact_channel")}
         </div>
         <Field label="Full name">
           <TextInput required value={form.full_name} onChange={set("full_name")} />
@@ -103,9 +115,11 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
         </Field>
         <Field label="Mobile">
           <TextInput placeholder="+20" type="tel" value={form.mobile} onChange={set("mobile")} />
+          {fieldError("mobile")}
         </Field>
         <Field label="WhatsApp number">
           <TextInput type="tel" placeholder={form.mobile || "Same as mobile"} value={form.whatsapp} onChange={set("whatsapp")} />
+          {fieldError("whatsapp")}
         </Field>
         <Field label="Email">
           <TextInput type="email" value={form.email} onChange={set("email")} />
@@ -113,18 +127,29 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
         </Field>
         <Field label="Referring doctor (optional)">
           <TextInput value={form.referring_doctor} onChange={set("referring_doctor")} />
+          {fieldError("referring_doctor")}
+        </Field>
+        <Field label="Preferred language for emails">
+          <SelectInput value={language} onChange={(e) => setLanguage(e.target.value as PreferredLanguage)}>
+            {languageOptions.map((o) => (
+              <option key={o.id} value={o.id}>{o.label}</option>
+            ))}
+          </SelectInput>
+          {fieldError("preferred_language")}
         </Field>
 
-        {similar ? (
+        {duplicate ? (
           <div role="alert" className="flex flex-col gap-2 rounded-xl bg-warn-wash px-3 py-2.5 text-xs leading-[1.7] text-warn-ink">
-            <strong className="font-semibold">Already registered with the same name and date of birth:</strong>
+            <strong className="font-semibold">{duplicateHeading[duplicate.match]}</strong>
+            <span>{duplicate.message}</span>
             <ul className="m-0 ps-4">
-              {similar.map((p) => (
+              {duplicate.similar.map((p) => (
                 <li key={p.id}>
                   <Link href={`${emrRoutes.docs}?patient=${encodeURIComponent(p.file_number)}`} className="text-warn-ink">
                     {p.full_name}
                     {p.full_name_ar ? ` (${p.full_name_ar})` : ""} · {p.file_number} · born {formatDay(p.date_of_birth)}
-                  </Link>
+                  </Link>{" "}
+                  <Pill tone={p.match === "exact" ? "red" : "amber"} size="xs">{duplicateLabel[p.match]}</Pill>
                 </li>
               ))}
             </ul>
@@ -134,10 +159,16 @@ export function NewPatientForm({ onCreated }: NewPatientFormProps) {
           </div>
         ) : null}
         {error ? <p role="alert" className="m-0 text-xs text-danger-ink">{error}</p> : null}
+        {extraErrors.length ? (
+          <ul role="alert" className="m-0 ps-4 text-xs text-danger-ink">
+            {extraErrors.map((m) => <li key={m}>{m}</li>)}
+          </ul>
+        ) : null}
 
         <p className="m-0 rounded-xl bg-canvas px-3 py-2.5 text-xs leading-[1.7] text-muted">
-          The file number is created automatically. The system will warn you if a similar name (English or Arabic) and
-          date of birth are already registered. The full medical history is taken at Visit 1.
+          The file number is created automatically. If a file with the same date of birth and the same or a very
+          similar name (English or Arabic) already exists, you will see it first and can still create a new file after
+          checking. The full medical history is taken at Visit 1.
         </p>
         <ActionButton type="submit" className="min-h-12" disabled={busy}>
           {busy ? "Saving…" : "Save patient"}

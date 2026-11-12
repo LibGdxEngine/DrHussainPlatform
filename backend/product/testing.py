@@ -21,6 +21,47 @@ def make_member(organization, email: str, role=OrganizationMember.Role.MEMBER) -
     return user
 
 
+def seed_phrases(organization, languages=('en',)) -> dict:
+    """
+    Give the clinic an approved version of every system phrase in each language; returns
+    {(key, language): version}. English uses the starter text (phrase.signature has none, so it is
+    skipped there). Other languages get obviously fake text with the same placeholders, translated
+    from the English version. Existing approved versions are reused.
+    """
+    from django.utils import timezone
+
+    from product.content.models import EmailTemplate, EmailTemplateVersion, TemplateKind
+    from product.content.starter import STARTER_PHRASES
+
+    seeded = {}
+    for position, (key, (name, text, slots)) in enumerate(STARTER_PHRASES.items(), start=1):
+        for language in sorted(languages, key=lambda code: code != 'en'):
+            existing = EmailTemplate.objects.filter(organization=organization, key=key, language=language).first()
+            if existing is not None and existing.approved is not None:
+                seeded[(key, language)] = existing.approved
+                continue
+            english = EmailTemplate.objects.filter(organization=organization, key=key, language='en').first()
+            source = seeded.get((key, 'en')) or (english.approved if english else None)
+            if language == 'en':
+                body = text
+            else:
+                # Not real Arabic (guardrail G1): a marker with the placeholders kept, and no Latin letters.
+                body = ' '.join([f'§{position}', *(f'{{{{{slot}}}}}' for slot in slots)])
+            if body is None or (language != 'en' and source is None):
+                continue
+            template = existing or EmailTemplate.objects.create(
+                organization=organization, key=key, language=language, name=name, kind=TemplateKind.PHRASE,
+                sort_order=position * 10,
+            )
+            latest = template.latest
+            seeded[(key, language)] = EmailTemplateVersion.objects.create(
+                template=template, number=(latest.number + 1) if latest else 1, body=body,
+                approved_at=timezone.now(), translated_from=source if language != 'en' else None,
+                note='Test phrase',
+            )
+    return seeded
+
+
 class PrivateStorageMixin:
     """Keep uploaded test files in a temporary folder, never in the real private media."""
 

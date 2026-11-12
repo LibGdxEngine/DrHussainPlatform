@@ -87,6 +87,12 @@ class MailThread(BaseModel):
     has_outbound = models.BooleanField(default=False)
     unread = models.BooleanField(default=False)
     archived = models.BooleanField(default=False)
+    # The sender is not the patient (e.g. a relative); results still go to the patient unless the
+    # doctor confirms otherwise.
+    third_party = models.BooleanField(default=False)
+    third_party_relation = models.CharField(max_length=64, blank=True, default='')
+    third_party_confirmed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
+                                                 blank=True, related_name='+')
 
     class Meta:
         ordering = ['-last_message_at']

@@ -86,6 +86,9 @@ class Draft(BaseModel):
     follow_up = models.TextField(blank=True, default='')
     attach_report = models.BooleanField(default=False)
     edited = models.BooleanField(default=False)
+    # Template and phrase keys that have no current Arabic wording yet; the English text stands in
+    # and the draft cannot be sent until each is translated. Only a rebuild changes this list.
+    missing_translations = models.JSONField(default=list, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                    related_name='+')
 
@@ -95,6 +98,34 @@ class Draft(BaseModel):
             # One draft at a time waits for the doctor; a race between two rebuilds cannot leave two.
             models.UniqueConstraint(fields=['case'], condition=models.Q(is_current=True),
                                     name='review_one_current_draft_per_case'),
+        ]
+
+
+class DraftSectionPrescription(BaseModel):
+    """A prescription the doctor chose for one section of the draft (one positive infection)."""
+    draft = models.ForeignKey(Draft, on_delete=models.CASCADE, related_name='section_prescriptions')
+    section_key = models.CharField(max_length=80)
+    prescription = models.ForeignKey(PrescriptionVersion, on_delete=models.PROTECT, related_name='+')
+
+    class Meta:
+        ordering = ['section_key', 'created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['draft', 'section_key', 'prescription'],
+                                    name='review_section_prescription_unique'),
+        ]
+
+
+class CaseTranslation(BaseModel):
+    """The translated wording of one template or phrase, written in review for this case."""
+    case = models.ForeignKey(ResultsCase, on_delete=models.CASCADE, related_name='translations')
+    template_key = models.CharField(max_length=80)
+    language = models.CharField(max_length=2, choices=Language.choices)
+    version = models.ForeignKey(EmailTemplateVersion, on_delete=models.PROTECT, related_name='+')
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['case', 'template_key', 'language'],
+                                    name='review_case_translation_unique'),
         ]
 
 
@@ -145,6 +176,9 @@ class SentEmail(BaseModel):
     error = models.CharField(max_length=255, blank=True, default='')
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                     related_name='+')
+    # A reply on a third-party thread went to the thread contact because this doctor confirmed it.
+    to_thread_contact_confirmed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                                       null=True, blank=True, related_name='+')
     sent_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

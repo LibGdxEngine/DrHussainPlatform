@@ -11,7 +11,7 @@ import { Pill } from "@/features/emr/ui/Pill";
 import { cn } from "@/lib/utils";
 import type { PatientDocument } from "@/lib/api/emr/documents";
 import { ApiError, apiErrorMessage } from "@/lib/api/emr/errors";
-import { resultsApi, type InvestigationReport, type LabTest, type ResultValue } from "@/lib/api/emr/results";
+import { resultsApi, type InvestigationReport, type LabTest, type ResultValue, type ValueCheck } from "@/lib/api/emr/results";
 import { flagReason, reportTypeLabel, statusLabel } from "../labels";
 import { AlertsList } from "./AlertsList";
 import { ResultValuesTable } from "./ResultValuesTable";
@@ -165,6 +165,9 @@ export function ResultsPanel({ document }: { document: PatientDocument }) {
           busy={busy}
           onReread={() => act(() => resultsApi.reread(report.id), "Reading the file again…")}
           onConfirm={() => act(() => resultsApi.confirm(report.id), "Confirmed as this patient's report.")}
+          onCheck={(value, body) =>
+            act(() => resultsApi.checkValue(value.id, body), Object.keys(body).length ? "Value corrected." : "Value confirmed.")
+          }
         />
       ) : null}
       {!readable && !report ? (
@@ -217,10 +220,11 @@ interface ReadSummaryProps {
   busy: boolean;
   onReread: () => void;
   onConfirm: () => void;
+  onCheck: (value: ResultValue, body: ValueCheck) => Promise<boolean>;
 }
 
 /** What the platform read: report type, flags for the doctor, and each value beside the previous one. */
-function ReadSummary({ report, values, busy, onReread, onConfirm }: ReadSummaryProps) {
+function ReadSummary({ report, values, busy, onReread, onConfirm, onCheck }: ReadSummaryProps) {
   const patientDoubt = report.flag_reasons.some((r) => r.startsWith("patient_"));
   return (
     <div className="flex flex-col gap-3">
@@ -244,7 +248,7 @@ function ReadSummary({ report, values, busy, onReread, onConfirm }: ReadSummaryP
         </div>
       ) : null}
 
-      {values.length ? <ResultValuesTable values={values} /> : null}
+      {values.length ? <ResultValuesTable values={values} onCheck={onCheck} busy={busy} /> : null}
 
       <div className="flex flex-wrap gap-2">
         <ActionButton variant="quiet" size="sm" disabled={busy} onClick={onReread}>

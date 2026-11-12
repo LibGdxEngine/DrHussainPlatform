@@ -11,6 +11,8 @@ import { SelectInput, TextInput } from "../../ui/Fields";
 import { Panel } from "../../ui/Panel";
 import { Pill } from "../../ui/Pill";
 import { MAX_PAGE_SIZE } from "@/lib/api/emr/page";
+import { rulesNotChecked } from "../../intake/rules";
+import { loadHistoryForm } from "../forms";
 
 const loadAlerts = (patient: string) =>
   alertsApi.list({ patient, status: "open", page_size: MAX_PAGE_SIZE }).then((page) => page.results);
@@ -145,23 +147,64 @@ function AlertRow({ alert, isLead, onAcknowledged }: AlertRowProps) {
   );
 }
 
-/** Open alerts raised by the clinic's rules on this patient's results; the doctor confirms each with a reason. */
+function RulesBanner({ message, isLead, onCheck }: { message: string; isLead: boolean; onCheck: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function check() {
+    setBusy(true);
+    setError(null);
+    try {
+      await onCheck();
+    } catch (err) {
+      setError(apiErrorMessage(err, "Could not check the alerts."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div role="status" className="flex flex-wrap items-center gap-2.5 rounded-2xl bg-warn-wash px-3.5 py-3">
+      <span className="min-w-0 flex-1 text-sm font-semibold">{message}</span>
+      {isLead ? (
+        <ActionButton variant="primary" size="sm" disabled={busy} onClick={() => void check()} className="shrink-0">
+          {busy ? "Checking…" : "Check alerts now"}
+        </ActionButton>
+      ) : (
+        <span className="text-xs text-muted">Ask the doctor to check the alerts.</span>
+      )}
+      {error ? <span role="alert" className="basis-full text-xs text-danger-ink">{error}</span> : null}
+    </div>
+  );
+}
+
+/** Open alerts raised by the clinic's rules on this patient's results and answers; the doctor confirms each with a reason. */
 export function AlertsPanel({ patientId, isLead }: { patientId: string; isLead: boolean }) {
   const alerts = usePatientResource(patientId, loadAlerts, "Could not load the alerts.");
+  // The same request as the Summary's form panels (shared while in flight).
+  const form = usePatientResource(patientId, loadHistoryForm, "Could not load the patient form.");
   const list = alerts.data;
   const open = list?.filter((a) => a.status === "open").length ?? 0;
+  const notChecked = rulesNotChecked(form.data?.answered);
+
+  async function checkNow() {
+    const fresh = await alertsApi.evaluate(patientId);
+    alerts.update(() => fresh);
+    form.reload();
+  }
 
   return (
     <Panel aria-labelledby="al" className="flex flex-col gap-2.5 p-5">
       <h2 id="al" className="m-0 mb-1 text-lg font-semibold">
         Alerts{list ? ` (${open})` : ""}
       </h2>
+      {notChecked ? <RulesBanner message={notChecked} isLead={isLead} onCheck={checkNow} /> : null}
       {alerts.error ? (
         <p role="alert" className="m-0 text-[13px] text-danger-ink">{alerts.error}</p>
       ) : !list ? (
         <p className="m-0 text-[13px] text-muted">Loading…</p>
       ) : !list.length ? (
-        <p className="m-0 text-[13px] text-muted">No open alerts from this patient&apos;s results.</p>
+        <p className="m-0 text-[13px] text-muted">No open alerts for this patient.</p>
       ) : (
         <>
           {list.map((a) => (

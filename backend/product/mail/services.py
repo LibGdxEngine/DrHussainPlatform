@@ -103,6 +103,11 @@ def _body_text(message) -> str:
     return content.strip()
 
 
+def sender_is_patient(contact_email: str, patient) -> bool:
+    """True when the thread's other party is the patient's own address (not a relative or a lab)."""
+    return bool(patient and patient.email and contact_email.strip().casefold() == patient.email.strip().casefold())
+
+
 def _match_patient(organization, sender: str):
     matches = list(Patient.objects.filter(organization=organization, email__iexact=sender)[:2]) if sender else []
     return matches[0] if len(matches) == 1 else None
@@ -173,8 +178,13 @@ def ingest(organization, raw: bytes, *, imap_uid=None) -> MailMessage | None:
         )
         attachment.file.save(attachment.filename, ContentFile(content), save=False)
         attachment.save()
+    marks = {}
+    if thread.patient_id and not thread.third_party and not sender_is_patient(from_address, thread.patient):
+        # Someone other than the patient wrote in her thread (e.g. a relative replying): shown as a
+        # third party, and anything sent back goes to the patient unless the doctor confirms.
+        marks['third_party'] = True
     MailThread.objects.filter(pk=thread.pk).update(
-        has_inbound=True, unread=True, archived=False, last_message_at=max(thread.last_message_at, sent_at),
+        has_inbound=True, unread=True, archived=False, last_message_at=max(thread.last_message_at, sent_at), **marks,
     )
     transaction.on_commit(lambda: _after_ingest(message.pk))
     return message

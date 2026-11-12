@@ -33,20 +33,46 @@ export function InboxScreen({ patientMrn, threadId, compose }: InboxScreenProps)
   const [refresh, setRefresh] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  // While `?patient=` is being resolved the list must not load, or the whole inbox flashes up and could be acted on.
+  const [resolvedMrn, setResolvedMrn] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const resolving = !!patientMrn && resolvedMrn !== patientMrn;
+
   useEffect(() => {
     let cancelled = false;
     mailApi.mailbox.get().then((m) => !cancelled && setMailbox(m), () => !cancelled && setMailbox(null));
-    if (patientMrn) patientsApi.byFileNumber(patientMrn).then((p) => !cancelled && setPatient(p), () => undefined);
+    if (patientMrn) {
+      patientsApi.byFileNumber(patientMrn).then(
+        (p) => {
+          if (cancelled) return;
+          setPatient(p);
+          if (!p) setError("No patient has that file number.");
+          setResolvedMrn(patientMrn);
+        },
+        (err: unknown) => {
+          if (cancelled) return;
+          setError(apiErrorMessage(err, "Could not open that patient's emails."));
+          setResolvedMrn(patientMrn);
+        },
+      );
+    }
     return () => {
       cancelled = true;
     };
   }, [patientMrn]);
 
-  const key = `${folder}|${filter}|${query}|${patient?.id ?? ""}|${refresh}`;
+  // A file number that does not resolve shows no mail rather than everyone's.
+  const unresolved = !!patientMrn && !resolving && !patient && !showAll;
+  const key = `${folder}|${filter}|${query}|${patient?.id ?? ""}|${refresh}|${unresolved}`;
   useEffect(() => {
+    if (resolving) return;
+    if (unresolved) return;
     let cancelled = false;
     const timer = setTimeout(() => {
-      Promise.all([mailApi.threads.list(folder, filter, query.trim(), patient?.id), mailApi.threads.counts()]).then(
+      const load = patient
+        ? mailApi.threads.forPatient(patient.id)
+        : mailApi.threads.list(folder, filter, query.trim());
+      Promise.all([load, mailApi.threads.counts()]).then(
         ([page, counts]) => {
           if (cancelled) return;
           setThreads({ key, list: page.results, total: page.count });
@@ -61,10 +87,10 @@ export function InboxScreen({ patientMrn, threadId, compose }: InboxScreenProps)
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [folder, filter, query, patient, refresh, key]);
+  }, [folder, filter, query, patient, refresh, key, resolving, unresolved]);
 
-  const list = threads?.key === key ? threads.list : null;
-  const notShown = threads?.key === key ? threads.total - threads.list.length : 0;
+  const list = unresolved ? [] : threads?.key === key ? threads.list : null;
+  const notShown = !unresolved && threads?.key === key ? threads.total - threads.list.length : 0;
   const openId = selectedId ?? (compose ? list?.[0]?.id : undefined);
   useEffect(() => {
     if (!openId) return;
@@ -144,7 +170,10 @@ export function InboxScreen({ patientMrn, threadId, compose }: InboxScreenProps)
           onFilter={setFilter}
           onQuery={setQuery}
           onSelect={setSelectedId}
-          onClearPatient={() => setPatient(null)}
+          onClearPatient={() => {
+            setShowAll(true);
+            setPatient(null);
+          }}
         />
         {current ? (
           <ThreadPanel

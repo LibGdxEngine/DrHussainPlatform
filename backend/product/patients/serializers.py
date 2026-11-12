@@ -49,6 +49,11 @@ class PatientCreateSerializer(PatientSerializer):
 
 
 class SimilarPatientSerializer(serializers.ModelSerializer):
+    match = serializers.SerializerMethodField(help_text="'exact' (same name) or 'near' (very similar name).")
+
     class Meta:
         model = Patient
-        fields = ['id', 'file_number', 'full_name', 'full_name_ar', 'date_of_birth']
+        fields = ['id', 'file_number', 'full_name', 'full_name_ar', 'date_of_birth', 'match']
+
+    def get_match(self, obj) -> str:
+        return getattr(obj, 'match', 'exact')

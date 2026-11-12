@@ -89,8 +89,9 @@ class RoutingTests(ReviewTestCase):
         case = self.read(pdfs.header(collected='03/10/2026') + later, name='october.pdf')
         self.assertEqual(case.route, 'follow_up')
         body = self.detail(case)['draft']['body']
-        self.assertIn('Ferritin: 32.0 ng/mL on 3 Jul 2026 → 48.0 ng/mL on 3 Oct 2026 (higher)', body)
-        self.assertIn('TSH: 1.8 mIU/L on 3 Jul 2026 → 1.8 mIU/L on 3 Oct 2026 (unchanged)', body)
+        self.assertIn('Ferritin: 32.0 ng/mL (3 July 2026) → 48.0 ng/mL (3 October 2026) '
+                      '(higher, back within the reference range)', body)
+        self.assertIn('TSH: 1.8 mIU/L (3 July 2026) → 1.8 mIU/L (3 October 2026) (unchanged)', body)
 
     def test_sti_email_is_opening_one_section_per_positive_result_and_closing(self):
         self.approve('sti_opening', 'Dear {{patient.first_name}},', subject='Your swab results')
@@ -146,12 +147,13 @@ class RoutingTests(ReviewTestCase):
 
     def test_doctor_can_draft_a_flagged_report_anyway(self):
         self.approve('results', '{{results.table}}')
-        case = self.read(pdfs.header() + pdfs.BLOODS[:3] + ['Vitamin D   ?? ng/mL'])
-        self.assertEqual(case.flag_reasons, ['unreadable_value'])
-        response = self.client.post(f'{BASE}{case.id}/draft-anyway/', {'reason': 'Vitamin D not needed'},
+        # Unchecked values are never drafted anyway (test_send_safety); a patient doubt can be.
+        case = self.read(pdfs.header(dob='01/01/1980', file_number='') + pdfs.BLOODS[:3])
+        self.assertIn('patient_not_found', case.flag_reasons)
+        response = self.client.post(f'{BASE}{case.id}/draft-anyway/', {'reason': 'Same patient, new address'},
                                     format='json')
         self.assertEqual(response.data['status'], 'drafted')
-        self.assertIn('Vitamin D: could not be read', response.data['draft']['body'])
+        self.assertIn('Ferritin', response.data['draft']['body'])
         self.assertTrue(ReviewAction.objects.filter(case=case, action='drafted_anyway').exists())
 
         # Later choices rebuild the draft without the doctor overriding the flags again.
@@ -248,9 +250,12 @@ class ReviewActionTests(ReviewTestCase):
 
     def test_arabic_draft_without_an_approved_translation_asks_the_doctor_to_translate(self):
         response = self.client.post(f'{BASE}{self.case.id}/options/', {'language': 'ar'}, format='json')
-        self.assertEqual(response.data['draft']['language'], 'ar')
-        self.assertTrue(response.data['draft']['body'].startswith('[[Translate into Arabic]]'))
-        self.assertIn('Translate into Arabic', response.data['draft']['open_slots'])
+        draft = response.data['draft']
+        self.assertEqual(draft['language'], 'ar')
+        self.assertTrue(draft['body'].startswith('[[Translate: Results email]]'))
+        self.assertNotIn('Translate into Arabic', draft['body'])
+        self.assertIn('Translate: Results email', draft['open_slots'])
+        self.assertIn('results', draft['missing_translations'])
 
     def test_queue_groups_and_counts(self):
         self.read(pdfs.header(dob='01/01/1980', file_number='') + pdfs.BLOODS[:3], name='other.pdf')

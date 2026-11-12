@@ -29,7 +29,7 @@ from .serializers import (
     MailboxSerializer, MailThreadDetailSerializer, MailThreadSerializer, ReplySerializer, SaveAttachmentSerializer,
     ThreadUpdateSerializer,
 )
-from .services import reply_headers
+from .services import reply_headers, sender_is_patient
 from .tasks import poll_mailbox, send_thread_reply
 from .transport import MailHostNotAllowed, MailboxNotReady, imap_connection, outgoing, smtp_connection
 
@@ -152,8 +152,11 @@ class MailThreadViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.R
             has_named_files=Exists(MailMessage.objects.filter(thread=OuterRef('pk')).exclude(attachment_names=[])),
         )
         params = self.request.query_params
-        folder = params.get('folder', 'inbox')
-        if folder == 'archive':
+        # A patient's own list shows every folder (sent and archived mail included) unless one is asked for.
+        folder = params.get('folder') or (None if params.get('patient') else 'inbox')
+        if folder is None:
+            pass
+        elif folder == 'archive':
             queryset = queryset.filter(archived=True)
         elif folder == 'sent':
             queryset = queryset.filter(has_outbound=True, archived=False)
@@ -212,8 +215,22 @@ class MailThreadViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.R
         serializer = LinkPatientSerializer(data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
         patient = serializer.validated_data['patient']
-        MailThread.objects.filter(pk=thread.pk).update(patient=patient, suggested_patient=None)
-        audit(request, 'mail_thread.linked', thread, patient_id=str(patient.pk) if patient else '')
+        third_party = patient is not None and not sender_is_patient(thread.contact_email, patient)
+        relation = serializer.validated_data.get('relation', '').strip()
+        if third_party and not (serializer.validated_data['confirm_third_party'] and relation):
+            return error_response(
+                'THIRD_PARTY_CONFIRM',
+                f'This email is from {thread.contact_email or "someone"}, not the patient. Confirm the link and '
+                f'say who they are to the patient.',
+                status=409, context={'patient_email': patient.email, 'contact_email': thread.contact_email},
+            )
+        MailThread.objects.filter(pk=thread.pk).update(
+            patient=patient, suggested_patient=None, third_party=third_party,
+            third_party_relation=relation[:64] if third_party else '',
+            third_party_confirmed_by=request.user if third_party else None,
+        )
+        audit(request, 'mail_thread.linked', thread, patient_id=str(patient.pk) if patient else '',
+              third_party=third_party, relation=relation if third_party else '')
         return self._detail(thread)
 
     @extend_schema(request=ReplySerializer, responses={201: MailThreadDetailSerializer})
@@ -234,6 +251,15 @@ class MailThreadViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.R
         to_address = thread.contact_email or (thread.patient.email if thread.patient else '')
         if not to_address:
             return error_response('no_recipient', 'This thread has no address to reply to.')
+        # The same test as for results replies: an address that is not the patient's own needs a confirmation.
+        third_party = thread.patient_id is not None and not sender_is_patient(to_address, thread.patient)
+        if third_party and not serializer.validated_data['confirm_third_party']:
+            return error_response(
+                'THIRD_PARTY_CONFIRM',
+                f'This thread is with {thread.contact_email or "a third party"}, not the patient. Confirm to reply to them.',
+                status=409, context={'contact_email': thread.contact_email,
+                                     'relation': thread.third_party_relation},
+            )
         documents = serializer.validated_data.get('documents', [])
         if documents and (thread.patient is None or any(d.patient_id != thread.patient_id for d in documents)):
             return error_response('validation_error', 'Only documents from this patient\'s file can be attached.',
@@ -251,7 +277,7 @@ class MailThreadViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.R
             )
             message.attached_documents.set(documents)
             transaction.on_commit(lambda: send_thread_reply.delay(str(message.pk)))
-        audit(request, 'mail_thread.replied', thread, message=str(message.pk))
+        audit(request, 'mail_thread.replied', thread, message=str(message.pk), third_party=third_party)
         return Response(MailThreadDetailSerializer(self.get_queryset().get(pk=thread.pk)).data,
                         status=status.HTTP_201_CREATED)
 

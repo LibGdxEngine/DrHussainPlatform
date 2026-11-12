@@ -15,6 +15,8 @@ TEXT = LabTest.Kind.TEXT
 
 # Starting catalog, loaded once per clinic. Clinic settings take over from here; it is not the
 # source of truth after the first load. Tracked tests match the key values panel mock-up.
+# An alias added here later reaches clinics loaded earlier only through a one-off data migration
+# (e.g. results 0005): the doctor may have removed an alias since, and the catalog never puts it back.
 DEFAULT_TESTS = [
     # code, name, kind, unit, optimal (low, high, text), tracked, aliases
     ('ferritin', 'Ferritin', NUMERIC, 'ng/mL', (50, 150, '50–150'), True, ['serum ferritin', 's ferritin']),
@@ -34,7 +36,7 @@ DEFAULT_TESTS = [
     ('prolactin', 'Prolactin', NUMERIC, 'ng/mL', (None, None, ''), False, ['serum prolactin', 'prl']),
     ('shbg', 'SHBG', NUMERIC, 'nmol/L', (None, None, ''), False, ['sex hormone binding globulin']),
     ('vitamin_d', 'Vitamin D', NUMERIC, 'ng/mL', (None, None, ''), False,
-     ['25 oh vitamin d', '25 hydroxy vitamin d', 'vitamin d total', 'vit d']),
+     ['25 oh vitamin d', '25 hydroxy vitamin d', 'vitamin d total', 'vit d', 'vitamin d 25 oh']),
     ('haemoglobin', 'Haemoglobin', NUMERIC, 'g/dL', (None, None, ''), False, ['hemoglobin', 'hb', 'hgb']),
     ('cholesterol_total', 'Total cholesterol', NUMERIC, 'mmol/L', (None, None, ''), False,
      ['cholesterol', 'total cholesterol', 'serum cholesterol']),
@@ -133,3 +135,8 @@ class Catalog:
         # Labs append method or specimen: "Ferritin (CLIA)", "TSH, serum".
         trimmed = normalize_test_name(re.split(r'[(,\[]', raw_name, maxsplit=1)[0])
         return self.by_alias.get(trimmed)
+
+    def expected_unit(self, raw_name: str) -> str:
+        """The unit a numeric catalogue test is reported in ('' when none is expected)."""
+        test = self.resolve(raw_name)
+        return test.default_unit if test is not None and test.kind == NUMERIC else ''

@@ -1,8 +1,8 @@
-import type { ReviewRow, StepId } from "../types";
+import type { ReviewRow } from "../types";
 
 interface ReviewStepProps {
   rows: ReviewRow[];
-  onEdit: (step: StepId) => void;
+  onEdit: (step: string) => void;
 }
 
 /** Check-and-send: every answer in plain words, each with a way back to change it. */
@@ -25,7 +25,7 @@ export function ReviewStep({ rows, onEdit }: ReviewStepProps) {
             <button
               type="button"
               onClick={() => onEdit(r.step)}
-              className="cursor-pointer text-[13px] font-semibold text-brand"
+              className="min-h-11 cursor-pointer px-1 text-[13px] font-semibold text-brand"
               aria-label={`Change: ${r.label}`}
             >
               Change

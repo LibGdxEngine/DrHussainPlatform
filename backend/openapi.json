@@ -5303,6 +5303,14 @@
                     },
                     {
                         "in": "query",
+                        "name": "scope",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "case (with report): the alerts fired by this report plus the patient's open red answer alerts; no reminders."
+                    },
+                    {
+                        "in": "query",
                         "name": "status",
                         "schema": {
                             "type": "string"
@@ -5494,6 +5502,161 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/PatientAlert"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid request or validation error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed or session expired.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied or required verification.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Response format not acceptable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Request throttled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected internal error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "A required service is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/alerts/evaluate/": {
+            "post": {
+                "operationId": "product_alerts_evaluate_create",
+                "description": "Check alerts now: run every rule for the patient and return her open alerts.",
+                "tags": [
+                    "product"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EvaluateRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EvaluateRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EvaluateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PatientAlert"
+                                    }
                                 }
                             }
                         },
@@ -20639,6 +20802,169 @@
                 }
             }
         },
+        "/api/product/results/values/{id}/check/": {
+            "post": {
+                "operationId": "product_results_values_check_create",
+                "description": "The doctor confirms or corrects an uncertain value; the report's case is then routed again.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "A UUID string identifying this result value.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "product"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ValueCheckRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ValueCheckRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ValueCheckRequest"
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InvestigationReport"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid request or validation error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed or session expired.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied or required verification.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Response format not acceptable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Request throttled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected internal error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "A required service is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/product/review/cases/": {
             "get": {
                 "operationId": "product_review_cases_list",
@@ -20970,6 +21296,25 @@
                 "tags": [
                     "product"
                 ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApproveRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApproveRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApproveRequest"
+                            }
+                        }
+                    }
+                },
                 "security": [
                     {
                         "jwtAuth": []
@@ -21783,6 +22128,315 @@
                         "multipart/form-data": {
                             "schema": {
                                 "$ref": "#/components/schemas/ReasonRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResultsCaseDetail"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid request or validation error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed or session expired.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied or required verification.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Response format not acceptable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Request throttled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected internal error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "A required service is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/product/review/cases/{id}/translations/": {
+            "get": {
+                "operationId": "product_review_cases_translations_list",
+                "description": "The parts of an Arabic draft still in English, with the English to translate; or save the\ndoctor's translation of one part (the draft is rebuilt with it).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "A UUID string identifying this results case.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "product"
+                ],
+                "security": [
+                    {
+                        "jwtAuth": []
+                    },
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TranslationSource"
+                                    }
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "description": "Invalid request or validation error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed or session expired.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission denied or required verification.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Method not allowed.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "406": {
+                        "description": "Response format not acceptable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported media type.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Request throttled.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected internal error.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "A required service is unavailable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiErrorEnvelope"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "product_review_cases_translations_create",
+                "description": "The parts of an Arabic draft still in English, with the English to translate; or save the\ndoctor's translation of one part (the draft is rebuilt with it).",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "description": "A UUID string identifying this results case.",
+                        "required": true
+                    }
+                ],
+                "tags": [
+                    "product"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TranslationSaveRequest"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TranslationSaveRequest"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TranslationSaveRequest"
                             }
                         }
                     },
@@ -27222,15 +27876,6 @@
                     "id"
                 ]
             },
-            "AdherenceEnum": {
-                "enum": [
-                    "yes",
-                    "some",
-                    "stop"
-                ],
-                "type": "string",
-                "description": "* `yes` - yes\n* `some` - some\n* `stop` - stop"
-            },
             "AlertRule": {
                 "type": "object",
                 "properties": {
@@ -27313,6 +27958,26 @@
                                 "$ref": "#/components/schemas/BlankEnum"
                             }
                         ]
+                    },
+                    "answer_check": {
+                        "description": "Named check over the patient form answers.\n\n* `age_or_years_since_period` - Age, or years since the last period or menopause, 2 / 3\n* `alcohol_units` - Units or drinks per week, 9\n* `bleeding_after_year` - Any bleeding 12 months after the last period, 3\n* `breast_cancer` - Breast cancer (ever), 6A\n* `breast_concern` - Breast lump, discharge or skin change, 10b\n* `coronary_disease` - Heart attack, angina or known coronary disease, 6A\n* `desire_bother` - Low desire that bothers you, 10\n* `fh_breast_cancer` - Family history of breast cancer, 8\n* `fh_ovarian_brca` - Family history of ovarian cancer or a cancer gene, 8\n* `fh_premature_cvd` - Family history of heart attack or stroke at a young age, 8\n* `fh_vte` - Family history of blood clots, 8\n* `intermenstrual_bleeding` - Bleeding between periods or after sex, 3\n* `liver_disease` - Active liver disease, 6A\n* `lng_ius_date` - LNG-IUS insertion date, 5\n* `mammogram_date` - Last mammogram date, 5\n* `medicine_listed` - A listed supplement or medicine, 7\n* `menopause_age` - Age at menopause, 3\n* `migraine_aura` - Migraine with aura, 6B\n* `mrs_heart` - MRS item 2, heart discomfort, 4\n* `peanut_allergy_progesterone` - Peanut allergy with a current medicine, 7\n* `pelvic_pain_fever` - Pelvic pain with fever, 10b\n* `phq2_gad2` - PHQ-2 or GAD-2 score, 6D\n* `pregnancy_complications` - Pregnancy complications, 5\n* `pregnancy_pain_bleeding` - Could you be pregnant, with pain or bleeding, 5 / 10b\n* `self_harm` - Self-harm question, 6D\n* `smear_date` - Last cervical smear date, 5\n* `smoking` - Smoker / vaper, 6B\n* `stroke_tia` - Stroke or mini-stroke (TIA), 6A\n* `unexplained_bleeding` - Unexplained vaginal bleeding now, 6A\n* `utis_per_year` - Urine infections in the last year, 10\n* `vte` - Blood clot in leg or lung (DVT/PE), 6A",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AnswerCheckEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "medicine_terms": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "maxLength": 80
+                        },
+                        "description": "Medicine names the rule needs among the current medicines, e.g. prometrium.",
+                        "maxItems": 20
                     },
                     "sort_order": {
                         "type": "integer",
@@ -27471,6 +28136,27 @@
                             }
                         ]
                     },
+                    "answer_check": {
+                        "description": "Named check over the patient form answers.\n\n* `age_or_years_since_period` - Age, or years since the last period or menopause, 2 / 3\n* `alcohol_units` - Units or drinks per week, 9\n* `bleeding_after_year` - Any bleeding 12 months after the last period, 3\n* `breast_cancer` - Breast cancer (ever), 6A\n* `breast_concern` - Breast lump, discharge or skin change, 10b\n* `coronary_disease` - Heart attack, angina or known coronary disease, 6A\n* `desire_bother` - Low desire that bothers you, 10\n* `fh_breast_cancer` - Family history of breast cancer, 8\n* `fh_ovarian_brca` - Family history of ovarian cancer or a cancer gene, 8\n* `fh_premature_cvd` - Family history of heart attack or stroke at a young age, 8\n* `fh_vte` - Family history of blood clots, 8\n* `intermenstrual_bleeding` - Bleeding between periods or after sex, 3\n* `liver_disease` - Active liver disease, 6A\n* `lng_ius_date` - LNG-IUS insertion date, 5\n* `mammogram_date` - Last mammogram date, 5\n* `medicine_listed` - A listed supplement or medicine, 7\n* `menopause_age` - Age at menopause, 3\n* `migraine_aura` - Migraine with aura, 6B\n* `mrs_heart` - MRS item 2, heart discomfort, 4\n* `peanut_allergy_progesterone` - Peanut allergy with a current medicine, 7\n* `pelvic_pain_fever` - Pelvic pain with fever, 10b\n* `phq2_gad2` - PHQ-2 or GAD-2 score, 6D\n* `pregnancy_complications` - Pregnancy complications, 5\n* `pregnancy_pain_bleeding` - Could you be pregnant, with pain or bleeding, 5 / 10b\n* `self_harm` - Self-harm question, 6D\n* `smear_date` - Last cervical smear date, 5\n* `smoking` - Smoker / vaper, 6B\n* `stroke_tia` - Stroke or mini-stroke (TIA), 6A\n* `unexplained_bleeding` - Unexplained vaginal bleeding now, 6A\n* `utis_per_year` - Urine infections in the last year, 10\n* `vte` - Blood clot in leg or lung (DVT/PE), 6A",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AnswerCheckEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "medicine_terms": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 80
+                        },
+                        "description": "Medicine names the rule needs among the current medicines, e.g. prometrium.",
+                        "maxItems": 20
+                    },
                     "note": {
                         "type": "string",
                         "writeOnly": true,
@@ -27572,6 +28258,11 @@
                             }
                         ]
                     },
+                    "answer_check": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "medicine_terms": {},
                     "note": {
                         "type": "string",
                         "description": "Why it changed.",
@@ -27597,77 +28288,42 @@
                     "number"
                 ]
             },
-            "AnswersRequest": {
-                "type": "object",
-                "description": "What the patient can answer. Unknown keys are dropped, so the stored form stays predictable.",
-                "properties": {
-                    "reasons": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/ReasonsEnum"
-                        },
-                        "maxItems": 16
-                    },
-                    "other_reason": {
-                        "type": "string",
-                        "maxLength": 500
-                    },
-                    "last_period": {
-                        "type": "string",
-                        "maxLength": 40
-                    },
-                    "period_status": {
-                        "$ref": "#/components/schemas/PeriodStatusEnum"
-                    },
-                    "bleed_after_year": {
-                        "$ref": "#/components/schemas/YesNoEnum"
-                    },
-                    "menopause_age": {
-                        "type": "integer",
-                        "maximum": 70,
-                        "minimum": 20,
-                        "nullable": true
-                    },
-                    "uterus": {
-                        "$ref": "#/components/schemas/YesNoEnum"
-                    },
-                    "pregnant": {
-                        "$ref": "#/components/schemas/PregnantEnum"
-                    },
-                    "intermenstrual": {
-                        "$ref": "#/components/schemas/YesNoEnum"
-                    },
-                    "overall": {
-                        "$ref": "#/components/schemas/OverallEnum"
-                    },
-                    "adherence": {
-                        "$ref": "#/components/schemas/AdherenceEnum"
-                    },
-                    "adherence_reason": {
-                        "type": "string",
-                        "maxLength": 500
-                    },
-                    "side_effects": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/SideEffectsEnum"
-                        },
-                        "maxItems": 8
-                    },
-                    "bleeding": {
-                        "$ref": "#/components/schemas/YesNoEnum"
-                    },
-                    "medicines": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/MedicineAnswerRequest"
-                        }
-                    },
-                    "notes": {
-                        "type": "string",
-                        "maxLength": 2000
-                    }
-                }
+            "AnswerCheckEnum": {
+                "enum": [
+                    "age_or_years_since_period",
+                    "alcohol_units",
+                    "bleeding_after_year",
+                    "breast_cancer",
+                    "breast_concern",
+                    "coronary_disease",
+                    "desire_bother",
+                    "fh_breast_cancer",
+                    "fh_ovarian_brca",
+                    "fh_premature_cvd",
+                    "fh_vte",
+                    "intermenstrual_bleeding",
+                    "liver_disease",
+                    "lng_ius_date",
+                    "mammogram_date",
+                    "medicine_listed",
+                    "menopause_age",
+                    "migraine_aura",
+                    "mrs_heart",
+                    "peanut_allergy_progesterone",
+                    "pelvic_pain_fever",
+                    "phq2_gad2",
+                    "pregnancy_complications",
+                    "pregnancy_pain_bleeding",
+                    "self_harm",
+                    "smear_date",
+                    "smoking",
+                    "stroke_tia",
+                    "unexplained_bleeding",
+                    "utis_per_year",
+                    "vte"
+                ],
+                "type": "string",
+                "description": "* `age_or_years_since_period` - Age, or years since the last period or menopause, 2 / 3\n* `alcohol_units` - Units or drinks per week, 9\n* `bleeding_after_year` - Any bleeding 12 months after the last period, 3\n* `breast_cancer` - Breast cancer (ever), 6A\n* `breast_concern` - Breast lump, discharge or skin change, 10b\n* `coronary_disease` - Heart attack, angina or known coronary disease, 6A\n* `desire_bother` - Low desire that bothers you, 10\n* `fh_breast_cancer` - Family history of breast cancer, 8\n* `fh_ovarian_brca` - Family history of ovarian cancer or a cancer gene, 8\n* `fh_premature_cvd` - Family history of heart attack or stroke at a young age, 8\n* `fh_vte` - Family history of blood clots, 8\n* `intermenstrual_bleeding` - Bleeding between periods or after sex, 3\n* `liver_disease` - Active liver disease, 6A\n* `lng_ius_date` - LNG-IUS insertion date, 5\n* `mammogram_date` - Last mammogram date, 5\n* `medicine_listed` - A listed supplement or medicine, 7\n* `menopause_age` - Age at menopause, 3\n* `migraine_aura` - Migraine with aura, 6B\n* `mrs_heart` - MRS item 2, heart discomfort, 4\n* `peanut_allergy_progesterone` - Peanut allergy with a current medicine, 7\n* `pelvic_pain_fever` - Pelvic pain with fever, 10b\n* `phq2_gad2` - PHQ-2 or GAD-2 score, 6D\n* `pregnancy_complications` - Pregnancy complications, 5\n* `pregnancy_pain_bleeding` - Could you be pregnant, with pain or bleeding, 5 / 10b\n* `self_harm` - Self-harm question, 6D\n* `smear_date` - Last cervical smear date, 5\n* `smoking` - Smoker / vaper, 6B\n* `stroke_tia` - Stroke or mini-stroke (TIA), 6A\n* `unexplained_bleeding` - Unexplained vaginal bleeding now, 6A\n* `utis_per_year` - Urine infections in the last year, 10\n* `vte` - Blood clot in leg or lung (DVT/PE), 6A"
             },
             "Appointment": {
                 "type": "object",
@@ -27934,6 +28590,16 @@
                     "starts_at"
                 ]
             },
+            "ApproveRequest": {
+                "type": "object",
+                "properties": {
+                    "send_to_thread_contact": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "A reply on a third-party thread: send to the thread contact, not the patient."
+                    }
+                }
+            },
             "AuditLog": {
                 "type": "object",
                 "properties": {
@@ -28093,6 +28759,12 @@
                     "sent_at": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "third_party": {
+                        "type": "boolean"
+                    },
+                    "third_party_relation": {
+                        "type": "string"
                     }
                 },
                 "required": [
@@ -28101,6 +28773,8 @@
                     "id",
                     "sent_at",
                     "subject",
+                    "third_party",
+                    "third_party_relation",
                     "thread"
                 ]
             },
@@ -28137,6 +28811,226 @@
                     "id",
                     "lab_name",
                     "report_type"
+                ]
+            },
+            "Catalogue": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string"
+                    },
+                    "sections": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CatalogueSection"
+                        }
+                    }
+                },
+                "required": [
+                    "sections",
+                    "version"
+                ]
+            },
+            "CatalogueField": {
+                "type": "object",
+                "description": "One column of a repeating-row question.",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/CatalogueFieldTypeEnum"
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CatalogueOption"
+                        }
+                    },
+                    "required": {
+                        "type": "boolean",
+                        "default": false
+                    },
+                    "default": {},
+                    "min": {
+                        "type": "integer"
+                    },
+                    "max": {
+                        "type": "integer"
+                    },
+                    "max_length": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "id",
+                    "label",
+                    "type"
+                ]
+            },
+            "CatalogueFieldTypeEnum": {
+                "enum": [
+                    "single",
+                    "text",
+                    "number",
+                    "date",
+                    "tick"
+                ],
+                "type": "string",
+                "description": "* `single` - single\n* `text` - text\n* `number` - number\n* `date` - date\n* `tick` - tick"
+            },
+            "CatalogueOption": {
+                "type": "object",
+                "properties": {
+                    "value": {
+                        "description": "A string, or a 0-3 score for the mood questions."
+                    },
+                    "label": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "label",
+                    "value"
+                ]
+            },
+            "CatalogueQuestion": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string",
+                        "description": "Forms-doc wording."
+                    },
+                    "type": {
+                        "$ref": "#/components/schemas/CatalogueQuestionTypeEnum"
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CatalogueOption"
+                        }
+                    },
+                    "fields": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CatalogueField"
+                        }
+                    },
+                    "show_if": {
+                        "description": "A catalogue condition."
+                    },
+                    "required": {
+                        "default": false,
+                        "description": "true, or a catalogue condition."
+                    },
+                    "carry_forward": {
+                        "type": "boolean"
+                    },
+                    "inferred": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Not a question in the forms doc; to confirm with the clinic."
+                    },
+                    "also_in": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Other sections that ask it when its own section is closed."
+                    },
+                    "rules": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "flag": {
+                        "description": "Answer values highlighted for the doctor, or \"any\" for any answer."
+                    },
+                    "min": {
+                        "type": "integer"
+                    },
+                    "max": {
+                        "type": "integer"
+                    },
+                    "max_length": {
+                        "type": "integer"
+                    },
+                    "max_rows": {
+                        "type": "integer"
+                    },
+                    "not_sure": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Number questions: \"not_sure\" is accepted."
+                    }
+                },
+                "required": [
+                    "carry_forward",
+                    "id",
+                    "label",
+                    "type"
+                ]
+            },
+            "CatalogueQuestionTypeEnum": {
+                "enum": [
+                    "single",
+                    "multi",
+                    "number",
+                    "scale",
+                    "text",
+                    "date",
+                    "tick",
+                    "rows",
+                    "mrs"
+                ],
+                "type": "string",
+                "description": "* `single` - single\n* `multi` - multi\n* `number` - number\n* `scale` - scale\n* `text` - text\n* `date` - date\n* `tick` - tick\n* `rows` - rows\n* `mrs` - mrs"
+            },
+            "CatalogueSection": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "kinds": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/IntakeFormKindEnum"
+                        }
+                    },
+                    "addable": {
+                        "type": "boolean"
+                    },
+                    "opens_when": {
+                        "description": "A catalogue condition."
+                    },
+                    "intro": {
+                        "type": "string"
+                    },
+                    "questions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CatalogueQuestion"
+                        }
+                    }
+                },
+                "required": [
+                    "addable",
+                    "id",
+                    "kinds",
+                    "opens_when",
+                    "questions",
+                    "title"
                 ]
             },
             "ChangeEnum": {
@@ -28192,6 +29086,20 @@
                             "type": "string"
                         }
                     },
+                    "notes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Remarks on a comparison that stands, e.g. 'lab_differs'."
+                    },
+                    "labs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "[this lab, previous lab] when they differ; empty otherwise."
+                    },
                     "previous": {
                         "allOf": [
                             {
@@ -28203,6 +29111,8 @@
                 },
                 "required": [
                     "change",
+                    "labs",
+                    "notes",
                     "previous",
                     "reasons"
                 ]
@@ -28581,6 +29491,14 @@
                         },
                         "readOnly": true
                     },
+                    "missing_translations": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "readOnly": true,
+                        "description": "Template and phrase keys still in English; the draft cannot be sent until each is translated."
+                    },
                     "template_versions": {
                         "type": "array",
                         "items": {
@@ -28592,6 +29510,13 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/DraftPrescription"
+                        },
+                        "readOnly": true
+                    },
+                    "section_prescriptions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/DraftSectionPrescription"
                         },
                         "readOnly": true
                     },
@@ -28629,8 +29554,10 @@
                     "id",
                     "language",
                     "leaflets",
+                    "missing_translations",
                     "open_slots",
                     "prescriptions",
+                    "section_prescriptions",
                     "subject",
                     "template_versions"
                 ]
@@ -28689,6 +29616,17 @@
                     },
                     "attach_report": {
                         "type": "boolean"
+                    },
+                    "section_prescriptions": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "format": "uuid"
+                            }
+                        },
+                        "description": "Per positive result: {\"sti_section_<test>\": [prescription item id, ...]}. Only the sections given change; an empty list clears that section."
                     }
                 }
             },
@@ -28718,6 +29656,38 @@
                     "drug",
                     "item",
                     "number"
+                ]
+            },
+            "DraftSectionPrescription": {
+                "type": "object",
+                "properties": {
+                    "section_key": {
+                        "type": "string"
+                    },
+                    "item": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "number": {
+                        "type": "integer"
+                    },
+                    "drug": {
+                        "type": "string"
+                    },
+                    "dose": {
+                        "type": "string"
+                    },
+                    "directions": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "directions",
+                    "dose",
+                    "drug",
+                    "item",
+                    "number",
+                    "section_key"
                 ]
             },
             "DraftTemplate": {
@@ -28772,8 +29742,7 @@
                     },
                     "key": {
                         "type": "string",
-                        "readOnly": true,
-                        "pattern": "^[-a-zA-Z0-9_]+$"
+                        "readOnly": true
                     },
                     "language": {
                         "allOf": [
@@ -28871,8 +29840,8 @@
                     "key": {
                         "type": "string",
                         "minLength": 1,
-                        "maxLength": 80,
-                        "pattern": "^[-a-zA-Z0-9_]+$"
+                        "pattern": "^[-a-zA-Z0-9_]+(\\.[-a-zA-Z0-9_]+)?$",
+                        "maxLength": 80
                     },
                     "language": {
                         "$ref": "#/components/schemas/LanguageEnum"
@@ -28963,6 +29932,12 @@
                         "type": "string",
                         "format": "date-time",
                         "nullable": true
+                    },
+                    "translated_from": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "nullable": true
                     }
                 },
                 "required": [
@@ -28972,7 +29947,8 @@
                     "created_at",
                     "created_by_name",
                     "id",
-                    "number"
+                    "number",
+                    "translated_from"
                 ]
             },
             "EmailTemplateVersionRequest": {
@@ -29006,6 +29982,18 @@
                 "required": [
                     "body",
                     "number"
+                ]
+            },
+            "EvaluateRequest": {
+                "type": "object",
+                "properties": {
+                    "patient": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                },
+                "required": [
+                    "patient"
                 ]
             },
             "Examination": {
@@ -29279,6 +30267,26 @@
                     "number"
                 ]
             },
+            "ExtraModulesEnum": {
+                "enum": [
+                    "menopause",
+                    "hormone_screen",
+                    "sexual_detail",
+                    "heavy",
+                    "bleed",
+                    "pain",
+                    "contra",
+                    "ttc",
+                    "pcos",
+                    "dis",
+                    "uri",
+                    "pms",
+                    "smear",
+                    "breast"
+                ],
+                "type": "string",
+                "description": "* `menopause` - menopause\n* `hormone_screen` - hormone_screen\n* `sexual_detail` - sexual_detail\n* `heavy` - heavy\n* `bleed` - bleed\n* `pain` - pain\n* `contra` - contra\n* `ttc` - ttc\n* `pcos` - pcos\n* `dis` - dis\n* `uri` - uri\n* `pms` - pms\n* `smear` - smear\n* `breast` - breast"
+            },
             "FilledEnum": {
                 "enum": [
                     "automatic",
@@ -29309,9 +30317,10 @@
             },
             "FormSaveRequest": {
                 "type": "object",
+                "description": "The answers are checked against the question catalogue (intake/catalogue.py) for the form's kind.",
                 "properties": {
                     "answers": {
-                        "$ref": "#/components/schemas/AnswersRequest"
+                        "description": "Question id -> answer, as the catalogue describes."
                     },
                     "mrs": {
                         "type": "array",
@@ -29492,6 +30501,14 @@
                     "send_email": {
                         "type": "boolean",
                         "default": false
+                    },
+                    "extra_modules": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ExtraModulesEnum"
+                        },
+                        "description": "Modules to add on top of the ones her answers open.",
+                        "maxItems": 14
                     }
                 }
             },
@@ -29603,15 +30620,45 @@
                         },
                         "readOnly": true,
                         "nullable": true
+                    },
+                    "history_summary": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SummaryModule"
+                        },
+                        "readOnly": true
+                    },
+                    "rules_evaluated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "rule_errors": {
+                        "readOnly": true
+                    },
+                    "extra_modules": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "readOnly": true
+                    },
+                    "catalogue_version": {
+                        "type": "string",
+                        "readOnly": true
                     }
                 },
                 "required": [
                     "answers",
                     "appointment",
+                    "catalogue_version",
                     "created_at",
                     "expires_at",
+                    "extra_modules",
                     "file_number",
                     "has_email",
+                    "history_summary",
                     "id",
                     "kind",
                     "mrs",
@@ -29620,6 +30667,8 @@
                     "opened_at",
                     "patient",
                     "patient_name",
+                    "rule_errors",
+                    "rules_evaluated_at",
                     "sent_at",
                     "sent_via",
                     "status",
@@ -30317,6 +31366,16 @@
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
+                    },
+                    "confirm_third_party": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Required when the sender is not the patient (for example a relative)."
+                    },
+                    "relation": {
+                        "type": "string",
+                        "description": "Who the sender is to the patient; required with confirm_third_party.",
+                        "maxLength": 64
                     }
                 },
                 "required": [
@@ -30531,6 +31590,19 @@
                         "readOnly": true,
                         "nullable": true
                     },
+                    "suggestion_kind": {
+                        "type": "string",
+                        "readOnly": true,
+                        "description": "'third_party' when the suggested file belongs to someone other than the sender; else 'sender'."
+                    },
+                    "third_party": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
+                    "third_party_relation": {
+                        "type": "string",
+                        "readOnly": true
+                    },
                     "last_message_at": {
                         "type": "string",
                         "format": "date-time",
@@ -30575,6 +31647,9 @@
                     "preview",
                     "subject",
                     "suggested_patient",
+                    "suggestion_kind",
+                    "third_party",
+                    "third_party_relation",
                     "unread"
                 ]
             },
@@ -30616,6 +31691,19 @@
                         ],
                         "readOnly": true,
                         "nullable": true
+                    },
+                    "suggestion_kind": {
+                        "type": "string",
+                        "readOnly": true,
+                        "description": "'third_party' when the suggested file belongs to someone other than the sender; else 'sender'."
+                    },
+                    "third_party": {
+                        "type": "boolean",
+                        "readOnly": true
+                    },
+                    "third_party_relation": {
+                        "type": "string",
+                        "readOnly": true
                     },
                     "last_message_at": {
                         "type": "string",
@@ -30669,6 +31757,9 @@
                     "preview",
                     "subject",
                     "suggested_patient",
+                    "suggestion_kind",
+                    "third_party",
+                    "third_party_relation",
                     "unread"
                 ]
             },
@@ -30847,23 +31938,6 @@
                     "is_lead",
                     "name",
                     "role"
-                ]
-            },
-            "MedicineAnswerRequest": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120
-                    },
-                    "still_taking": {
-                        "type": "boolean",
-                        "default": true
-                    }
-                },
-                "required": [
-                    "name"
                 ]
             },
             "Member": {
@@ -31282,16 +32356,6 @@
                     "name",
                     "slug"
                 ]
-            },
-            "OverallEnum": {
-                "enum": [
-                    "much",
-                    "better",
-                    "same",
-                    "worse"
-                ],
-                "type": "string",
-                "description": "* `much` - much\n* `better` - better\n* `same` - same\n* `worse` - worse"
             },
             "PaginatedActivityList": {
                 "type": "object",
@@ -32532,6 +33596,27 @@
                             }
                         ]
                     },
+                    "answer_check": {
+                        "description": "Named check over the patient form answers.\n\n* `age_or_years_since_period` - Age, or years since the last period or menopause, 2 / 3\n* `alcohol_units` - Units or drinks per week, 9\n* `bleeding_after_year` - Any bleeding 12 months after the last period, 3\n* `breast_cancer` - Breast cancer (ever), 6A\n* `breast_concern` - Breast lump, discharge or skin change, 10b\n* `coronary_disease` - Heart attack, angina or known coronary disease, 6A\n* `desire_bother` - Low desire that bothers you, 10\n* `fh_breast_cancer` - Family history of breast cancer, 8\n* `fh_ovarian_brca` - Family history of ovarian cancer or a cancer gene, 8\n* `fh_premature_cvd` - Family history of heart attack or stroke at a young age, 8\n* `fh_vte` - Family history of blood clots, 8\n* `intermenstrual_bleeding` - Bleeding between periods or after sex, 3\n* `liver_disease` - Active liver disease, 6A\n* `lng_ius_date` - LNG-IUS insertion date, 5\n* `mammogram_date` - Last mammogram date, 5\n* `medicine_listed` - A listed supplement or medicine, 7\n* `menopause_age` - Age at menopause, 3\n* `migraine_aura` - Migraine with aura, 6B\n* `mrs_heart` - MRS item 2, heart discomfort, 4\n* `peanut_allergy_progesterone` - Peanut allergy with a current medicine, 7\n* `pelvic_pain_fever` - Pelvic pain with fever, 10b\n* `phq2_gad2` - PHQ-2 or GAD-2 score, 6D\n* `pregnancy_complications` - Pregnancy complications, 5\n* `pregnancy_pain_bleeding` - Could you be pregnant, with pain or bleeding, 5 / 10b\n* `self_harm` - Self-harm question, 6D\n* `smear_date` - Last cervical smear date, 5\n* `smoking` - Smoker / vaper, 6B\n* `stroke_tia` - Stroke or mini-stroke (TIA), 6A\n* `unexplained_bleeding` - Unexplained vaginal bleeding now, 6A\n* `utis_per_year` - Urine infections in the last year, 10\n* `vte` - Blood clot in leg or lung (DVT/PE), 6A",
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/AnswerCheckEnum"
+                            },
+                            {
+                                "$ref": "#/components/schemas/BlankEnum"
+                            }
+                        ]
+                    },
+                    "medicine_terms": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 80
+                        },
+                        "description": "Medicine names the rule needs among the current medicines, e.g. prometrium.",
+                        "maxItems": 20
+                    },
                     "note": {
                         "type": "string",
                         "writeOnly": true,
@@ -32798,9 +33883,10 @@
             },
             "PatchedFormSaveRequest": {
                 "type": "object",
+                "description": "The answers are checked against the question catalogue (intake/catalogue.py) for the form's kind.",
                 "properties": {
                     "answers": {
-                        "$ref": "#/components/schemas/AnswersRequest"
+                        "description": "Question id -> answer, as the catalogue describes."
                     },
                     "mrs": {
                         "type": "array",
@@ -33274,6 +34360,17 @@
                         "readOnly": true,
                         "nullable": true
                     },
+                    "intake_form": {
+                        "type": "string",
+                        "format": "uuid",
+                        "readOnly": true,
+                        "nullable": true
+                    },
+                    "source": {
+                        "type": "string",
+                        "readOnly": true,
+                        "description": "What fired it: lab (a result), vital (an examination) or answer (a patient form)."
+                    },
                     "status": {
                         "allOf": [
                             {
@@ -33320,6 +34417,7 @@
                     "field",
                     "file_number",
                     "id",
+                    "intake_form",
                     "level",
                     "message",
                     "patient",
@@ -33328,6 +34426,7 @@
                     "report",
                     "result_date",
                     "rule_version",
+                    "source",
                     "status",
                     "value_text"
                 ]
@@ -33441,16 +34540,43 @@
                         "items": {
                             "type": "string"
                         },
-                        "description": "From the latest prescription, for the patient to confirm."
+                        "description": "Her current medicines (product.medicines), to confirm."
+                    },
+                    "catalogue": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Catalogue"
+                            }
+                        ],
+                        "description": "Every section and question; the form evaluates visibility live."
+                    },
+                    "previous_answers": {
+                        "type": "object",
+                        "additionalProperties": {},
+                        "description": "Carry-forward answers from her earlier complete forms, newest first, to confirm or edit."
+                    },
+                    "patient_age": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "extra_modules": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ExtraModulesEnum"
+                        }
                     }
                 },
                 "required": [
                     "answers",
+                    "catalogue",
                     "clinic_name",
                     "current_medicines",
+                    "extra_modules",
                     "first_name",
                     "kind",
                     "mrs",
+                    "patient_age",
+                    "previous_answers",
                     "previous_mrs",
                     "status",
                     "visit_at"
@@ -33472,17 +34598,6 @@
                     "patients",
                     "pending"
                 ]
-            },
-            "PeriodStatusEnum": {
-                "enum": [
-                    "reg",
-                    "irr",
-                    "stopped",
-                    "horm",
-                    "hyst"
-                ],
-                "type": "string",
-                "description": "* `reg` - reg\n* `irr` - irr\n* `stopped` - stopped\n* `horm` - horm\n* `hyst` - hyst"
             },
             "PhoneChangeConfirmRequest": {
                 "type": "object",
@@ -33606,15 +34721,6 @@
                 "required": [
                     "template"
                 ]
-            },
-            "PregnantEnum": {
-                "enum": [
-                    "yes",
-                    "no",
-                    "unsure"
-                ],
-                "type": "string",
-                "description": "* `yes` - Yes\n* `no` - No\n* `unsure` - Not sure"
             },
             "PrescribedMedicine": {
                 "type": "object",
@@ -33923,28 +35029,6 @@
                     "reason"
                 ]
             },
-            "ReasonsEnum": {
-                "enum": [
-                    "routine",
-                    "heavy",
-                    "bleed",
-                    "pain",
-                    "contra",
-                    "ttc",
-                    "pcos",
-                    "dis",
-                    "uri",
-                    "pms",
-                    "smear",
-                    "breast",
-                    "meno",
-                    "hrt",
-                    "lib",
-                    "other"
-                ],
-                "type": "string",
-                "description": "* `routine` - routine\n* `heavy` - heavy\n* `bleed` - bleed\n* `pain` - pain\n* `contra` - contra\n* `ttc` - ttc\n* `pcos` - pcos\n* `dis` - dis\n* `uri` - uri\n* `pms` - pms\n* `smear` - smear\n* `breast` - breast\n* `meno` - meno\n* `hrt` - hrt\n* `lib` - lib\n* `other` - other"
-            },
             "ReplyRequest": {
                 "type": "object",
                 "properties": {
@@ -33959,6 +35043,11 @@
                             "format": "uuid"
                         },
                         "description": "Documents from the patient's file to attach."
+                    },
+                    "confirm_third_party": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Required when the thread is with a third party rather than the patient."
                     }
                 },
                 "required": [
@@ -34171,6 +35260,23 @@
                     },
                     "unreadable": {
                         "type": "boolean"
+                    },
+                    "needs_check": {
+                        "type": "boolean"
+                    },
+                    "check_reason": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "checked_by": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "checked_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
                     },
                     "source": {
                         "$ref": "#/components/schemas/ResultSourceEnum"
@@ -34664,6 +35770,11 @@
                         "type": "string",
                         "readOnly": true
                     },
+                    "to_thread_contact_confirmed_by_name": {
+                        "type": "string",
+                        "description": "Who confirmed sending a reply to a third-party thread contact instead of the patient.",
+                        "readOnly": true
+                    },
                     "sent_at": {
                         "type": "string",
                         "format": "date-time",
@@ -34682,7 +35793,8 @@
                     "from_address",
                     "id",
                     "subject",
-                    "to_address"
+                    "to_address",
+                    "to_thread_contact_confirmed_by_name"
                 ]
             },
             "SentEmailStatusEnum": {
@@ -34712,20 +35824,6 @@
                 "required": [
                     "session"
                 ]
-            },
-            "SideEffectsEnum": {
-                "enum": [
-                    "breast",
-                    "bloat",
-                    "head",
-                    "sleepy",
-                    "mood",
-                    "acne",
-                    "hair",
-                    "facial"
-                ],
-                "type": "string",
-                "description": "* `breast` - breast\n* `bloat` - bloat\n* `head` - head\n* `sleepy` - sleepy\n* `mood` - mood\n* `acne` - acne\n* `hair` - hair\n* `facial` - facial"
             },
             "SignupRequest": {
                 "type": "object",
@@ -34802,14 +35900,20 @@
                         "type": "string"
                     },
                     "name": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "The template's name, shown on the plan button."
                     },
                     "approved": {
                         "type": "boolean"
+                    },
+                    "has_approved_wording": {
+                        "type": "boolean",
+                        "description": "False: the plan cannot be chosen yet."
                     }
                 },
                 "required": [
                     "approved",
+                    "has_approved_wording",
                     "key",
                     "name"
                 ]
@@ -34919,6 +36023,56 @@
                 "type": "string",
                 "description": "* `trialing` - Trialing\n* `active` - Active\n* `past_due` - Past Due\n* `canceled` - Canceled"
             },
+            "SummaryModule": {
+                "type": "object",
+                "properties": {
+                    "module": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SummaryRow"
+                        }
+                    }
+                },
+                "required": [
+                    "module",
+                    "rows",
+                    "title"
+                ]
+            },
+            "SummaryRow": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    },
+                    "highlight": {
+                        "type": "boolean",
+                        "description": "The answer feeds a red or amber rule and may set it off."
+                    },
+                    "not_answered": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "highlight",
+                    "label",
+                    "not_answered",
+                    "question",
+                    "value"
+                ]
+            },
             "SystemStatus": {
                 "type": "object",
                 "properties": {
@@ -34963,10 +36117,11 @@
                     "infection",
                     "pathology",
                     "smear",
-                    "reply"
+                    "reply",
+                    "phrase"
                 ],
                 "type": "string",
-                "description": "* `results` - Normal results\n* `menopause` - Menopause / perimenopause results\n* `follow_up` - Follow-up comparison\n* `infection` - Infections and STIs\n* `pathology` - Pathology results\n* `smear` - Cervical smear\n* `reply` - Reply about a prescription"
+                "description": "* `results` - Normal results\n* `menopause` - Menopause / perimenopause results\n* `follow_up` - Follow-up comparison\n* `infection` - Infections and STIs\n* `pathology` - Pathology results\n* `smear` - Cervical smear\n* `reply` - Reply about a prescription\n* `phrase` - System phrase"
             },
             "TemplatePreview": {
                 "type": "object",
@@ -35167,6 +36322,100 @@
                     "token"
                 ]
             },
+            "TranslationSaveRequest": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                    },
+                    "subject": {
+                        "type": "string",
+                        "default": "",
+                        "maxLength": 255
+                    },
+                    "body": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "keep_for_future": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Also approve it, so later drafts in this language reuse it."
+                    }
+                },
+                "required": [
+                    "body",
+                    "key"
+                ]
+            },
+            "TranslationSource": {
+                "type": "object",
+                "description": "One part of the draft still in English: what to translate.",
+                "properties": {
+                    "key": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "is_phrase": {
+                        "type": "boolean"
+                    },
+                    "subject": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    },
+                    "english_version": {
+                        "type": "integer",
+                        "nullable": true,
+                        "description": "Null: the clinic profile signature."
+                    },
+                    "placeholders": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "suggestion": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/TranslationSuggestion"
+                            }
+                        ],
+                        "nullable": true,
+                        "description": "A local translator suggestion, to be checked; usually none."
+                    }
+                },
+                "required": [
+                    "body",
+                    "english_version",
+                    "is_phrase",
+                    "key",
+                    "name",
+                    "placeholders",
+                    "subject",
+                    "suggestion"
+                ]
+            },
+            "TranslationSuggestion": {
+                "type": "object",
+                "properties": {
+                    "subject": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "body",
+                    "subject"
+                ]
+            },
             "UserProfile": {
                 "type": "object",
                 "properties": {
@@ -35261,6 +36510,37 @@
                 ],
                 "type": "string",
                 "description": "* `pending` - Pending verification\n* `active` - Active\n* `blocked` - Blocked\n* `deletion_pending` - Deletion pending"
+            },
+            "ValueCheckRequest": {
+                "type": "object",
+                "description": "The doctor's confirmation of one value; any field sent corrects what was read.",
+                "properties": {
+                    "value_text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                    },
+                    "unit": {
+                        "type": "string",
+                        "maxLength": 32
+                    },
+                    "ref_low": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,10}(?:\\.\\d{0,4})?$",
+                        "nullable": true
+                    },
+                    "ref_high": {
+                        "type": "string",
+                        "format": "decimal",
+                        "pattern": "^-?\\d{0,10}(?:\\.\\d{0,4})?$",
+                        "nullable": true
+                    },
+                    "ref_text": {
+                        "type": "string",
+                        "maxLength": 128
+                    }
+                }
             },
             "VerificationChallengeResponse": {
                 "type": "object",
@@ -35428,14 +36708,6 @@
                     "event_id",
                     "status"
                 ]
-            },
-            "YesNoEnum": {
-                "enum": [
-                    "yes",
-                    "no"
-                ],
-                "type": "string",
-                "description": "* `yes` - Yes\n* `no` - No"
             },
             "ApiErrorEnvelope": {
                 "type": "object",

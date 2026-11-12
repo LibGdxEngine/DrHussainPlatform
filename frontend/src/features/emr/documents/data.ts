@@ -14,6 +14,18 @@ export const docSlots: DocSlot[] = [
   { id: "letter", name: "Letters" },
 ];
 
+/** Lab results and pathology are read after upload, and reading gives the file its report title. */
+export const READ_SLOTS: readonly SlotId[] = ["lab", "path"];
+
+/** Files uploaded for reading, keyed by id with their `updated_at` at upload; the title is assigned once that changes. */
+export type Watching = Record<string, string>;
+
+/** The watched files still waiting for their report title (still at the upload-time version). */
+export function stillReading(watching: Watching, documents: { id: string; updated_at: string }[]): Watching {
+  const current = new Map(documents.map((d) => [d.id, d.updated_at]));
+  return Object.fromEntries(Object.entries(watching).filter(([id, version]) => current.get(id) === version));
+}
+
 /** A tracked test as the key values panel shows it; built from the clinic's test catalog. */
 export interface KeyValueDef {
   id: string;

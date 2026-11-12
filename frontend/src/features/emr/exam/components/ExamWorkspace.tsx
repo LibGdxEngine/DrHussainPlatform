@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { inFlight } from "@/lib/inFlight";
 import { contentApi } from "@/lib/api/emr/content";
 import { ApiError, apiErrorMessage } from "@/lib/api/emr/errors";
 import { examinationsApi, type Examination } from "@/lib/api/emr/examinations";
@@ -24,7 +25,7 @@ export function ExamWorkspace({ patient }: { patient: Patient }) {
 
   useEffect(() => {
     let cancelled = false;
-    examinationsApi.list(patient.id).then((items) => {
+    inFlight(`examinations:${patient.id}`, () => examinationsApi.list(patient.id)).then((items) => {
       if (cancelled) return;
       setExams(items);
       setForm(newForm(items[0]));

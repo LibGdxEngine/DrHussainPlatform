@@ -11,7 +11,6 @@ import {
   mrsDomainScores,
   type MrsDomainKey,
 } from "../answers";
-import { NotRecorded } from "./HistoryModules";
 
 function MrsBar({ domain, score }: { domain: MrsDomainKey; score: number }) {
   const max = mrsDomainMax(domain);
@@ -43,7 +42,7 @@ interface MenoModuleProps {
 export function MenoModule({ scores, submittedAt }: MenoModuleProps) {
   const domains = mrsDomainScores(scores);
   if (!scores || !domains) {
-    return <NotRecorded title="Menopause Rating Scale" note="The patient did not answer the MRS questions on this form." />;
+    return <p className="m-0 text-[13px] text-muted">The patient did not answer the MRS questions on this form.</p>;
   }
   const total = scores.reduce((s, v) => s + v, 0);
   const band = mrsBand("total", total);

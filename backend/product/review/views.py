@@ -11,11 +11,12 @@ from product.tenancy import IsClinicLead, IsOrganizationMember, OrganizationScop
 
 from .models import Draft, ResultsCase
 from .serializers import (
-    DraftEditSerializer, DraftOptionsSerializer, PlanRequestSerializer, ReasonSerializer, ResultsCaseDetailSerializer,
-    ResultsCaseSerializer,
+    ApproveSerializer, DraftEditSerializer, DraftOptionsSerializer, PlanRequestSerializer, ReasonSerializer,
+    ResultsCaseDetailSerializer, ResultsCaseSerializer, TranslationSaveSerializer, TranslationSourceSerializer,
 )
 from .services import (
-    SMEAR_PLAN_KEYS, ReviewError, approve_and_send, choose_plan, edit_draft, rebuild, reject,
+    SMEAR_PLAN_KEYS, ReviewError, approve_and_send, choose_plan, draft_anyway, edit_draft, rebuild, reject,
+    save_translation, translation_sources,
 )
 
 # Queue filters as staff think of them.
@@ -48,7 +49,8 @@ class ResultsCaseViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
     The review queue. Each case shows the report, the values read from it and the draft. Every
     action below is the doctor's, logged with its time; approving is the only way an email is sent.
     """
-    queryset = ResultsCase.objects.select_related('patient', 'report__document', 'plan_template', 'inbound_message')
+    queryset = ResultsCase.objects.select_related('patient', 'report__document', 'plan_template',
+                                                  'inbound_message__thread')
     serializer_class = ResultsCaseSerializer
 
     def get_permissions(self):
@@ -71,7 +73,8 @@ class ResultsCaseViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
             queryset = queryset.prefetch_related(
                 'report__values__lab_test', 'actions__actor', 'sent_emails__approved_by',
                 Prefetch('drafts', queryset=Draft.objects.prefetch_related(
-                    'template_versions__template', 'prescriptions', 'leaflets__leaflet')),
+                    'template_versions__template', 'prescriptions', 'section_prescriptions__prescription',
+                    'leaflets__leaflet')),
             )
         return queryset
 
@@ -82,7 +85,8 @@ class ResultsCaseViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
             templates = EmailTemplate.objects.filter(organization=case.organization, key__in=SMEAR_PLAN_KEYS,
                                                      language='en', archived=False)
             context['smear_plans'] = [
-                {'key': t.key, 'name': t.name, 'approved': t.approved is not None}
+                {'key': t.key, 'name': t.name, 'approved': (approved := t.approved is not None),
+                 'has_approved_wording': approved}
                 for t in sorted(templates, key=lambda t: SMEAR_PLAN_KEYS.index(t.key))
             ]
         return Response(ResultsCaseDetailSerializer(case, context=context).data, status=status)
@@ -97,7 +101,7 @@ class ResultsCaseViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
         try:
             work(case)
         except ReviewError as error:
-            return error_response(error.code, error.message, status=error.status)
+            return error_response(error.code, error.message, status=error.status, context=error.context)
         audit(request, f'review_case.{name}', case, **audit_details)
         return self._detail(case)
 
@@ -137,6 +141,8 @@ class ResultsCaseViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
                 case, user=request.user, language=data.get('language'), follow_up=data.get('follow_up'),
                 attach_report=data.get('attach_report'),
                 prescriptions=_current_versions(data['prescriptions']) if 'prescriptions' in data else None,
+                section_prescriptions={key: _current_versions(items) for key, items in data['section_prescriptions'].items()}
+                if 'section_prescriptions' in data else None,
                 leaflets=_current_versions(data['leaflets']) if 'leaflets' in data else None,
             )
 
@@ -164,23 +170,45 @@ class ResultsCaseViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.
         serializer = ReasonSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        def work(case):
-            if case.status != ResultsCase.Status.FLAGGED:
-                raise ReviewError('not_flagged', 'Only a flagged case can be drafted anyway.', status=409)
-            from .models import ReviewAction
+        reason = serializer.validated_data['reason']
+        return self._run(request, 'drafted_anyway', lambda case: draft_anyway(case, user=request.user, reason=reason),
+                         reason=reason)
 
-            ReviewAction.objects.create(case=case, action=ReviewAction.Action.DRAFTED_ANYWAY, actor=request.user,
-                                        details={'reason': serializer.validated_data['reason'],
-                                                 'flags': case.flag_reasons})
-            rebuild(case, user=request.user, ignore_flags=True)
-
-        return self._run(request, 'drafted_anyway', work, reason=serializer.validated_data['reason'])
-
-    @extend_schema(request=None, responses={200: ResultsCaseDetailSerializer})
+    @extend_schema(request=ApproveSerializer, responses={200: ResultsCaseDetailSerializer})
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
         """Approve and send the current draft to the patient. The only route out of the clinic."""
-        return self._run(request, 'approved', lambda case: approve_and_send(case, user=request.user))
+        serializer = ApproveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        to_contact = serializer.validated_data['send_to_thread_contact']
+        return self._run(request, 'approved',
+                         lambda case: approve_and_send(case, user=request.user, send_to_thread_contact=to_contact),
+                         **({'to_thread_contact': True} if to_contact else {}))
+
+    @extend_schema(methods=['get'], responses={200: TranslationSourceSerializer(many=True)})
+    @extend_schema(methods=['post'], request=TranslationSaveSerializer, responses={200: ResultsCaseDetailSerializer})
+    @action(detail=True, methods=['get', 'post'], pagination_class=None)
+    def translations(self, request, pk=None):
+        """
+        The parts of an Arabic draft still in English, with the English to translate; or save the
+        doctor's translation of one part (the draft is rebuilt with it).
+        """
+        if request.method == 'GET':
+            case = self.get_object()
+            try:
+                items = translation_sources(case)
+            except ReviewError as error:
+                return error_response(error.code, error.message, status=error.status)
+            return Response(TranslationSourceSerializer(items, many=True).data)
+        serializer = TranslationSaveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        def work(case):
+            save_translation(case, user=request.user, key=data['key'], subject=data['subject'], body=data['body'],
+                             keep_for_future=data['keep_for_future'])
+
+        return self._run(request, 'translated', work, key=data['key'], kept=data['keep_for_future'])
 
     @extend_schema(request=ReasonSerializer, responses={200: ResultsCaseDetailSerializer})
     @action(detail=True, methods=['post'])

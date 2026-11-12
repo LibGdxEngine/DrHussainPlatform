@@ -17,7 +17,7 @@ function value(test: LabTest | null, numeric: string | null, date: string | null
     unit: test === ferritin ? "ng/mL" : "",
     abnormal: false,
     result_date: date,
-    comparison: { change: "first", reasons: [], previous: null },
+    comparison: { change: "first", reasons: [], notes: [], labs: [], previous: null },
     ...extra,
   };
 }

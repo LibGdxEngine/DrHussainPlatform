@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { inFlight, loaderKey } from "@/lib/inFlight";
 import { apiErrorMessage } from "@/lib/api/emr/errors";
 import { patientsApi, type Patient } from "@/lib/api/emr/patients";
 import { dayKey } from "./schedule";
@@ -27,7 +28,7 @@ export function useLoad<T>(load: (() => Promise<T>) | null, fallback: string): L
   useEffect(() => {
     if (!load) return;
     let cancelled = false;
-    load().then(
+    inFlight(loaderKey(load), load).then(
       (data) => {
         if (!cancelled) setState({ load, data });
       },

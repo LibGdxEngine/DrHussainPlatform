@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { inFlight, loaderKey } from "@/lib/inFlight";
 import { apiErrorMessage } from "@/lib/api/emr/errors";
 
 type Loaded<T> = { patientId: string; data?: T; error?: string; at: number };
@@ -30,7 +31,7 @@ export function usePatientResource<T>(
 
   useEffect(() => {
     let cancelled = false;
-    load(patientId).then(
+    inFlight(`${loaderKey(load)}:${patientId}`, () => load(patientId)).then(
       (data) => {
         if (!cancelled) setLoaded({ patientId, data, at: Date.now() });
       },

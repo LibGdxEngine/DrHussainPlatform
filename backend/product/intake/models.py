@@ -52,6 +52,16 @@ class IntakeForm(BaseModel):
     answers = models.JSONField(default=dict, blank=True)
     mrs = models.JSONField(null=True, blank=True)
     mrs_total = models.PositiveSmallIntegerField(null=True, blank=True)
+    # The question catalogue (intake/catalogue.py) the answers were checked against; empty for forms
+    # submitted before the catalogue existed.
+    catalogue_version = models.CharField(max_length=20, blank=True, default='')
+    # Modules the doctor or staff added on top of the ones the answers open.
+    extra_modules = models.JSONField(default=list, blank=True)
+    # Question ids the form showed on submit; empty for forms submitted before this was recorded.
+    shown_questions = models.JSONField(default=list, blank=True)
+    # When the alert rules last ran over this form without an error, and the rules that failed.
+    rules_evaluated_at = models.DateTimeField(null=True, blank=True)
+    rule_errors = models.JSONField(default=list, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                    related_name='created_intake_forms')
 

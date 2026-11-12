@@ -12,7 +12,8 @@ import { ActionButton } from "../../ui/Action";
 import { ChipGroup } from "../../ui/ChipGroup";
 import { Field, TextArea, TextInput } from "../../ui/Fields";
 import { Panel } from "../../ui/Panel";
-import { Pill } from "../../ui/Pill";
+import { Pill, type PillTone } from "../../ui/Pill";
+import { placeholderNames, translationStale } from "../../review/translation";
 import { settingsError } from "../errors";
 import { Notice, type NoticeState } from "./Notice";
 import { SettingsHeader } from "./SettingsHeader";
@@ -25,6 +26,7 @@ const kindLabel: Record<TemplateKind, string> = {
   pathology: "Pathology",
   smear: "Cervical smear",
   reply: "Replies about prescriptions",
+  phrase: "System phrases",
 };
 const kindOrder = Object.keys(kindLabel) as TemplateKind[];
 type LanguageFilter = "en" | "ar";
@@ -32,6 +34,14 @@ const languages: { id: LanguageFilter; label: string }[] = [
   { id: "en", label: "English" },
   { id: "ar", label: "Arabic" },
 ];
+type ShowFilter = "emails" | "phrases";
+const showOptions: { id: ShowFilter; label: string }[] = [
+  { id: "emails", label: "Email templates" },
+  { id: "phrases", label: "System phrases" },
+];
+const isPhrase = (t: Pick<EmailTemplate, "kind">) => t.kind === "phrase";
+const namesIn = (subject: string, body: string) =>
+  [...new Set([...placeholderNames(subject), ...placeholderNames(body)])].sort();
 
 /** Email templates: the clinic's wording for every results email, versioned and approved by the doctor. */
 export function TemplatesScreen({ initialId }: { initialId?: string }) {
@@ -39,6 +49,7 @@ export function TemplatesScreen({ initialId }: { initialId?: string }) {
   const [placeholders, setPlaceholders] = useState<Placeholder[]>([]);
   const [leaflets, setLeaflets] = useState<Leaflet[]>([]);
   const [language, setLanguage] = useState<LanguageFilter>("en");
+  const [show, setShow] = useState<ShowFilter>("emails");
   const [selectedId, setSelectedId] = useState<string | null>(initialId ?? null);
   const [notice, setNotice] = useState<NoticeState>(null);
 
@@ -50,7 +61,10 @@ export function TemplatesScreen({ initialId }: { initialId?: string }) {
         setTemplates(list);
         // Opened from a pinned template on the home page: show it in its own language.
         const opened = list.find((t) => t.id === initialId);
-        if (opened) setLanguage(opened.language as LanguageFilter);
+        if (opened) {
+          setLanguage(opened.language as LanguageFilter);
+          setShow(isPhrase(opened) ? "phrases" : "emails");
+        }
         setPlaceholders(names);
         setLeaflets(files);
       },
@@ -63,15 +77,28 @@ export function TemplatesScreen({ initialId }: { initialId?: string }) {
     };
   }, [initialId]);
 
+  const english = useMemo(() => {
+    const byKey = new Map<string, EmailTemplate>();
+    for (const t of templates ?? []) if (t.language === "en") byKey.set(t.key, t);
+    return byKey;
+  }, [templates]);
+
   // In the order the list shows them: by email type, then the template's own order.
-  const shown = useMemo(
+  const ofType = useMemo(
     () =>
       (templates ?? [])
-        .filter((t) => t.language === language)
+        .filter((t) => isPhrase(t) === (show === "phrases"))
         .sort((a, b) => kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind) || (a.sort_order ?? 0) - (b.sort_order ?? 0)),
-    [templates, language],
+    [templates, show],
   );
-  const selected = shown.find((t) => t.id === selectedId) ?? shown[0] ?? null;
+  const shown = ofType.filter((t) => t.language === language);
+  // In the Arabic list, English templates with no Arabic version yet, so they can be added from here.
+  const untranslated =
+    language === "ar"
+      ? ofType.filter((t) => t.language === "en" && !ofType.some((o) => o.key === t.key && o.language === "ar"))
+      : [];
+  const listed = [...shown, ...untranslated];
+  const selected = listed.find((t) => t.id === selectedId) ?? listed[0] ?? null;
   const unapproved = (templates ?? []).filter((t) => !t.approved && t.language === "en").length;
 
   const replace = (next: EmailTemplate) =>
@@ -80,12 +107,35 @@ export function TemplatesScreen({ initialId }: { initialId?: string }) {
       return list.some((t) => t.id === next.id) ? list.map((t) => (t.id === next.id ? next : t)) : [...list, next];
     });
 
+  const item = (t: EmailTemplate, pill: { tone: PillTone; text: string }) => {
+    const active = t.id === selected?.id;
+    return (
+      <button
+        key={t.id}
+        type="button"
+        aria-pressed={active}
+        onClick={() => setSelectedId(t.id)}
+        className={cn(
+          "flex cursor-pointer flex-col gap-1 rounded-xl border-0 px-3 py-2 text-start text-[13px]",
+          active ? "bg-brand-tint text-brand-ink" : "bg-transparent text-ink-2 hover:bg-canvas",
+        )}
+      >
+        <span className={cn(active && "font-semibold")}>{t.name}</span>
+        <Pill tone={pill.tone} size="xs" className="self-start">{pill.text}</Pill>
+      </button>
+    );
+  };
+  const pillFor = (t: EmailTemplate): { tone: PillTone; text: string } =>
+    t.language === "ar" && translationStale(t, english.get(t.key))
+      ? { tone: "amber", text: "English changed since: check it" }
+      : status(t);
+
   return (
     <>
       <SettingsHeader
         tab="templates"
         title="Email templates"
-        description="The clinic's wording for each results email. The guidelines decide the clinical content; these templates decide the patient wording. Drafts are only ever built from an approved version, and every version is kept with its date."
+        description="The clinic's wording for each results email, and the short system phrases used inside them. The guidelines decide the clinical content; these templates decide the patient wording. Drafts are only ever built from an approved version, and every version is kept with its date."
         actions={
           unapproved ? (
             <span className="text-[13px] font-semibold text-warn-ink">{unapproved} templates still need approved wording</span>
@@ -95,11 +145,16 @@ export function TemplatesScreen({ initialId }: { initialId?: string }) {
       <Notice notice={notice} />
       <div className="grid items-start gap-4 xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,0.9fr)]">
         <Panel aria-label="Templates" className="flex flex-col gap-3 p-4">
+          <ChipGroup label="Show" options={showOptions} value={show} onChange={setShow} />
           <ChipGroup label="Language" options={languages} value={language} onChange={setLanguage} />
-          {!templates ? <p className="m-0 text-[13px] text-muted">Loading…</p> : null}
-          {templates && !shown.length ? (
-            <p className="m-0 text-[13px] text-muted">No Arabic templates yet. Open an English one and choose “Add Arabic version”.</p>
+          {show === "phrases" ? (
+            <p className="m-0 text-xs leading-[1.6] text-muted">
+              Short wording the drafts use inside emails, such as value lines and the signature. Each language has its own
+              approved version.
+            </p>
           ) : null}
+          {!templates ? <p className="m-0 text-[13px] text-muted">Loading…</p> : null}
+          {templates && !listed.length ? <p className="m-0 text-[13px] text-muted">Nothing to show yet.</p> : null}
           {[null, ...kindOrder].map((kind) => {
             // Pinned templates come first, as on the home page, and are not listed again under their type.
             const group = shown.filter((t) => (kind === null ? t.pinned : !t.pinned && t.kind === kind));
@@ -109,33 +164,22 @@ export function TemplatesScreen({ initialId }: { initialId?: string }) {
                 <h2 className="m-0 px-2 pt-2 text-xs font-semibold uppercase tracking-wide text-subtle">
                   {kind === null ? "Pinned to home page" : kindLabel[kind]}
                 </h2>
-                {group.map((t) => {
-                  const s = status(t);
-                  const active = t.id === selected?.id;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setSelectedId(t.id)}
-                      className={cn(
-                        "flex cursor-pointer flex-col gap-1 rounded-xl border-0 px-3 py-2 text-start text-[13px]",
-                        active ? "bg-brand-tint text-brand-ink" : "bg-transparent text-ink-2 hover:bg-canvas",
-                      )}
-                    >
-                      <span className={cn(active && "font-semibold")}>{t.name}</span>
-                      <Pill tone={s.tone} size="xs" className="self-start">{s.text}</Pill>
-                    </button>
-                  );
-                })}
+                {group.map((t) => item(t, pillFor(t)))}
               </div>
             );
           })}
+          {untranslated.length ? (
+            <div className="flex flex-col gap-1">
+              <h2 className="m-0 px-2 pt-2 text-xs font-semibold uppercase tracking-wide text-subtle">No Arabic version yet</h2>
+              {untranslated.map((t) => item(t, { tone: "neutral", text: "English only" }))}
+            </div>
+          ) : null}
         </Panel>
         {selected ? (
           <TemplateEditor
             key={selected.id}
             template={selected}
+            english={selected.language === "ar" ? english.get(selected.key) : undefined}
             placeholders={placeholders}
             leaflets={leaflets}
             hasArabic={(templates ?? []).some((t) => t.key === selected.key && t.language === "ar")}
@@ -154,6 +198,8 @@ export function TemplatesScreen({ initialId }: { initialId?: string }) {
 
 interface TemplateEditorProps {
   template: EmailTemplate;
+  /** For an Arabic template: the English template it translates. */
+  english?: EmailTemplate;
   placeholders: Placeholder[];
   leaflets: Leaflet[];
   hasArabic: boolean;
@@ -161,8 +207,14 @@ interface TemplateEditorProps {
   onArabicCreated: (template: EmailTemplate) => void;
 }
 
-function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, onArabicCreated }: TemplateEditorProps) {
+function TemplateEditor({ template, english, placeholders, leaflets, hasArabic, onSaved, onArabicCreated }: TemplateEditorProps) {
   const latest = template.latest;
+  const phrase = isPhrase(template);
+  const arabic = template.language === "ar";
+  const textDir = arabic ? "rtl" : "auto";
+  // The English wording a translation follows: the approved version, else the newest.
+  const source = english?.approved ?? english?.latest ?? null;
+  const stale = arabic && translationStale(template, english);
   const [subject, setSubject] = useState(latest?.subject ?? "");
   const [body, setBody] = useState(latest?.body ?? "");
   const [note, setNote] = useState("");
@@ -173,6 +225,18 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
   const [preview, setPreview] = useState<TemplatePreview | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const dirty = subject !== (latest?.subject ?? "") || body !== (latest?.body ?? "");
+  // A translation keeps the English placeholders; a phrase may only use its own few slots.
+  const own = template.approved ?? latest;
+  const keep = source
+    ? namesIn(source.subject ?? "", source.body)
+    : phrase
+      ? namesIn(own?.subject ?? "", own?.body ?? "")
+      : null;
+  const typedNames = new Set([...placeholderNames(subject), ...placeholderNames(body)]);
+  const missingNames = source && keep ? keep.filter((name) => !typedNames.has(name)) : [];
+  const insertable: Placeholder[] = keep
+    ? keep.map((name) => placeholders.find((p) => p.name === name) ?? { name, description: "", filled: "automatic" })
+    : placeholders;
   const latestUnapproved = latest && (!template.approved || template.approved.number !== latest.number);
 
   useEffect(() => {
@@ -236,6 +300,7 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
       const created = await contentApi.templates.create({
         key: template.key, language: "ar", name: `${template.name} (Arabic)`, kind: template.kind,
         part: template.part, section_key: template.section_key, sort_order: template.sort_order,
+        // Starts from the English so the placeholders are in place; drafts use it only once approved.
         subject: latest?.subject ?? "", body: latest?.body ?? "",
       });
       onArabicCreated(created);
@@ -263,14 +328,37 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
       <Panel aria-labelledby="tpl" className="flex flex-col gap-3.5 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <h2 id="tpl" className="m-0 text-lg font-semibold">{template.name}</h2>
-          <Pill tone="neutral" size="xs">{template.language === "ar" ? "Arabic" : "English"}</Pill>
-          {template.part !== "full" ? <Pill tone="brand" size="xs">{template.part}</Pill> : null}
-          <ActionButton variant="quiet" className="ms-auto" disabled={busy} aria-pressed={template.pinned} onClick={togglePin}>
-            {template.pinned ? "Unpin from home page" : "Pin to home page"}
-          </ActionButton>
+          <Pill tone="neutral" size="xs">{arabic ? "Arabic" : "English"}</Pill>
+          {phrase ? <Pill tone="brand" size="xs">System phrase</Pill> : null}
+          {!phrase && template.part !== "full" ? <Pill tone="brand" size="xs">{template.part}</Pill> : null}
+          {!phrase ? (
+            <ActionButton variant="quiet" className="ms-auto" disabled={busy} aria-pressed={template.pinned} onClick={togglePin}>
+              {template.pinned ? "Unpin from home page" : "Pin to home page"}
+            </ActionButton>
+          ) : null}
         </div>
+        {arabic && source ? (
+          <div className="flex flex-col gap-1.5 rounded-xl border border-line bg-canvas-2 p-3">
+            <span className="text-xs font-medium text-ink-2">
+              English v{source.number}{english?.approved ? " (approved)" : " (not approved yet)"}: the wording to translate
+            </span>
+            {source.subject ? <p className="m-0 text-[13px] font-semibold" dir="ltr">{source.subject}</p> : null}
+            <p className="m-0 whitespace-pre-wrap text-[13px] leading-[1.7] text-ink-2" dir="ltr">{source.body}</p>
+          </div>
+        ) : null}
+        {stale ? (
+          <p role="status" className="m-0 rounded-xl bg-warn-wash px-3 py-2.5 text-[13px] text-warn-ink">
+            The English wording was approved again after this translation, so Arabic drafts treat this part as missing.
+            Update the Arabic to match, then approve it.
+          </p>
+        ) : null}
+        {arabic && latest && source && latest.body === source.body ? (
+          <p role="status" className="m-0 rounded-xl bg-warn-wash px-3 py-2.5 text-[13px] text-warn-ink">
+            This is still the English wording. Replace it with the Arabic, keep every placeholder, then approve.
+          </p>
+        ) : null}
         <Field label="Subject">
-          <TextInput value={subject} onChange={(e) => setSubject(e.target.value)} dir="auto" />
+          <TextInput value={subject} onChange={(e) => setSubject(e.target.value)} dir={textDir} lang={template.language} />
         </Field>
         <Field label="Wording">
           <TextArea
@@ -278,14 +366,15 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
             rows={14}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            dir="auto"
-            className="font-emr-mono text-[13px]"
+            dir={textDir}
+            lang={template.language}
+            className={cn("text-[13px]", !arabic && "font-emr-mono")}
           />
         </Field>
         <div className="flex flex-col gap-1.5">
           <span className="text-[13px] font-medium text-ink-2">Insert</span>
           <div className="flex flex-wrap gap-1.5">
-            {placeholders.map((p) => (
+            {insertable.map((p) => (
               <button
                 key={p.name}
                 type="button"
@@ -300,6 +389,18 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
               </button>
             ))}
           </div>
+          {missingNames.length ? (
+            <p role="alert" className="m-0 text-xs text-warn-ink">
+              Missing from the translation: {missingNames.map((n) => `{{${n}}}`).join(", ")}.
+            </p>
+          ) : null}
+          {keep ? (
+            <p className="m-0 text-xs leading-[1.7] text-muted">
+              {source
+                ? "A translation keeps exactly the placeholders of the English wording."
+                : "A system phrase may only use the placeholders listed for it; saving checks this."}
+            </p>
+          ) : null}
           <p className="m-0 text-xs leading-[1.7] text-muted">
             Grey items fill in automatically. Amber items come from what the doctor picks in review. Write
             {" "}<span className="font-emr-mono">[[repeat interval]]</span> for anything clinical the doctor must type in;
@@ -314,12 +415,12 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
           <ActionButton disabled={(!dirty && !latestUnapproved) || busy || Boolean(preview?.errors.length)} onClick={() => void save(true)}>
             {dirty ? "Save and approve" : `Approve v${latest?.number ?? ""}`}
           </ActionButton>
-          {template.language === "en" && !hasArabic ? (
+          {!arabic && !hasArabic ? (
             <ActionButton variant="quiet" disabled={busy} onClick={() => void addArabic()}>Add Arabic version</ActionButton>
           ) : null}
         </div>
         <Notice notice={notice} />
-        {leaflets.length ? (
+        {leaflets.length && !phrase ? (
           <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
             <legend className="mb-1 text-[13px] font-medium text-ink-2">Attach by default</legend>
             {leaflets.map((l) => (
@@ -343,8 +444,8 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
           <h2 id="pv" className="m-0 text-lg font-semibold">Preview with a sample patient</h2>
           {preview?.errors.length ? <Notice notice={{ tone: "error", text: preview.errors.join(" ") }} /> : null}
           <div className="rounded-2xl border border-line bg-canvas-2 p-4">
-            <p className="m-0 mb-2 text-[13px] font-semibold" dir="auto">{preview?.subject || "(no subject)"}</p>
-            <PreviewText text={preview?.body ?? ""} />
+            <p className="m-0 mb-2 text-[13px] font-semibold" dir={textDir}>{preview?.subject || "(no subject)"}</p>
+            <PreviewText text={preview?.body ?? ""} dir={textDir} />
           </div>
           {preview?.open_slots.length ? (
             <p className="m-0 text-xs text-warn-ink">
@@ -381,10 +482,10 @@ function TemplateEditor({ template, placeholders, leaflets, hasArabic, onSaved, 
 }
 
 /** Email text with the doctor's [[blanks]] highlighted. */
-function PreviewText({ text }: { text: string }) {
+function PreviewText({ text, dir }: { text: string; dir: "rtl" | "auto" }) {
   const parts = text.split(/(\[\[[^\]]*\]\])/g);
   return (
-    <p className="m-0 whitespace-pre-wrap text-[13px] leading-[1.7] text-ink-2" dir="auto">
+    <p className="m-0 whitespace-pre-wrap text-[13px] leading-[1.7] text-ink-2" dir={dir}>
       {parts.map((part, i) =>
         part.startsWith("[[") ? (
           <mark key={i} className="rounded bg-warn-tint px-1 text-warn-ink">{part.slice(2, -2)}</mark>

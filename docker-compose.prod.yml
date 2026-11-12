@@ -218,6 +218,7 @@ services:
     environment:
       - GRAFANA_PROXY_IP=${OBSERVABILITY_GRAFANA_IP:-172.30.241.3}
       - DOMAIN_NAME=${DOMAIN_NAME:-localhost}
+      - HSTS_HEADER=${HSTS_HEADER:-}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
       - caddy_prod_data:/data

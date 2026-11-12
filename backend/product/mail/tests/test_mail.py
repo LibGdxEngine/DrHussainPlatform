@@ -210,7 +210,9 @@ class ReceivingTests(MailTestCase):
         thread = message.thread
         self.assertIsNone(thread.patient)
         self.assertEqual(thread.suggested_patient, self.patient)
-        response = self.client.post(f'/api/product/mail/threads/{thread.id}/link/', {'patient': str(self.patient.id)},
+        self.assertEqual(self.client.get(f'/api/product/mail/threads/{thread.id}/').data['suggestion_kind'], 'third_party')
+        response = self.client.post(f'/api/product/mail/threads/{thread.id}/link/',
+                                    {'patient': str(self.patient.id), 'confirm_third_party': True, 'relation': 'Lab'},
                                     format='json')
         self.assertEqual(response.data['patient']['file_number'], self.patient.file_number)
 
@@ -307,3 +309,110 @@ class InboxTests(MailTestCase):
 
         self.client.force_authenticate(self.staff)
         self.assertEqual(self.client.post(url, {'body': 'x'}, format='json').status_code, status.HTTP_403_FORBIDDEN)
+
+
+class ThirdPartyAndPatientListTests(MailTestCase):
+    def thread_from(self, sender, subject='Question'):
+        return services.ingest(self.clinic, raw_email(sender=sender, subject=subject)).thread
+
+    def link(self, thread, **extra):
+        return self.client.post(f'/api/product/mail/threads/{thread.id}/link/',
+                                {'patient': str(self.patient.id), **extra}, format='json')
+
+    def test_patient_thread_list_includes_outbound_and_archived_threads(self):
+        _, sent = self.send_results()
+        inbound = self.thread_from('laila@example.com')
+        MailThread.objects.filter(pk=inbound.pk).update(archived=True)
+        base = '/api/product/mail/threads/'
+        everything = self.client.get(f'{base}?patient={self.patient.id}').data
+        ids = {row['id'] for row in (everything['results'] if isinstance(everything, dict) else everything)}
+        self.assertEqual(ids, {str(sent.mail_message.thread_id), str(inbound.id)})
+        inbox = self.client.get(f'{base}?patient={self.patient.id}&folder=inbox').data
+        rows = inbox['results'] if isinstance(inbox, dict) else inbox
+        self.assertEqual([str(r['id']) for r in rows], [])
+        sent_rows = self.client.get(f'{base}?patient={self.patient.id}&folder=sent').data
+        sent_rows = sent_rows['results'] if isinstance(sent_rows, dict) else sent_rows
+        self.assertEqual([str(r['id']) for r in sent_rows], [str(sent.mail_message.thread_id)])
+
+    def test_results_email_thread_belongs_to_the_patient(self):
+        _, sent = self.send_results()
+        self.assertEqual(sent.mail_message.thread.patient, self.patient)
+        self.assertTrue(sent.mail_message.thread.has_outbound)
+
+    def test_relative_quoting_a_file_number_is_not_filed_and_is_marked_third_party(self):
+        thread = self.thread_from('sister@example.com', subject=f'About {self.patient.file_number}')
+        self.assertIsNone(thread.patient)
+        data = self.client.get(f'/api/product/mail/threads/{thread.id}/').data
+        self.assertEqual(data['suggestion_kind'], 'third_party')
+
+    def test_linking_a_relative_needs_a_confirmation_and_a_relation(self):
+        thread = self.thread_from('sister@example.com')
+        refused = self.link(thread)
+        self.assertEqual(refused.status_code, 409)
+        self.assertEqual(refused.data['error']['code'], 'THIRD_PARTY_CONFIRM')
+        self.assertEqual(self.link(thread, confirm_third_party=True).status_code, 409)
+        thread.refresh_from_db()
+        self.assertIsNone(thread.patient)
+        ok = self.link(thread, confirm_third_party=True, relation='Sister')
+        self.assertEqual(ok.status_code, 200)
+        thread.refresh_from_db()
+        self.assertEqual((thread.patient, thread.third_party, thread.third_party_relation,
+                          thread.third_party_confirmed_by), (self.patient, True, 'Sister', self.doctor))
+        self.assertTrue(ok.data['third_party'])
+
+    def test_linking_the_patients_own_address_needs_no_confirmation(self):
+        thread = self.thread_from('Laila@Example.com')
+        self.assertEqual(thread.patient, self.patient)
+        thread.patient = None
+        thread.save()
+        response = self.link(thread)
+        self.assertEqual(response.status_code, 200)
+        thread.refresh_from_db()
+        self.assertFalse(thread.third_party)
+
+    def test_reply_on_a_third_party_thread_needs_a_confirmation(self):
+        thread = self.thread_from('sister@example.com')
+        self.link(thread, confirm_third_party=True, relation='Sister')
+        url = f'/api/product/mail/threads/{thread.id}/reply/'
+        with patch('product.mail.views.send_thread_reply'):
+            refused = self.client.post(url, {'body': 'Hello'}, format='json')
+            self.assertEqual(refused.status_code, 409)
+            self.assertEqual(refused.data['error']['code'], 'THIRD_PARTY_CONFIRM')
+            self.assertFalse(thread.messages.filter(direction='outbound').exists())
+            ok = self.client.post(url, {'body': 'Hello', 'confirm_third_party': True}, format='json')
+        self.assertEqual(ok.status_code, 201)
+
+    def test_a_relative_replying_in_the_patients_thread_is_a_third_party(self):
+        # The thread came from the clinic's results email, so the link endpoint never marked it.
+        _, sent = self.send_results()
+        self.approve('prescription_reply', 'Dear {{patient.first_name}},\n{{patient.question}}', subject='Re: question')
+        with self.captureOnCommitCallbacks(execute=True):
+            message = services.ingest(self.clinic, raw_email(sender='Sister <SISTER@example.com>',
+                                                              body='Can she take the iron tablet with food?',
+                                                              in_reply_to=sent.message_id))
+        thread = message.thread
+        thread.refresh_from_db()
+        self.assertEqual((thread.patient, thread.third_party), (self.patient, True))
+        self.assertTrue(self.client.get(f'/api/product/mail/threads/{thread.id}/').data['third_party'])
+
+        case = ResultsCase.objects.get(kind='reply')
+        reply = approve_and_send(case, user=self.doctor)
+        self.assertEqual((reply.to_address, reply.to_thread_contact_confirmed_by), ('laila@example.com', None))
+
+    def test_the_patient_writing_in_her_own_thread_is_not_a_third_party(self):
+        _, sent = self.send_results()
+        message = services.ingest(self.clinic, raw_email(sender='Laila <LAILA@Example.com>', body='Thanks',
+                                                          in_reply_to=sent.message_id))
+        message.thread.refresh_from_db()
+        self.assertFalse(message.thread.third_party)
+
+    def test_inbox_reply_to_an_address_that_is_not_the_patients_needs_a_confirmation(self):
+        # Filed with the patient but never marked third party (e.g. linked before the check existed).
+        thread = MailThread.objects.create(organization=self.clinic, patient=self.patient, subject='Question',
+                                           contact_email='sister@example.com', last_message_at=timezone.now())
+        url = f'/api/product/mail/threads/{thread.id}/reply/'
+        with patch('product.mail.views.send_thread_reply'):
+            refused = self.client.post(url, {'body': 'Hello'}, format='json')
+            self.assertEqual((refused.status_code, refused.data['error']['code']), (409, 'THIRD_PARTY_CONFIRM'))
+            ok = self.client.post(url, {'body': 'Hello', 'confirm_third_party': True}, format='json')
+        self.assertEqual(ok.status_code, 201)

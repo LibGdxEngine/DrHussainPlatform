@@ -8,11 +8,12 @@ import { Field, SelectInput, TextInput } from "@/features/emr/ui/Fields";
 import { Panel } from "@/features/emr/ui/Panel";
 import { Pill } from "@/features/emr/ui/Pill";
 import { cn } from "@/lib/utils";
+import { inFlight } from "@/lib/inFlight";
 import { apiErrorMessage } from "@/lib/api/emr/errors";
 import { documentsApi, type DocumentSource, type PatientDocument } from "@/lib/api/emr/documents";
 import type { Patient } from "@/lib/api/emr/patients";
 import { ResultsPanel } from "@/features/emr/results/components/ResultsPanel";
-import { docSlots, type SlotId } from "../data";
+import { docSlots, READ_SLOTS, stillReading, type SlotId, type Watching } from "../data";
 import { DocumentPreview } from "./DocumentPreview";
 import { DropZone } from "./DropZone";
 import { SlotButton } from "./SlotButton";
@@ -26,6 +27,10 @@ const sources: { id: DocumentSource; label: string }[] = [
 ];
 const sourceLabel = Object.fromEntries(sources.map((s) => [s.id, s.label])) as Record<DocumentSource, string>;
 
+const POLL_MS = 3000;
+const MAX_POLLS = 20;
+
+/** Downloads keep the original file name, not the report title. */
 async function saveBlob(document: PatientDocument) {
   const blob = await documentsApi.file(document.id, true);
   const url = URL.createObjectURL(blob);
@@ -42,10 +47,17 @@ export function DocumentsWorkspace({ patient }: { patient: Patient }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [uploadTitle, setUploadTitle] = useState("");
+  // Files being read: the report title is assigned when reading finishes, so look again until it is.
+  const [watching, setWatching] = useState<Watching>({});
+  const [polls, setPolls] = useState(0);
 
   const reload = useCallback(
     () =>
-      documentsApi.list(patient.id).then((page) => setDocuments(page.results), (err: unknown) => {
+      inFlight(`documents:${patient.id}`, () => documentsApi.list(patient.id)).then((page) => {
+        setDocuments(page.results);
+        setWatching((prev) => stillReading(prev, page.results));
+      }, (err: unknown) => {
         setNotice({ tone: "error", text: apiErrorMessage(err, "Could not load the documents.") });
       }),
     [patient.id],
@@ -54,6 +66,15 @@ export function DocumentsWorkspace({ patient }: { patient: Patient }) {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  useEffect(() => {
+    if (!Object.keys(watching).length || polls >= MAX_POLLS) return;
+    const timer = setTimeout(() => {
+      setPolls((n) => n + 1);
+      void reload();
+    }, POLL_MS);
+    return () => clearTimeout(timer);
+  }, [watching, polls, reload]);
 
   const inSlot = useMemo(() => (documents ?? []).filter((d) => d.slot === slot), [documents, slot]);
   const counts = useMemo(() => {
@@ -69,13 +90,22 @@ export function DocumentsWorkspace({ patient }: { patient: Patient }) {
     setNotice(null);
     const failures: string[] = [];
     let last: PatientDocument | null = null;
+    const toRead: Watching = {};
+    // One typed title only makes sense for one file.
+    const title = files.length === 1 ? uploadTitle.trim() : "";
     for (const file of files) {
       try {
-        last = await documentsApi.upload({ patient: patient.id, slot, file });
+        last = await documentsApi.upload({ patient: patient.id, slot, file, title: title || undefined });
+        if (READ_SLOTS.includes(slot)) toRead[last.id] = last.updated_at;
       } catch (err) {
         failures.push(`${file.name}: ${apiErrorMessage(err, "upload failed")}`);
       }
     }
+    if (Object.keys(toRead).length) {
+      setPolls(0);
+      setWatching((prev) => ({ ...prev, ...toRead }));
+    }
+    setUploadTitle("");
     await reload();
     if (last) setSelectedId(last.id);
     setUploading(false);
@@ -124,6 +154,14 @@ export function DocumentsWorkspace({ patient }: { patient: Patient }) {
       </Panel>
 
       <div className="flex flex-col gap-4">
+        <Field label="Title (optional, for a single file)">
+          <TextInput
+            value={uploadTitle}
+            onChange={(e) => setUploadTitle(e.target.value)}
+            maxLength={255}
+            placeholder={READ_SLOTS.includes(slot) ? "Left blank, the report title is set after reading" : "Left blank, the file name is used"}
+          />
+        </Field>
         <DropZone onFiles={(files) => void upload(files)} busy={uploading} hint={`PDF, JPG or PNG, saved to ${slotName}.`} />
         {notice ? (
           <p
@@ -156,7 +194,7 @@ export function DocumentsWorkspace({ patient }: { patient: Patient }) {
           </Panel>
         ) : null}
         {selected ? (
-          <DocumentDetails key={selected.id} document={selected} onSave={(changes) => update(selected, changes)} />
+          <DocumentDetails key={`${selected.id}:${selected.title}`} document={selected} onSave={(changes) => update(selected, changes)} />
         ) : (
           <Panel className="flex flex-col gap-1 p-5">
             <h2 className="m-0 text-lg font-semibold">{documents ? `No ${slotName.toLowerCase()} yet` : "Loading…"}</h2>

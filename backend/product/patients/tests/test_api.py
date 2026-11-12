@@ -50,6 +50,25 @@ class PatientApiTests(APITestCase):
         self.assertEqual(confirmed.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Patient.objects.count(), 2)
 
+    def test_exact_duplicate_message_names_the_existing_file(self):
+        existing = create_patient(self.clinic, full_name='LAILA  AHMED', date_of_birth=date(1974, 3, 9))
+        response = self.client.post(URL, self.payload, format='json')
+        self.assertIn(existing.file_number, response.data['error']['message'])
+        self.assertEqual(response.data['error']['context']['match'], 'exact')
+        self.assertEqual(response.data['error']['context']['similar'][0]['match'], 'exact')
+
+    def test_near_duplicate_is_warned_about_and_can_be_confirmed(self):
+        existing = create_patient(self.clinic, full_name='Mona Hassan', date_of_birth=date(1974, 3, 9))
+        payload = {**self.payload, 'full_name': 'Mona Hasan'}
+        response = self.client.post(URL, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(response.data['error']['code'], 'DUPLICATE_PATIENT')
+        self.assertEqual(response.data['error']['context']['match'], 'near')
+        self.assertEqual(response.data['error']['context']['similar'][0]['match'], 'near')
+        self.assertIn(existing.file_number, response.data['error']['message'])
+        confirmed = self.client.post(URL, {**payload, 'confirm_duplicate': True}, format='json')
+        self.assertEqual(confirmed.status_code, status.HTTP_201_CREATED)
+
     def test_rejects_future_date_of_birth(self):
         response = self.client.post(URL, {**self.payload, 'date_of_birth': '2999-01-01'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

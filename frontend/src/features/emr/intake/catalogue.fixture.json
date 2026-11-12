@@ -1,0 +1,3726 @@
+{
+ "version": "1",
+ "sections": [
+  {
+   "id": "details",
+   "title": "Patient details and reason for visit",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "questions": [
+    {
+     "id": "reasons",
+     "label": "Main reason for visit",
+     "type": "multi",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "routine",
+       "label": "Routine check / smear"
+      },
+      {
+       "value": "heavy",
+       "label": "Heavy or irregular periods"
+      },
+      {
+       "value": "bleed",
+       "label": "Bleeding between periods, after sex or after menopause"
+      },
+      {
+       "value": "pain",
+       "label": "Pelvic or period pain"
+      },
+      {
+       "value": "contra",
+       "label": "Contraception"
+      },
+      {
+       "value": "ttc",
+       "label": "Trying to conceive"
+      },
+      {
+       "value": "pcos",
+       "label": "PCOS, acne or excess hair"
+      },
+      {
+       "value": "dis",
+       "label": "Discharge or infection"
+      },
+      {
+       "value": "uri",
+       "label": "Urinary leak or prolapse"
+      },
+      {
+       "value": "pms",
+       "label": "PMS"
+      },
+      {
+       "value": "smear",
+       "label": "Abnormal smear follow-up"
+      },
+      {
+       "value": "breast",
+       "label": "Breast concern"
+      },
+      {
+       "value": "meno",
+       "label": "Menopause symptoms (flushes, sleep, mood)"
+      },
+      {
+       "value": "hrt",
+       "label": "HRT review"
+      },
+      {
+       "value": "lib",
+       "label": "Low libido or vaginal dryness"
+      },
+      {
+       "value": "other",
+       "label": "Other"
+      }
+     ],
+     "required": true
+    },
+    {
+     "id": "other_reason",
+     "label": "Other",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 500,
+     "show_if": {
+      "answer": "reasons",
+      "in": [
+       "other"
+      ]
+     }
+    },
+    {
+     "id": "referring_doctor",
+     "label": "Referring doctor",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 200
+    },
+    {
+     "id": "bothering_most",
+     "label": "In your own words, what is bothering you most?",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 2000
+    },
+    {
+     "id": "visit_goals",
+     "label": "What would you like to get from this visit?",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 2000
+    },
+    {
+     "id": "last_felt_well",
+     "label": "When did you last feel really well?",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 500
+    },
+    {
+     "id": "better_or_worse",
+     "label": "What makes your symptoms better or worse?",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 2000
+    }
+   ]
+  },
+  {
+   "id": "periods",
+   "title": "Menstrual and menopause history",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "questions": [
+    {
+     "id": "last_period",
+     "label": "Date of last menstrual period (LMP)",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 40
+    },
+    {
+     "id": "period_status",
+     "label": "Periods now",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "reg",
+       "label": "Regular"
+      },
+      {
+       "value": "irr",
+       "label": "Irregular"
+      },
+      {
+       "value": "stopped",
+       "label": "Stopped"
+      },
+      {
+       "value": "horm",
+       "label": "On hormones so can't tell"
+      },
+      {
+       "value": "hyst",
+       "label": "Hysterectomy"
+      }
+     ],
+     "required": true
+    },
+    {
+     "id": "cycle_length",
+     "label": "Cycle length",
+     "type": "number",
+     "carry_forward": false,
+     "min": 1,
+     "max": 365
+    },
+    {
+     "id": "period_days",
+     "label": "Days of bleeding",
+     "type": "number",
+     "carry_forward": false,
+     "min": 0,
+     "max": 60
+    },
+    {
+     "id": "heavy_bleeding",
+     "label": "Heavy bleeding (flooding, clots, changing pad <2 h)",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "intermenstrual",
+     "label": "Bleeding between periods or after sex",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "rules": [
+      "R8",
+      "R12"
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "bleed_after_year",
+     "label": "Any bleeding 12 months after LMP",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "rules": [
+      "R7",
+      "R12"
+     ],
+     "flag": [
+      "yes"
+     ],
+     "required": {
+      "answer": "period_status",
+      "in": [
+       "stopped"
+      ]
+     }
+    },
+    {
+     "id": "flushes_sweats",
+     "label": "Hot flushes or night sweats",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "inferred": true
+    },
+    {
+     "id": "menopause_age",
+     "label": "Age at menopause",
+     "type": "number",
+     "carry_forward": false,
+     "min": 20,
+     "max": 70,
+     "not_sure": true,
+     "rules": [
+      "R16",
+      "R17"
+     ],
+     "show_if": {
+      "any": [
+       {
+        "module": "menopause"
+       },
+       {
+        "answer": "period_status",
+        "in": [
+         "stopped"
+        ]
+       }
+      ]
+     },
+     "required": {
+      "answer": "period_status",
+      "in": [
+       "stopped"
+      ]
+     }
+    },
+    {
+     "id": "how_periods_stopped",
+     "label": "How did periods stop",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "natural",
+       "label": "Natural"
+      },
+      {
+       "value": "hysterectomy_ovaries_kept",
+       "label": "Hysterectomy with ovaries kept"
+      },
+      {
+       "value": "ovaries_removed",
+       "label": "Ovaries removed (surgical)"
+      },
+      {
+       "value": "chemo_radio",
+       "label": "Chemotherapy or radiotherapy"
+      },
+      {
+       "value": "gnrh",
+       "label": "GnRH treatment"
+      }
+     ],
+     "show_if": {
+      "any": [
+       {
+        "module": "menopause"
+       },
+       {
+        "answer": "period_status",
+        "in": [
+         "stopped"
+        ]
+       }
+      ]
+     },
+     "required": {
+      "answer": "period_status",
+      "in": [
+       "stopped"
+      ]
+     }
+    },
+    {
+     "id": "uterus",
+     "label": "Uterus present",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "required": {
+      "answer": "period_status",
+      "in": [
+       "stopped"
+      ]
+     }
+    },
+    {
+     "id": "ovaries",
+     "label": "Ovaries present",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "both",
+       "label": "Both"
+      },
+      {
+       "value": "one",
+       "label": "One"
+      },
+      {
+       "value": "none",
+       "label": "None"
+      }
+     ],
+     "show_if": {
+      "any": [
+       {
+        "module": "menopause"
+       },
+       {
+        "answer": "period_status",
+        "in": [
+         "stopped"
+        ]
+       }
+      ]
+     },
+     "required": {
+      "answer": "period_status",
+      "in": [
+       "stopped"
+      ]
+     }
+    },
+    {
+     "id": "menarche_age",
+     "label": "Age at first period",
+     "type": "number",
+     "carry_forward": false,
+     "min": 5,
+     "max": 25
+    },
+    {
+     "id": "pms_history",
+     "label": "PMS or mood changes before periods (past or present)",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "menopause",
+   "title": "Menopause Rating Scale (MRS)",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "any": [
+     {
+      "answer": "reasons",
+      "in": [
+       "meno",
+       "hrt"
+      ]
+     },
+     {
+      "all": [
+       {
+        "age_gte": 40
+       },
+       {
+        "answer": "period_status",
+        "in": [
+         "irr",
+         "stopped"
+        ]
+       }
+      ]
+     },
+     {
+      "answer": "flushes_sweats",
+      "in": [
+       "yes"
+      ]
+     }
+    ]
+   },
+   "questions": [
+    {
+     "id": "mrs",
+     "label": "Which of the following symptoms apply to you at this time? Tick one box for each.",
+     "type": "mrs",
+     "carry_forward": false,
+     "rules": [
+      "R30"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "obstetric",
+   "title": "Gynae, obstetric and contraception history",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "questions": [
+    {
+     "id": "pregnancies",
+     "label": "Number of pregnancies",
+     "type": "number",
+     "carry_forward": true,
+     "min": 0,
+     "max": 30
+    },
+    {
+     "id": "births",
+     "label": "Number of births",
+     "type": "number",
+     "carry_forward": true,
+     "min": 0,
+     "max": 30
+    },
+    {
+     "id": "miscarriages",
+     "label": "Number of miscarriages",
+     "type": "number",
+     "carry_forward": true,
+     "min": 0,
+     "max": 30
+    },
+    {
+     "id": "preeclampsia",
+     "label": "Pre-eclampsia or high blood pressure in pregnancy",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "rules": [
+      "R28"
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "gestational_diabetes",
+     "label": "Gestational diabetes",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "rules": [
+      "R28"
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "preterm",
+     "label": "Preterm delivery (<37 weeks)",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "rules": [
+      "R28"
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "pregnant",
+     "label": "Could you be pregnant?",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "unsure",
+       "label": "Not sure"
+      }
+     ],
+     "rules": [
+      "R12"
+     ],
+     "flag": [
+      "yes",
+      "unsure"
+     ],
+     "show_if": {
+      "answer": "period_status",
+      "not_in": [
+       "stopped"
+      ]
+     }
+    },
+    {
+     "id": "contraception",
+     "label": "Current contraception",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "none",
+       "label": "None"
+      },
+      {
+       "value": "pill",
+       "label": "Pill"
+      },
+      {
+       "value": "mini_pill",
+       "label": "Mini-pill"
+      },
+      {
+       "value": "lng_ius",
+       "label": "LNG-IUS (Mirena)"
+      },
+      {
+       "value": "copper_iud",
+       "label": "Copper IUD"
+      },
+      {
+       "value": "implant",
+       "label": "Implant"
+      },
+      {
+       "value": "injection",
+       "label": "Injection"
+      },
+      {
+       "value": "condoms",
+       "label": "Condoms"
+      },
+      {
+       "value": "sterilised",
+       "label": "Sterilised"
+      },
+      {
+       "value": "partner_vasectomy",
+       "label": "Partner vasectomy"
+      }
+     ]
+    },
+    {
+     "id": "lng_ius_date",
+     "label": "LNG-IUS insertion date",
+     "type": "date",
+     "carry_forward": true,
+     "rules": [
+      "R38"
+     ],
+     "show_if": {
+      "answer": "contraception",
+      "in": [
+       "lng_ius"
+      ]
+     }
+    },
+    {
+     "id": "gynae_conditions",
+     "label": "Gynae conditions",
+     "type": "multi",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "fibroids",
+       "label": "Fibroids"
+      },
+      {
+       "value": "endometriosis",
+       "label": "Endometriosis"
+      },
+      {
+       "value": "adenomyosis",
+       "label": "Adenomyosis"
+      },
+      {
+       "value": "pcos",
+       "label": "PCOS"
+      },
+      {
+       "value": "ovarian_cysts",
+       "label": "Ovarian cysts"
+      },
+      {
+       "value": "endometrial_hyperplasia",
+       "label": "Endometrial hyperplasia"
+      },
+      {
+       "value": "prolapse",
+       "label": "Prolapse"
+      },
+      {
+       "value": "other",
+       "label": "Other"
+      }
+     ]
+    },
+    {
+     "id": "gynae_operations",
+     "label": "Gynae operations",
+     "type": "rows",
+     "carry_forward": true,
+     "max_rows": 10,
+     "fields": [
+      {
+       "id": "operation",
+       "label": "Operation",
+       "type": "single",
+       "required": true,
+       "options": [
+        {
+         "value": "hysterectomy",
+         "label": "Hysterectomy"
+        },
+        {
+         "value": "ovary_removal",
+         "label": "Ovary removal"
+        },
+        {
+         "value": "endometrial_ablation",
+         "label": "Endometrial ablation"
+        },
+        {
+         "value": "myomectomy",
+         "label": "Myomectomy"
+        },
+        {
+         "value": "other",
+         "label": "Other"
+        }
+       ]
+      },
+      {
+       "id": "date",
+       "label": "Date",
+       "type": "date"
+      }
+     ]
+    },
+    {
+     "id": "last_smear_date",
+     "label": "Last cervical screening",
+     "type": "date",
+     "carry_forward": true,
+     "rules": [
+      "R37"
+     ]
+    },
+    {
+     "id": "last_smear_result",
+     "label": "Last cervical screening result",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "normal",
+       "label": "Normal"
+      },
+      {
+       "value": "abnormal",
+       "label": "Abnormal"
+      }
+     ]
+    },
+    {
+     "id": "last_mammogram_date",
+     "label": "Last mammogram",
+     "type": "date",
+     "carry_forward": true,
+     "rules": [
+      "R36"
+     ]
+    },
+    {
+     "id": "last_mammogram_result",
+     "label": "Last mammogram result",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "normal",
+       "label": "Normal"
+      },
+      {
+       "value": "abnormal",
+       "label": "Abnormal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "hormone_screen",
+   "title": "Hormone safety screen",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "any": [
+     {
+      "module": "menopause"
+     },
+     {
+      "answer": "reasons",
+      "in": [
+       "contra"
+      ]
+     }
+    ]
+   },
+   "questions": [
+    {
+     "id": "hs_breast_cancer",
+     "label": "Breast cancer (ever)",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "discuss",
+       "label": "Prefer to discuss with the doctor"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R1"
+     ],
+     "flag": [
+      "yes",
+      "discuss"
+     ]
+    },
+    {
+     "id": "hs_breast_cancer_type",
+     "label": "Breast cancer type",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "er_pos",
+       "label": "ER+"
+      },
+      {
+       "value": "er_neg",
+       "label": "ER-"
+      },
+      {
+       "value": "unknown",
+       "label": "Unknown"
+      }
+     ],
+     "show_if": {
+      "answer": "hs_breast_cancer",
+      "in": [
+       "yes"
+      ]
+     }
+    },
+    {
+     "id": "hs_breast_cancer_year",
+     "label": "Breast cancer year",
+     "type": "number",
+     "carry_forward": true,
+     "min": 1900,
+     "max": 2100,
+     "show_if": {
+      "answer": "hs_breast_cancer",
+      "in": [
+       "yes"
+      ]
+     }
+    },
+    {
+     "id": "hs_coronary",
+     "label": "Heart attack, angina or known coronary disease",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "discuss",
+       "label": "Prefer to discuss with the doctor"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R2"
+     ],
+     "flag": [
+      "yes",
+      "discuss"
+     ]
+    },
+    {
+     "id": "hs_stroke",
+     "label": "Stroke or mini-stroke (TIA)",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "discuss",
+       "label": "Prefer to discuss with the doctor"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R3"
+     ],
+     "flag": [
+      "yes",
+      "discuss"
+     ]
+    },
+    {
+     "id": "hs_vte",
+     "label": "Blood clot in leg or lung (DVT/PE)",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "discuss",
+       "label": "Prefer to discuss with the doctor"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R4"
+     ],
+     "flag": [
+      "yes",
+      "discuss"
+     ]
+    },
+    {
+     "id": "hs_unexplained_bleeding",
+     "label": "Unexplained vaginal bleeding now",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "discuss",
+       "label": "Prefer to discuss with the doctor"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R6"
+     ],
+     "flag": [
+      "yes",
+      "discuss"
+     ]
+    },
+    {
+     "id": "hs_liver",
+     "label": "Active liver disease",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "discuss",
+       "label": "Prefer to discuss with the doctor"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R5"
+     ],
+     "flag": [
+      "yes",
+      "discuss"
+     ]
+    },
+    {
+     "id": "hs_cancer_treatment",
+     "label": "Current cancer treatment (tamoxifen, aromatase inhibitor)",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "none",
+       "label": "None"
+      },
+      {
+       "value": "tamoxifen",
+       "label": "Tamoxifen"
+      },
+      {
+       "value": "aromatase_inhibitor",
+       "label": "Aromatase inhibitor"
+      },
+      {
+       "value": "discuss",
+       "label": "Prefer to discuss with the doctor"
+      }
+     ],
+     "required": true,
+     "flag": [
+      "tamoxifen",
+      "aromatase_inhibitor",
+      "discuss"
+     ]
+    },
+    {
+     "id": "hs_high_bp",
+     "label": "High blood pressure",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "hs_diabetes",
+     "label": "Diabetes or prediabetes",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "hs_cholesterol",
+     "label": "High cholesterol",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "hs_migraine",
+     "label": "Migraine (with or without aura)",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "without_aura",
+       "label": "Without aura"
+      },
+      {
+       "value": "with_aura",
+       "label": "With aura"
+      }
+     ],
+     "rules": [
+      "R18"
+     ],
+     "flag": [
+      "with_aura"
+     ]
+    },
+    {
+     "id": "hs_gallbladder",
+     "label": "Gallbladder disease",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "smoking",
+     "label": "Smoker / vaper",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "never",
+       "label": "Never"
+      },
+      {
+       "value": "ex",
+       "label": "Ex"
+      },
+      {
+       "value": "current",
+       "label": "Current"
+      }
+     ],
+     "rules": [
+      "R19"
+     ],
+     "flag": [
+      "current"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "other_history",
+   "title": "Other history",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "questions": [
+    {
+     "id": "other_conditions",
+     "label": "Thyroid disease, PCOS, autoimmune or inflammatory disease",
+     "type": "multi",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "thyroid",
+       "label": "Thyroid disease"
+      },
+      {
+       "value": "pcos",
+       "label": "PCOS"
+      },
+      {
+       "value": "autoimmune",
+       "label": "Autoimmune or inflammatory disease (rheumatoid, lupus, psoriasis, IBD)"
+      }
+     ]
+    },
+    {
+     "id": "osteoporosis",
+     "label": "Osteoporosis, osteopenia or low-trauma fracture",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "last_dexa_date",
+     "label": "Date of last DEXA",
+     "type": "date",
+     "carry_forward": true,
+     "show_if": {
+      "answer": "osteoporosis",
+      "in": [
+       "yes"
+      ]
+     }
+    },
+    {
+     "id": "sleep_apnoea",
+     "label": "Sleep apnoea or loud snoring with daytime sleepiness",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "other_conditions_text",
+     "label": "Other conditions and operations",
+     "type": "text",
+     "carry_forward": true,
+     "max_length": 2000
+    }
+   ]
+  },
+  {
+   "id": "mood",
+   "title": "Mood screen",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "intro": "Over the last 2 weeks, how often have you been bothered by any of the following problems?",
+   "questions": [
+    {
+     "id": "phq2_interest",
+     "label": "Little interest or pleasure in doing things",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": 0,
+       "label": "Not at all"
+      },
+      {
+       "value": 1,
+       "label": "Several days"
+      },
+      {
+       "value": 2,
+       "label": "More than half the days"
+      },
+      {
+       "value": 3,
+       "label": "Nearly every day"
+      },
+      {
+       "value": "prefer_not",
+       "label": "Prefer not to say"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R29"
+     ],
+     "flag": [
+      "prefer_not"
+     ]
+    },
+    {
+     "id": "phq2_down",
+     "label": "Feeling down, depressed, or hopeless",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": 0,
+       "label": "Not at all"
+      },
+      {
+       "value": 1,
+       "label": "Several days"
+      },
+      {
+       "value": 2,
+       "label": "More than half the days"
+      },
+      {
+       "value": 3,
+       "label": "Nearly every day"
+      },
+      {
+       "value": "prefer_not",
+       "label": "Prefer not to say"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R29"
+     ],
+     "flag": [
+      "prefer_not"
+     ]
+    },
+    {
+     "id": "gad2_nervous",
+     "label": "Feeling nervous, anxious or on edge",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": 0,
+       "label": "Not at all"
+      },
+      {
+       "value": 1,
+       "label": "Several days"
+      },
+      {
+       "value": 2,
+       "label": "More than half the days"
+      },
+      {
+       "value": 3,
+       "label": "Nearly every day"
+      },
+      {
+       "value": "prefer_not",
+       "label": "Prefer not to say"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R29"
+     ],
+     "flag": [
+      "prefer_not"
+     ]
+    },
+    {
+     "id": "gad2_worry",
+     "label": "Not being able to stop or control worrying",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": 0,
+       "label": "Not at all"
+      },
+      {
+       "value": 1,
+       "label": "Several days"
+      },
+      {
+       "value": 2,
+       "label": "More than half the days"
+      },
+      {
+       "value": 3,
+       "label": "Nearly every day"
+      },
+      {
+       "value": "prefer_not",
+       "label": "Prefer not to say"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R29"
+     ],
+     "flag": [
+      "prefer_not"
+     ]
+    },
+    {
+     "id": "self_harm",
+     "label": "Thoughts that you would be better off dead, or of hurting yourself in some way",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": 0,
+       "label": "Not at all"
+      },
+      {
+       "value": 1,
+       "label": "Several days"
+      },
+      {
+       "value": 2,
+       "label": "More than half the days"
+      },
+      {
+       "value": 3,
+       "label": "Nearly every day"
+      },
+      {
+       "value": "prefer_not",
+       "label": "Prefer not to say"
+      }
+     ],
+     "required": true,
+     "rules": [
+      "R15"
+     ],
+     "flag": [
+      1,
+      2,
+      3,
+      "prefer_not"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "medicines",
+   "title": "Medications, supplements, prior hormones and allergies",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "questions": [
+    {
+     "id": "current_medicines",
+     "label": "Current medicines",
+     "type": "rows",
+     "carry_forward": true,
+     "max_rows": 20,
+     "rules": [
+      "R32"
+     ],
+     "fields": [
+      {
+       "id": "name",
+       "label": "Name",
+       "type": "text",
+       "max_length": 120,
+       "required": true
+      },
+      {
+       "id": "dose",
+       "label": "Dose",
+       "type": "text",
+       "max_length": 120
+      },
+      {
+       "id": "how_often",
+       "label": "How often",
+       "type": "text",
+       "max_length": 120
+      },
+      {
+       "id": "start",
+       "label": "Start date",
+       "type": "text",
+       "max_length": 40
+      }
+     ]
+    },
+    {
+     "id": "supplements",
+     "label": "Supplements and herbal products",
+     "type": "rows",
+     "carry_forward": true,
+     "max_rows": 20,
+     "rules": [
+      "R32"
+     ],
+     "fields": [
+      {
+       "id": "name",
+       "label": "Name",
+       "type": "text",
+       "max_length": 120,
+       "required": true
+      }
+     ]
+    },
+    {
+     "id": "antidepressants",
+     "label": "Antidepressants (SSRI/SNRI)",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "blood_thinners",
+     "label": "Blood thinners",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "hormones",
+     "label": "Hormones now or before",
+     "type": "rows",
+     "carry_forward": true,
+     "max_rows": 20,
+     "fields": [
+      {
+       "id": "product",
+       "label": "Product",
+       "type": "text",
+       "max_length": 120,
+       "required": true
+      },
+      {
+       "id": "route",
+       "label": "Route",
+       "type": "single",
+       "options": [
+        {
+         "value": "patch",
+         "label": "Patch"
+        },
+        {
+         "value": "gel",
+         "label": "Gel"
+        },
+        {
+         "value": "cream",
+         "label": "Cream"
+        },
+        {
+         "value": "oral",
+         "label": "Oral"
+        },
+        {
+         "value": "vaginal",
+         "label": "Vaginal"
+        },
+        {
+         "value": "pellet",
+         "label": "Pellet"
+        },
+        {
+         "value": "troche",
+         "label": "Troche"
+        },
+        {
+         "value": "injection",
+         "label": "Injection"
+        }
+       ]
+      },
+      {
+       "id": "dose",
+       "label": "Dose",
+       "type": "text",
+       "max_length": 120
+      },
+      {
+       "id": "start",
+       "label": "Start",
+       "type": "text",
+       "max_length": 40
+      },
+      {
+       "id": "stop",
+       "label": "Stop",
+       "type": "text",
+       "max_length": 40
+      },
+      {
+       "id": "compounded",
+       "label": "Compounded",
+       "type": "single",
+       "options": [
+        {
+         "value": "yes",
+         "label": "Yes"
+        },
+        {
+         "value": "no",
+         "label": "No"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "hrt_effect",
+     "label": "How did previous HRT work?",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "helped",
+       "label": "Helped"
+      },
+      {
+       "value": "partly",
+       "label": "Partly"
+      },
+      {
+       "value": "no_help",
+       "label": "No help"
+      },
+      {
+       "value": "side_effects",
+       "label": "Side effects (describe)"
+      }
+     ]
+    },
+    {
+     "id": "hrt_effect_details",
+     "label": "Side effects (describe)",
+     "type": "text",
+     "carry_forward": true,
+     "max_length": 1000,
+     "show_if": {
+      "answer": "hrt_effect",
+      "in": [
+       "side_effects"
+      ]
+     }
+    },
+    {
+     "id": "hrt_stop_reason",
+     "label": "Why did you stop?",
+     "type": "text",
+     "carry_forward": true,
+     "max_length": 1000
+    },
+    {
+     "id": "drug_allergies",
+     "label": "Drug allergies and reaction",
+     "type": "rows",
+     "carry_forward": true,
+     "max_rows": 20,
+     "fields": [
+      {
+       "id": "drug",
+       "label": "Drug",
+       "type": "text",
+       "max_length": 120,
+       "required": true
+      },
+      {
+       "id": "reaction",
+       "label": "Reaction",
+       "type": "text",
+       "max_length": 200
+      }
+     ]
+    },
+    {
+     "id": "peanut_allergy",
+     "label": "Peanut allergy",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "rules": [
+      "R11"
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "progestin_reactions",
+     "label": "Reactions to progesterone or progestins",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "progestin_reactions_detail",
+     "label": "Describe",
+     "type": "text",
+     "carry_forward": true,
+     "max_length": 1000,
+     "show_if": {
+      "answer": "progestin_reactions",
+      "in": [
+       "yes"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "family",
+   "title": "Family history",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "intro": "First-degree relatives (mother, sister, daughter, father, brother), with age at diagnosis where it matters.",
+   "questions": [
+    {
+     "id": "fh_breast_cancer",
+     "label": "Breast cancer",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      },
+      {
+       "id": "age",
+       "label": "Age at diagnosis",
+       "type": "number",
+       "min": 0,
+       "max": 120
+      }
+     ],
+     "max_rows": 10,
+     "rules": [
+      "R24"
+     ],
+     "flag": "any"
+    },
+    {
+     "id": "fh_ovarian_cancer",
+     "label": "Ovarian cancer",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      },
+      {
+       "id": "age",
+       "label": "Age at diagnosis",
+       "type": "number",
+       "min": 0,
+       "max": 120
+      }
+     ],
+     "max_rows": 10,
+     "rules": [
+      "R25"
+     ],
+     "flag": "any"
+    },
+    {
+     "id": "fh_brca",
+     "label": "Known BRCA or other cancer gene",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "unsure",
+       "label": "Not sure"
+      }
+     ],
+     "rules": [
+      "R25"
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "fh_bowel_endometrial_cancer",
+     "label": "Bowel or endometrial cancer",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      },
+      {
+       "id": "age",
+       "label": "Age at diagnosis",
+       "type": "number",
+       "min": 0,
+       "max": 120
+      }
+     ],
+     "max_rows": 10
+    },
+    {
+     "id": "fh_vte",
+     "label": "Blood clots (DVT/PE)",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      }
+     ],
+     "max_rows": 10,
+     "rules": [
+      "R26"
+     ],
+     "flag": "any"
+    },
+    {
+     "id": "fh_premature_cvd",
+     "label": "Heart attack or stroke at a young age (men <55, women <65)",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      },
+      {
+       "id": "age",
+       "label": "Age at diagnosis",
+       "type": "number",
+       "min": 0,
+       "max": 120
+      }
+     ],
+     "max_rows": 10,
+     "rules": [
+      "R27"
+     ],
+     "flag": "any"
+    },
+    {
+     "id": "fh_osteoporosis",
+     "label": "Osteoporosis or hip fracture",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      }
+     ],
+     "max_rows": 10
+    },
+    {
+     "id": "fh_early_menopause",
+     "label": "Early menopause (<45)",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      },
+      {
+       "id": "age",
+       "label": "Age at diagnosis",
+       "type": "number",
+       "min": 0,
+       "max": 120
+      }
+     ],
+     "max_rows": 10
+    },
+    {
+     "id": "fh_diabetes",
+     "label": "Diabetes",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      }
+     ],
+     "max_rows": 10
+    },
+    {
+     "id": "fh_dementia",
+     "label": "Dementia",
+     "type": "rows",
+     "carry_forward": true,
+     "fields": [
+      {
+       "id": "relative",
+       "label": "Relative",
+       "type": "single",
+       "options": [
+        {
+         "value": "mother",
+         "label": "Mother"
+        },
+        {
+         "value": "sister",
+         "label": "Sister"
+        },
+        {
+         "value": "daughter",
+         "label": "Daughter"
+        },
+        {
+         "value": "father",
+         "label": "Father"
+        },
+        {
+         "value": "brother",
+         "label": "Brother"
+        }
+       ],
+       "required": true
+      }
+     ],
+     "max_rows": 10
+    }
+   ]
+  },
+  {
+   "id": "lifestyle",
+   "title": "Lifestyle and life events",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "questions": [
+    {
+     "id": "sleep_hours",
+     "label": "Hours per night",
+     "type": "number",
+     "carry_forward": true,
+     "min": 0,
+     "max": 24
+    },
+    {
+     "id": "woken_by_sweats",
+     "label": "Woken by sweats?",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "snoring",
+     "label": "Snoring?",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "activity_days",
+     "label": "Days per week of 30 min activity",
+     "type": "scale",
+     "carry_forward": true,
+     "min": 0,
+     "max": 7
+    },
+    {
+     "id": "strength_training",
+     "label": "Any strength training?",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "diet",
+     "label": "How would you describe your usual diet?",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "home_cooked",
+       "label": "Mostly home-cooked"
+      },
+      {
+       "value": "mixed",
+       "label": "Mixed"
+      },
+      {
+       "value": "processed",
+       "label": "Mostly processed or takeaway"
+      }
+     ]
+    },
+    {
+     "id": "stress_level",
+     "label": "How stressed do you feel most days?",
+     "type": "scale",
+     "carry_forward": true,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "id": "support",
+     "label": "Do you have people you can rely on?",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "partly",
+       "label": "Partly"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "caring",
+     "label": "Caring for parents or children?",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "alcohol_units",
+     "label": "Units or drinks per week",
+     "type": "number",
+     "carry_forward": true,
+     "min": 0,
+     "max": 500,
+     "rules": [
+      "R23"
+     ]
+    },
+    {
+     "id": "occupation",
+     "label": "Occupation",
+     "type": "text",
+     "carry_forward": true,
+     "max_length": 200
+    },
+    {
+     "id": "shift_work",
+     "label": "Shift work",
+     "type": "single",
+     "carry_forward": true,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "life_events",
+     "label": "Has anything big happened around the time your symptoms started (loss, illness, job change, divorce)?",
+     "type": "text",
+     "carry_forward": true,
+     "max_length": 2000
+    }
+   ]
+  },
+  {
+   "id": "sexual",
+   "title": "Sexual health and genitourinary symptoms",
+   "kinds": [
+    "full"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "intro": "Many women at midlife have sexual or vaginal concerns. Please tick any that apply to you.",
+   "questions": [
+    {
+     "id": "discuss_in_person",
+     "label": "Prefer to discuss in person",
+     "type": "tick",
+     "carry_forward": false
+    }
+   ]
+  },
+  {
+   "id": "sexual_detail",
+   "title": "Sexual health and genitourinary symptoms",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "discuss_in_person",
+    "not_in": [
+     true
+    ]
+   },
+   "questions": [
+    {
+     "id": "low_desire",
+     "label": "Low desire or interest in sex",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "desire_bother",
+     "label": "If yes: does it bother you?",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "not_at_all",
+       "label": "Not at all"
+      },
+      {
+       "value": "a_little",
+       "label": "A little"
+      },
+      {
+       "value": "a_lot",
+       "label": "A lot"
+      }
+     ],
+     "rules": [
+      "R31"
+     ],
+     "flag": [
+      "a_lot"
+     ],
+     "show_if": {
+      "answer": "low_desire",
+      "in": [
+       "yes"
+      ]
+     }
+    },
+    {
+     "id": "arousal_difficulty",
+     "label": "Difficulty with arousal",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "orgasm_difficulty",
+     "label": "Difficulty reaching orgasm",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "sex_pain",
+     "label": "Pain with sex",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "which_first",
+     "label": "Which came first?",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "desire",
+       "label": "Desire"
+      },
+      {
+       "value": "arousal",
+       "label": "Arousal"
+      },
+      {
+       "value": "orgasm",
+       "label": "Orgasm"
+      },
+      {
+       "value": "pain",
+       "label": "Pain"
+      },
+      {
+       "value": "not_sure",
+       "label": "Not sure"
+      }
+     ]
+    },
+    {
+     "id": "vaginal_dryness",
+     "label": "Vaginal dryness, itch or burning",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "urinary_symptoms",
+     "label": "Urinary urgency, frequency or leaking",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "none",
+       "label": "None"
+      },
+      {
+       "value": "urgency",
+       "label": "Urgency"
+      },
+      {
+       "value": "stress_leak",
+       "label": "Stress leak"
+      },
+      {
+       "value": "both",
+       "label": "Both"
+      }
+     ]
+    },
+    {
+     "id": "utis_last_year",
+     "label": "Urine infections in the last year",
+     "type": "number",
+     "carry_forward": false,
+     "min": 0,
+     "max": 100,
+     "rules": [
+      "R33"
+     ],
+     "also_in": [
+      "uri"
+     ]
+    },
+    {
+     "id": "prolapse_feeling",
+     "label": "Prolapse feeling (bulge, dragging)",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "also_in": [
+      "uri"
+     ]
+    },
+    {
+     "id": "sexually_active",
+     "label": "Currently sexually active",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "prefer_not",
+       "label": "Prefer not to say"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "heavy",
+   "title": "Heavy or irregular bleeding",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "heavy"
+    ]
+   },
+   "questions": [
+    {
+     "id": "bleed_days",
+     "label": "Days of bleeding",
+     "type": "number",
+     "carry_forward": false,
+     "min": 0,
+     "max": 60,
+     "rules": [
+      "R12"
+     ]
+    },
+    {
+     "id": "flooding_clots",
+     "label": "Flooding or clots",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "pad_changes",
+     "label": "Pad/tampon changes per day",
+     "type": "number",
+     "carry_forward": false,
+     "min": 0,
+     "max": 100
+    },
+    {
+     "id": "days_off_work",
+     "label": "Days off work",
+     "type": "number",
+     "carry_forward": false,
+     "min": 0,
+     "max": 60
+    },
+    {
+     "id": "tired_breathless",
+     "label": "Tiredness or breathlessness",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "bleed",
+   "title": "Bleeding between periods, after sex or after menopause",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "any": [
+     {
+      "answer": "reasons",
+      "in": [
+       "bleed"
+      ]
+     },
+     {
+      "answer": "intermenstrual",
+      "in": [
+       "yes"
+      ]
+     },
+     {
+      "answer": "bleed_after_year",
+      "in": [
+       "yes"
+      ]
+     }
+    ]
+   },
+   "questions": [
+    {
+     "id": "bleed_when",
+     "label": "When it happens",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 500
+    },
+    {
+     "id": "bleed_how_long",
+     "label": "How long",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 200
+    }
+   ]
+  },
+  {
+   "id": "pain",
+   "title": "Pelvic or period pain",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "pain"
+    ]
+   },
+   "questions": [
+    {
+     "id": "pain_score",
+     "label": "Pain 0-10 for period pain",
+     "type": "scale",
+     "carry_forward": false,
+     "min": 0,
+     "max": 10,
+     "rules": [
+      "R12",
+      "R13"
+     ]
+    },
+    {
+     "id": "pain_between_score",
+     "label": "Pain between periods",
+     "type": "scale",
+     "carry_forward": false,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "id": "pain_sex_score",
+     "label": "Pain with sex",
+     "type": "scale",
+     "carry_forward": false,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "id": "pain_bowel_bladder",
+     "label": "Pain with bowel or bladder during periods",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "pain_fever",
+     "label": "Fever or discharge",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "rules": [
+      "R13"
+     ],
+     "flag": [
+      "yes"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "contra",
+   "title": "Contraception",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "contra"
+    ]
+   },
+   "questions": [
+    {
+     "id": "contraception_wanted",
+     "label": "Method wanted",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "none",
+       "label": "None"
+      },
+      {
+       "value": "pill",
+       "label": "Pill"
+      },
+      {
+       "value": "mini_pill",
+       "label": "Mini-pill"
+      },
+      {
+       "value": "lng_ius",
+       "label": "LNG-IUS (Mirena)"
+      },
+      {
+       "value": "copper_iud",
+       "label": "Copper IUD"
+      },
+      {
+       "value": "implant",
+       "label": "Implant"
+      },
+      {
+       "value": "injection",
+       "label": "Injection"
+      },
+      {
+       "value": "condoms",
+       "label": "Condoms"
+      },
+      {
+       "value": "sterilised",
+       "label": "Sterilised"
+      },
+      {
+       "value": "partner_vasectomy",
+       "label": "Partner vasectomy"
+      }
+     ]
+    },
+    {
+     "id": "future_pregnancy",
+     "label": "Future pregnancy plans",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 500
+    },
+    {
+     "id": "unprotected_sex_5_days",
+     "label": "Unprotected sex in the last 5 days",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "flag": [
+      "yes"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ttc",
+   "title": "Trying to conceive",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "ttc"
+    ]
+   },
+   "questions": [
+    {
+     "id": "ttc_months",
+     "label": "How long trying (months)",
+     "type": "number",
+     "carry_forward": false,
+     "min": 0,
+     "max": 240
+    },
+    {
+     "id": "partner_tested",
+     "label": "Partner tested",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "folic_acid",
+     "label": "Folic acid",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pcos",
+   "title": "PCOS, acne, excess hair",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "pcos"
+    ]
+   },
+   "questions": [
+    {
+     "id": "excess_hair",
+     "label": "Excess hair (face, chest, abdomen)",
+     "type": "multi",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "face",
+       "label": "Face"
+      },
+      {
+       "value": "chest",
+       "label": "Chest"
+      },
+      {
+       "value": "abdomen",
+       "label": "Abdomen"
+      }
+     ]
+    },
+    {
+     "id": "acne",
+     "label": "Acne",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "scalp_thinning",
+     "label": "Scalp hair thinning",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "weight_change",
+     "label": "Weight change",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "dark_patches",
+     "label": "Dark skin patches (acanthosis)",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "dis",
+   "title": "Discharge, infection, STI",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "dis"
+    ]
+   },
+   "questions": [
+    {
+     "id": "discharge_colour_odour",
+     "label": "Discharge colour/odour",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 500
+    },
+    {
+     "id": "inf_itch",
+     "label": "Itch",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "inf_dysuria",
+     "label": "Pain passing urine",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "inf_pelvic_pain",
+     "label": "Pelvic pain",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "rules": [
+      "R13"
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "inf_fever",
+     "label": "Fever",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ],
+     "inferred": true,
+     "rules": [
+      "R13"
+     ],
+     "flag": [
+      "yes"
+     ]
+    },
+    {
+     "id": "new_partners",
+     "label": "New or multiple partners",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "previous_sti",
+     "label": "Previous STI",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "partner_symptoms",
+     "label": "Partner symptoms",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "uri",
+   "title": "Urinary leak or prolapse",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "uri"
+    ]
+   },
+   "questions": [
+    {
+     "id": "leak_type",
+     "label": "Leak with cough/sneeze vs urgency",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "cough_sneeze",
+       "label": "Cough/sneeze"
+      },
+      {
+       "value": "urgency",
+       "label": "Urgency"
+      },
+      {
+       "value": "both",
+       "label": "Both"
+      }
+     ]
+    },
+    {
+     "id": "nocturia",
+     "label": "Night-time passing urine",
+     "type": "number",
+     "carry_forward": false,
+     "min": 0,
+     "max": 20
+    }
+   ]
+  },
+  {
+   "id": "pms",
+   "title": "PMS",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "pms"
+    ]
+   },
+   "questions": [
+    {
+     "id": "pms_symptoms",
+     "label": "Which symptoms",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 1000
+    },
+    {
+     "id": "pms_days_before",
+     "label": "How many days before the period",
+     "type": "number",
+     "carry_forward": false,
+     "min": 0,
+     "max": 30
+    },
+    {
+     "id": "pms_effect",
+     "label": "Effect on work or relationships",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 1000
+    }
+   ]
+  },
+  {
+   "id": "smear",
+   "title": "Abnormal smear follow-up",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "smear"
+    ]
+   },
+   "questions": [
+    {
+     "id": "smear_last_result",
+     "label": "Last result",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 500
+    },
+    {
+     "id": "hpv_status",
+     "label": "HPV status",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "positive",
+       "label": "Positive"
+      },
+      {
+       "value": "negative",
+       "label": "Negative"
+      },
+      {
+       "value": "unsure",
+       "label": "Not sure"
+      }
+     ]
+    },
+    {
+     "id": "colposcopy",
+     "label": "Colposcopy or treatment (dates)",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 1000
+    },
+    {
+     "id": "hpv_vaccine",
+     "label": "HPV vaccine",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "unsure",
+       "label": "Not sure"
+      }
+     ],
+     "also_in": [
+      "bleed"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "breast",
+   "title": "Breast concern",
+   "kinds": [
+    "full"
+   ],
+   "addable": true,
+   "opens_when": {
+    "answer": "reasons",
+    "in": [
+     "breast"
+    ]
+   },
+   "questions": [
+    {
+     "id": "breast_symptoms",
+     "label": "Lump, nipple discharge, skin change, pain",
+     "type": "multi",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "lump",
+       "label": "Lump"
+      },
+      {
+       "value": "discharge",
+       "label": "Nipple discharge"
+      },
+      {
+       "value": "skin",
+       "label": "Skin change"
+      },
+      {
+       "value": "pain",
+       "label": "Pain"
+      }
+     ],
+     "rules": [
+      "R14"
+     ],
+     "flag": [
+      "lump",
+      "discharge",
+      "skin"
+     ]
+    },
+    {
+     "id": "breast_lump_new",
+     "label": "New lump",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "unsure",
+       "label": "Not sure"
+      }
+     ],
+     "inferred": true,
+     "rules": [
+      "R14"
+     ],
+     "flag": [
+      "yes",
+      "unsure"
+     ],
+     "show_if": {
+      "answer": "breast_symptoms",
+      "in": [
+       "lump"
+      ]
+     }
+    },
+    {
+     "id": "breast_discharge_bloody",
+     "label": "Bloody nipple discharge",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      },
+      {
+       "value": "unsure",
+       "label": "Not sure"
+      }
+     ],
+     "inferred": true,
+     "rules": [
+      "R14"
+     ],
+     "flag": [
+      "yes",
+      "unsure"
+     ],
+     "show_if": {
+      "answer": "breast_symptoms",
+      "in": [
+       "discharge"
+      ]
+     }
+    },
+    {
+     "id": "breast_pain_cyclical",
+     "label": "Pain (cyclical or not)",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "cyclical",
+       "label": "Cyclical"
+      },
+      {
+       "value": "not_cyclical",
+       "label": "Not cyclical"
+      }
+     ],
+     "show_if": {
+      "answer": "breast_symptoms",
+      "in": [
+       "pain"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "followup",
+   "title": "Follow-up visit form",
+   "kinds": [
+    "followup"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "questions": [
+    {
+     "id": "overall",
+     "label": "Overall, since last visit I am",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "much",
+       "label": "Much better"
+      },
+      {
+       "value": "better",
+       "label": "Better"
+      },
+      {
+       "value": "same",
+       "label": "Same"
+      },
+      {
+       "value": "worse",
+       "label": "Worse"
+      }
+     ],
+     "required": true
+    },
+    {
+     "id": "adherence",
+     "label": "Using my treatment as prescribed",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "some",
+       "label": "Sometimes"
+      },
+      {
+       "value": "stop",
+       "label": "Stopped"
+      }
+     ],
+     "required": true
+    },
+    {
+     "id": "adherence_reason",
+     "label": "Why did you stop?",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 500,
+     "show_if": {
+      "answer": "adherence",
+      "in": [
+       "some",
+       "stop"
+      ]
+     }
+    },
+    {
+     "id": "side_effects",
+     "label": "Side effects",
+     "type": "multi",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "breast",
+       "label": "Breast tenderness"
+      },
+      {
+       "value": "bloat",
+       "label": "Bloating"
+      },
+      {
+       "value": "head",
+       "label": "Headache"
+      },
+      {
+       "value": "sleepy",
+       "label": "Drowsiness"
+      },
+      {
+       "value": "mood",
+       "label": "Low mood"
+      },
+      {
+       "value": "acne",
+       "label": "Acne"
+      },
+      {
+       "value": "hair",
+       "label": "Hair thinning"
+      },
+      {
+       "value": "facial",
+       "label": "Facial hair"
+      }
+     ]
+    },
+    {
+     "id": "bleeding",
+     "label": "Any bleeding or spotting",
+     "type": "single",
+     "carry_forward": false,
+     "options": [
+      {
+       "value": "yes",
+       "label": "Yes"
+      },
+      {
+       "value": "no",
+       "label": "No"
+      }
+     ]
+    },
+    {
+     "id": "medicines",
+     "label": "Current medicines",
+     "type": "rows",
+     "carry_forward": false,
+     "max_rows": 20,
+     "fields": [
+      {
+       "id": "name",
+       "label": "Name",
+       "type": "text",
+       "max_length": 120,
+       "required": true
+      },
+      {
+       "id": "still_taking",
+       "label": "Still taking",
+       "type": "tick",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "notes",
+   "title": "Anything else",
+   "kinds": [
+    "full",
+    "followup"
+   ],
+   "addable": false,
+   "opens_when": {
+    "always": true
+   },
+   "questions": [
+    {
+     "id": "notes",
+     "label": "Anything else",
+     "type": "text",
+     "carry_forward": false,
+     "max_length": 2000
+    }
+   ]
+  }
+ ]
+}

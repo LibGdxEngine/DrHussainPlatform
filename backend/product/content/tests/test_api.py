@@ -26,13 +26,14 @@ class TemplateTests(ContentTestCase):
         return next(t for t in response.data['results'] if t['key'] == key)
 
     def test_starter_slots_follow_the_routing_table_and_are_not_approved(self):
-        response = self.client.get(f'{BASE}templates/')
+        response = self.client.get(f'{BASE}templates/', {'page_size': 100})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         keys = {t['key'] for t in response.data['results']}
         self.assertTrue({'results', 'menopause_results', 'follow_up_comparison', 'pathology_results', 'sti_opening',
                          'sti_closing', 'sti_section_chlamydia', 'smear_section_1', 'smear_section_14',
                          'prescription_reply'} <= keys)
-        self.assertTrue(all(t['approved'] is None for t in response.data['results']))
+        emails = [t for t in response.data['results'] if t['kind'] != 'phrase']
+        self.assertTrue(all(t['approved'] is None for t in emails))
         self.assertIn('[[Paste the approved wording', response.data['results'][0]['latest']['body'])
 
     def test_saving_wording_adds_a_draft_version_and_approving_makes_it_used(self):
@@ -68,6 +69,15 @@ class TemplateTests(ContentTestCase):
         again = self.client.post(url, body, format='json')
         self.assertEqual(again.status_code, status.HTTP_200_OK)
         self.assertEqual(again.data['latest']['number'], 2)
+
+    def test_starter_system_phrases_are_approved_english_moved_from_code(self):
+        phrases = {t['key']: t for t in self.client.get(f'{BASE}templates/', {'kind': 'phrase'}).data['results']}
+        self.assertEqual(phrases['phrase.reference']['approved']['body'], 'reference {{range}}')
+        self.assertEqual(phrases['phrase.default_subject']['approved']['body'], 'Your results')
+        self.assertTrue(all(t['language'] == 'en' and t['approved'] for t in phrases.values()))
+        # The signature comes from the clinic profile until the clinic approves its own phrase.
+        self.assertNotIn('phrase.signature', phrases)
+        self.assertIsNone(phrases['phrase.reference']['approved']['translated_from'])
 
     def test_unknown_placeholders_are_refused(self):
         template = self.template()
@@ -159,15 +169,34 @@ class AlertRuleTests(ContentTestCase):
         response = self.client.get(f'{BASE}alert-rules/')
         self.assertEqual([r['code'] for r in response.data['results']], [f'R{n}' for n in range(1, 41)])
         r7 = response.data['results'][6]
-        self.assertEqual((r7['pre'], r7['threshold_a'], r7['mid'], r7['level']), ('≥', '12', 'months', 'red'))
+        self.assertEqual((r7['pre'], r7['threshold_a'], r7['mid'], r7['level']), ('= Yes', None, '', 'red'))
+        self.assertEqual(r7['answer_check'], 'bleeding_after_year')
+        rules = {r['code']: r for r in response.data['results']}
+        self.assertEqual(rules['R34']['medicine_terms'], ['testosterone'])
+        self.assertEqual((rules['R34']['answer_check'], rules['R39']['answer_check']), ('', ''))
+
+    def test_answer_check_must_be_a_known_check(self):
+        self.client.get(f'{BASE}alert-rules/')
+        rule = AlertRule.objects.get(organization=self.clinic, code='R23')
+        url = f'{BASE}alert-rules/{rule.pk}/'
+        response = self.client.patch(url, {'answer_check': 'nope'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('answer_check', response.data['error']['fields'])
+        response = self.client.patch(url, {'threshold_a': '21', 'medicine_terms': [' Hypericum ', 'hypericum']},
+                                     format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        # An edit keeps the rule linked to its check.
+        self.assertEqual((rule.current.answer_check, rule.current.medicine_terms), ('alcohol_units', ['Hypericum']))
+        too_many = self.client.patch(url, {'medicine_terms': [f'm{n}' for n in range(21)]}, format='json')
+        self.assertEqual(too_many.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_bulk_save_versions_each_changed_rule(self):
         response = self.client.post(f'{BASE}alert-rules/bulk/', {'note': 'Guideline update', 'rules': [
-            {'code': 'R7', 'threshold_a': '6'}, {'code': 'R20', 'threshold_a': '135', 'threshold_b': '85'},
+            {'code': 'R23', 'threshold_a': '21'}, {'code': 'R20', 'threshold_a': '135', 'threshold_b': '85'},
             {'code': 'R18', 'enabled': False}, {'code': 'R1', 'enabled': True},
         ]}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
-        self.assertEqual(sorted(r['code'] for r in response.data), ['R18', 'R20', 'R7'])
+        self.assertEqual(sorted(r['code'] for r in response.data), ['R18', 'R20', 'R23'])
         rule = AlertRule.objects.get(organization=self.clinic, code='R20')
         self.assertEqual((rule.current.threshold_a, rule.current.threshold_b, rule.current.number), ('135', '85', 2))
         self.assertEqual(rule.current.note, 'Guideline update')
@@ -175,11 +204,11 @@ class AlertRuleTests(ContentTestCase):
 
     def test_bulk_save_is_all_or_nothing(self):
         response = self.client.post(f'{BASE}alert-rules/bulk/', {'rules': [
-            {'code': 'R7', 'threshold_a': '6'}, {'code': 'R1', 'threshold_a': '3'},
+            {'code': 'R23', 'threshold_a': '21'}, {'code': 'R1', 'threshold_a': '3'},
         ]}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('rules.1.threshold_a', response.data['error']['fields'])
-        self.assertEqual(AlertRule.objects.get(organization=self.clinic, code='R7').current.threshold_a, '12')
+        self.assertEqual(AlertRule.objects.get(organization=self.clinic, code='R23').current.threshold_a, '14')
 
     def test_new_rules_get_the_next_code(self):
         self.client.get(f'{BASE}alert-rules/')
@@ -192,7 +221,7 @@ class AlertRuleTests(ContentTestCase):
 
     def test_staff_cannot_change_rules(self):
         self.client.force_authenticate(self.staff)
-        response = self.client.post(f'{BASE}alert-rules/bulk/', {'rules': [{'code': 'R7', 'threshold_a': '1'}]},
+        response = self.client.post(f'{BASE}alert-rules/bulk/', {'rules': [{'code': 'R23', 'threshold_a': '1'}]},
                                     format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 

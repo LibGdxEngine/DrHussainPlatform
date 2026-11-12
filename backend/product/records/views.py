@@ -192,9 +192,10 @@ class DiagnosisViewSet(OrganizationScopedMixin, mixins.ListModelMixin, mixins.Cr
 
 def _evaluate_alerts(patient):
     """Vitals rules (blood pressure, BMI, waist) read the latest examination; run them once it is saved."""
-    from product.alerts.services import evaluate_patient
+    from product.alerts.services import evaluate_patient_safely
 
-    transaction.on_commit(lambda: evaluate_patient(patient))
+    # A rule that cannot be checked is recorded on the patient's form, never dropped.
+    transaction.on_commit(lambda: evaluate_patient_safely(patient))
 
 
 @extend_schema_view(

@@ -19,8 +19,9 @@ const loadKeyValues = async (patient: string) => {
   return latestValues(values.results, tests);
 };
 const loadOrders = (patient: string) => ordersApi.list(patient);
+/** Every folder: a results email sent with no reply yet is not in the inbox. */
 const loadThreads = (patient: string) =>
-  mailApi.threads.list("inbox", "all", undefined, patient).then((page) => page.results);
+  mailApi.threads.forPatient(patient).then((page) => ({ list: page.results, total: page.count }));
 
 /** Loading, error and empty states shared by the side panels. */
 function PanelState({ error, loading, empty }: { error?: string; loading: boolean; empty: string | false }) {
@@ -163,7 +164,7 @@ export function SentOrdersPanel({ patientId, mrn }: { patientId: string; mrn: st
 
 export function EmailsPanel({ patientId, mrn }: { patientId: string; mrn: string }) {
   const threads = usePatientResource(patientId, loadThreads, "Could not load the emails.");
-  const list = threads.data?.slice(0, 3);
+  const list = threads.data?.list.slice(0, 5);
   const msgsHref = `${emrRoutes.msgs}?patient=${encodeURIComponent(mrn)}`;
   return (
     <Panel
@@ -190,8 +191,11 @@ export function EmailsPanel({ patientId, mrn }: { patientId: string; mrn: string
             )}
           >
             <span className={cn("text-[11px]", t.has_inbound ? "text-muted" : "text-mint-2")}>
-              {t.has_inbound ? "From the patient" : "Clinic → Patient"} · {formatDay(t.last_message_at)}
+              {t.third_party
+                ? `Third party${t.third_party_relation ? ` (${t.third_party_relation})` : ""}`
+                : t.has_inbound ? "From the patient" : "Clinic → Patient, no reply yet"} · {formatDay(t.last_message_at)}
               {t.unread ? " · unread" : ""}
+              {t.archived ? " · archived" : ""}
             </span>
             <br />
             <strong className="font-semibold">{t.subject || "(no subject)"}</strong>
@@ -205,7 +209,7 @@ export function EmailsPanel({ patientId, mrn }: { patientId: string; mrn: string
         ))
       )}
       <ActionLink href={msgsHref} variant="white" size="sm" className="min-h-10 self-start px-4">
-        Open emails
+        {threads.data && threads.data.total > 5 ? `Open all ${threads.data.total} emails` : "Open emails"}
       </ActionLink>
     </Panel>
   );

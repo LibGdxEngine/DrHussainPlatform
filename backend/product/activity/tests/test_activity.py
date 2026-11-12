@@ -19,7 +19,7 @@ from product.results.pipeline import process_document
 from product.results.tests import pdfs
 from product.review.services import approve_and_send, route_report
 from product.review.tasks import send_case_email
-from product.testing import PrivateStorageMixin, make_member
+from product.testing import PrivateStorageMixin, make_member, seed_phrases
 
 URL = '/api/product/activity/'
 
@@ -106,6 +106,8 @@ class ArabicDraftTests(PrivateStorageMixin, APITestCase):
                                                                      'body': body}, user=self.doctor)
             version.approved_at = timezone.now()
             version.save()
+        # An Arabic draft needs every system phrase approved in Arabic too.
+        seed_phrases(self.clinic, languages=('en', 'ar'))
         document = store_document(
             organization=self.clinic, patient=self.patient, uploaded_by=self.doctor, slot='lab',
             upload=SimpleUploadedFile('r.pdf', pdfs.make_pdf(pdfs.header(name='', dob='09/03/1974', file_number=self.patient.file_number)

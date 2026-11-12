@@ -5,7 +5,7 @@ from django.test import TestCase
 from apps.organizations.models import Organization
 from product.patients.models import Patient
 from product.patients.services import (
-    MatchStatus, create_patient, find_similar, match_patient, normalize_name, search_patients,
+    MatchStatus, create_patient, find_similar, fold_name, match_patient, normalize_name, search_patients,
 )
 
 DOB = date(1974, 3, 9)
@@ -54,6 +54,32 @@ class FindSimilarTests(TestCase):
         self.assertEqual(list(find_similar(clinic, 'Layla A.', DOB, 'ليلي احمد')), [laila])
         self.assertEqual(list(find_similar(clinic, 'ليلى أحمد', DOB)), [laila])
         self.assertEqual(list(find_similar(clinic, 'Layla A.', DOB)), [])
+
+    def test_a_one_letter_spelling_difference_is_a_near_match(self):
+        clinic = Organization.objects.create(name='V-Clinic', slug='v-clinic')
+        mona = create_patient(clinic, full_name='Mona Hassan', date_of_birth=DOB)
+        found = find_similar(clinic, 'Mona Hasan', DOB)
+        self.assertEqual([(p, p.match) for p in found], [(mona, 'near')])
+        self.assertEqual([p.match for p in find_similar(clinic, 'mona  HASSAN', DOB)], ['exact'])
+
+    def test_al_prefix_and_doubled_letters_are_ignored(self):
+        clinic = Organization.objects.create(name='V-Clinic', slug='v-clinic')
+        create_patient(clinic, full_name='Mona El-Sayed', date_of_birth=DOB)
+        self.assertEqual([p.match for p in find_similar(clinic, 'Mona Al Sayyed', DOB)], ['near'])
+
+    def test_doubled_letters_collapse_on_their_own(self):
+        # 'annbee' and 'anbe' are only 80% alike: they match because the doubled letters collapse.
+        self.assertEqual(fold_name('Ann Bee'), 'anbe')
+        self.assertEqual(fold_name('An Be'), 'anbe')
+        clinic = Organization.objects.create(name='V-Clinic', slug='v-clinic')
+        ann = create_patient(clinic, full_name='Ann Bee', date_of_birth=DOB)
+        self.assertEqual([(p, p.match) for p in find_similar(clinic, 'An Be', DOB)], [(ann, 'near')])
+
+    def test_near_name_with_another_birthday_or_a_different_name_is_not_similar(self):
+        clinic = Organization.objects.create(name='V-Clinic', slug='v-clinic')
+        create_patient(clinic, full_name='Mona Hassan', date_of_birth=DOB)
+        self.assertEqual(find_similar(clinic, 'Mona Hasan', date(1980, 1, 1)), [])
+        self.assertEqual(find_similar(clinic, 'Sara Ibrahim', DOB), [])
 
 
 class FileNumberTests(TestCase):

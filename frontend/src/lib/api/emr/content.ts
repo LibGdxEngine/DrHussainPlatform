@@ -14,6 +14,13 @@ export type Prescription = Schemas["Prescription"];
 export type PrescriptionVersion = Schemas["PrescriptionVersion"];
 export type AlertRule = Schemas["AlertRule"];
 export type AlertRuleChange = Schemas["AlertRuleChangeRequest"];
+/**
+ * The automatic answer check a rule runs on her form answers (AlertRule.answer_check; "" for none).
+ * `medicine_terms` lists the medicine names that make a rule fire (matched without case or punctuation).
+ */
+export type AnswerCheck = Schemas["AnswerCheckEnum"];
+/** System phrases are templates of kind "phrase", keyed `phrase.<name>`, versioned and approved per language. */
+export const PHRASE_PREFIX = "phrase.";
 export type ScoreBandSet = Schemas["ScoreBandSet"];
 export type ScoreBand = Schemas["ScoreBand"];
 export type Leaflet = Schemas["Leaflet"];
@@ -36,8 +43,12 @@ function form(fields: Record<string, string | File | undefined>) {
 /** Clinic-editable content. Reads are open to staff; every change is doctor-only and versioned. */
 export const contentApi = {
   templates: {
-    list: (filters: { pinned?: boolean } = {}) =>
-      whole<EmailTemplate>(`${BASE}/templates/`, filters.pinned ? { pinned: true } : {}),
+    list: (filters: { pinned?: boolean; kind?: TemplateKind; language?: string } = {}) =>
+      whole<EmailTemplate>(`${BASE}/templates/`, {
+        pinned: filters.pinned || undefined, kind: filters.kind, language: filters.language,
+      }),
+    /** The system phrases (short wording used inside drafts), optionally in one language. */
+    phrases: (language?: string) => whole<EmailTemplate>(`${BASE}/templates/`, { kind: "phrase", language }),
     create: (body: Schemas["EmailTemplateCreateRequest"]) => apiClient.post<EmailTemplate>(`${BASE}/templates/`, body),
     update: (id: string, body: Schemas["PatchedEmailTemplateRequest"]) =>
       apiClient.patch<EmailTemplate>(`${BASE}/templates/${id}/`, body),
@@ -60,6 +71,9 @@ export const contentApi = {
   },
   alertRules: {
     list: () => whole<AlertRule>(`${BASE}/alert-rules/`),
+    /** Doctor only: change one rule (e.g. its medicine_terms); saved as the rule's next version. */
+    update: (id: string, body: Schemas["PatchedAlertRuleRequest"]) =>
+      apiClient.patch<AlertRule>(`${BASE}/alert-rules/${id}/`, body),
     /** All or none of the changes are saved. */
     saveChanges: (rules: AlertRuleChange[], note = "") =>
       apiClient.post<AlertRule[]>(`${BASE}/alert-rules/bulk/`, { rules, note }),

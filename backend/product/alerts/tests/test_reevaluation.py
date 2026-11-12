@@ -23,6 +23,7 @@ class ReevaluationTests(AlertTestCase):
         cache.clear()
 
     def test_changing_a_cut_off_re_evaluates_every_patient_in_the_clinic(self):
+        self.prescribe('Testosterone gel')
         self.read(['Testosterone 45 ng/dL 8 - 60'])
         self.assertNotIn('R34', self.alerts(status='open'))
         rule = AlertRule.objects.get(organization=self.clinic, code='R34')
@@ -32,7 +33,7 @@ class ReevaluationTests(AlertTestCase):
 
         self.assertEqual(reevaluate_clinic.apply(args=[str(self.clinic.pk)]).get(), 1)
         opened = self.alerts(status='open')['R34']
-        self.assertEqual((opened.detail, opened.rule_version.number), ('45 ng/dL > 40', 2))
+        self.assertEqual((opened.detail, opened.rule_version.number), ('45 ng/dL > 40; testosterone gel', 2))
 
         # Raising the cut-off again clears it on the next sweep.
         add_version(rule, AlertRuleVersion, {'threshold_a': '50'}, user=self.doctor)
@@ -47,8 +48,8 @@ class ReevaluationTests(AlertTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(delay.call_count, 1)
 
-    def test_rules_about_forms_not_results_do_not_sweep(self):
-        rule = AlertRule.objects.get(organization=self.clinic, code='R7')
+    def test_rules_checked_by_nothing_do_not_sweep(self):
+        rule = AlertRule.objects.get(organization=self.clinic, code='R9')
         with patch(DELAY) as delay, self.captureOnCommitCallbacks(execute=True):
             add_version(rule, AlertRuleVersion, {'threshold_a': '6'}, user=self.doctor)
         delay.assert_not_called()

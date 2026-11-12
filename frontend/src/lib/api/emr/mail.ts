@@ -16,6 +16,16 @@ export type InboxCounts = Schemas["InboxCounts"];
 export type MailFolder = "inbox" | "sent" | "archive";
 export type MailFilter = "all" | "unread" | "patients" | "unmatched";
 export type DocumentSlot = Schemas["SlotEnum"];
+/** Whose file the suggested patient is: the sender's own, or someone else's (a relative writing in). */
+export type SuggestionKind = "sender" | "third_party" | "";
+/** Error code (409) when a link or reply involves a sender who is not the patient and needs confirming. */
+export const THIRD_PARTY_CONFIRM = "THIRD_PARTY_CONFIRM";
+
+export interface LinkOptions {
+  /** Required when the sender is not the patient; with `relation` (who they are to the patient). */
+  confirmThirdParty?: boolean;
+  relation?: string;
+}
 
 const BASE = "/product/mail";
 
@@ -34,16 +44,27 @@ export const mailApi = {
       apiClient.get<Page<MailThread>>(`${BASE}/threads/`, {
         query: { folder, filter: filter === "all" ? undefined : filter, q: q || undefined, patient, page },
       }),
+    /** One patient's threads across every folder (inbox, sent and archived), newest first. */
+    forPatient: (patient: string, page = 1) =>
+      apiClient.get<Page<MailThread>>(`${BASE}/threads/`, { query: { patient, page } }),
     counts: () => apiClient.get<InboxCounts>(`${BASE}/threads/counts/`),
     /** Opening a thread marks it read. */
     get: (id: string) => apiClient.get<MailThreadDetail>(`${BASE}/threads/${id}/`),
     state: (id: string, body: { unread?: boolean; archived?: boolean }) =>
       apiClient.patch<MailThreadDetail>(`${BASE}/threads/${id}/state/`, body),
-    link: (id: string, patient: string | null) =>
-      apiClient.post<MailThreadDetail>(`${BASE}/threads/${id}/link/`, { patient }),
-    /** Doctor only: an everyday reply. Results emails go through the review queue. */
-    reply: (id: string, body: string, documents: string[] = []) =>
-      apiClient.post<MailThreadDetail>(`${BASE}/threads/${id}/reply/`, { body, documents }),
+    /** Rejects with THIRD_PARTY_CONFIRM (409, context.patient_email/contact_email) unless confirmed. */
+    link: (id: string, patient: string | null, options: LinkOptions = {}) =>
+      apiClient.post<MailThreadDetail>(`${BASE}/threads/${id}/link/`, {
+        patient, confirm_third_party: options.confirmThirdParty ?? false, relation: options.relation,
+      }),
+    /**
+     * Doctor only: an everyday reply. Results emails go through the review queue. On a third-party
+     * thread it rejects with THIRD_PARTY_CONFIRM (409) unless `confirmThirdParty`.
+     */
+    reply: (id: string, body: string, documents: string[] = [], confirmThirdParty = false) =>
+      apiClient.post<MailThreadDetail>(`${BASE}/threads/${id}/reply/`, {
+        body, documents, confirm_third_party: confirmThirdParty,
+      }),
   },
   attachments: {
     file: (id: string) => apiClient.blob(`${BASE}/attachments/${id}/file/`, { timeoutMs: 120_000 }),

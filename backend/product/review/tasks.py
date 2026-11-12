@@ -57,7 +57,10 @@ def send_case_email(self, sent_email_id: str):
             sent.save(update_fields=['message_id', 'updated_at'])
         message_id = sent.message_id
         headers = {'Message-ID': message_id}
-        thread = case.inbound_message.thread if case.inbound_message_id else None
+        # A reply stays in the thread it answers, unless it goes to the patient rather than the
+        # third party who wrote (then it starts the patient's own thread).
+        replying = case.inbound_message_id and sent.to_address.casefold() == case.inbound_message.from_address.casefold()
+        thread = case.inbound_message.thread if replying else None
         in_reply_to = references = ''
         if thread is not None:
             in_reply_to, references = reply_headers(thread, case.inbound_message)
@@ -97,8 +100,22 @@ def send_case_email(self, sent_email_id: str):
                 attachment_names=[a['name'] for a in sent.attachments], sent_email=sent, sent_by=sent.approved_by,
                 thread=thread,
             )
+            # What was just sent (e.g. a prescription) can fire alert rules: check the patient again.
+            patient_id = case.patient_id
+            transaction.on_commit(lambda: _evaluate_after_send(patient_id))
         guard.record(sent.message_id)
         return sent.message_id
+
+
+def _evaluate_after_send(patient_id):
+    """The email has gone; a failure here is logged, and the patient's form shows the rules as not checked."""
+    try:
+        from product.alerts.services import evaluate_patient_safely
+        from product.patients.models import Patient
+
+        evaluate_patient_safely(Patient.objects.get(pk=patient_id))
+    except Exception:  # noqa: BLE001 - never undo or retry a delivered email over this
+        logger.exception('Alert rules were not re-checked after sending to patient %s', patient_id)
 
 
 def _failed(sent, error: str, detail: str = ''):

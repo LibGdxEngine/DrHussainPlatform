@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { emrRoutes } from "@/features/emr/routes";
 import { ActionButton } from "@/features/emr/ui/Action";
 import { Field, TextInput } from "@/features/emr/ui/Fields";
@@ -11,6 +11,13 @@ import { Icon } from "@/features/emr/ui/icons";
 /** Only same-site EMR paths may be returned to after sign-in. */
 function safeReturnPath(path?: string) {
   return path && path.startsWith("/emr/") && !path.startsWith("//") ? path : emrRoutes.today;
+}
+
+const noSubscribe = () => () => undefined;
+
+/** False while the server renders and during hydration, true once the page's script is running. */
+function useHydrated() {
+  return useSyncExternalStore(noSubscribe, () => true, () => false);
 }
 
 interface PasswordPanelProps {
@@ -24,21 +31,27 @@ export function PasswordPanel({ returnTo }: PasswordPanelProps) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hydrated = useHydrated();
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const result = await signIn("credentials", { redirect: false, identifier, password });
-    if (result?.error) {
+    try {
+      const result = await signIn("credentials", { redirect: false, identifier, password });
+      if (result?.error) {
+        setError(result.error.includes("PHONE_VERIFICATION_REQUIRED")
+          ? "This account's mobile number is not verified yet. Ask the clinic owner to finish setting it up."
+          : "The email, mobile or password is not correct.");
+        return;
+      }
+      router.replace(safeReturnPath(returnTo));
+      router.refresh();
+    } catch {
+      setError("Could not reach the sign-in service. Check your connection and try again.");
+    } finally {
       setBusy(false);
-      setError(result.error.includes("PHONE_VERIFICATION_REQUIRED")
-        ? "This account's mobile number is not verified yet. Ask the clinic owner to finish setting it up."
-        : "The email, mobile or password is not correct.");
-      return;
     }
-    router.replace(safeReturnPath(returnTo));
-    router.refresh();
   }
 
   return (
@@ -73,9 +86,9 @@ export function PasswordPanel({ returnTo }: PasswordPanelProps) {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Field>
-        <ActionButton type="submit" size="lg" disabled={busy}>
+        <ActionButton type="submit" size="lg" disabled={busy || !hydrated}>
           <Icon name="key" size={20} />
-          {busy ? "Signing in…" : "Sign in"}
+          {busy ? "Signing in…" : hydrated ? "Sign in" : "Loading…"}
         </ActionButton>
         <p className="m-0 text-[13px] leading-[1.7] text-muted">
           Forgotten your password? Ask the clinic owner to reset it. Recovery requires the doctor&apos;s approval.

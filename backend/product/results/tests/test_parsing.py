@@ -65,6 +65,42 @@ class ParseRowsTests(SimpleTestCase):
         [row] = self.rows('TSH 1.8 mlU/L 0.4- 4.0')
         self.assertEqual(row.unit, 'mIU/L')
 
+    def test_a_number_inside_the_test_name_is_not_the_value(self):
+        known_names = KNOWN | {'tsh 3rd generation'}
+        [row] = parse_rows('TSH 3rd generation 3.1 mIU/L 0.4 - 4.0', lambda n: n.casefold() in known_names)
+        self.assertEqual((row.name, row.value_numeric, row.unit), ('TSH 3rd generation', Decimal('3.1'), 'mIU/L'))
+        self.assertEqual((row.ref_low, row.ref_high, row.ref_text, row.check_reason),
+                         (Decimal('0.4'), Decimal('4.0'), '0.4 - 4.0', ''))
+
+    def test_flags_glued_to_the_value(self):
+        high, starred = self.rows('TSH 5.6H mIU/L 0.4 - 4.0', 'Ferritin 3.1* ng/mL 13 - 150')
+        self.assertEqual((high.value_numeric, high.flag, high.check_reason), (Decimal('5.6'), 'H', ''))
+        self.assertEqual((starred.value_numeric, starred.flag, starred.check_reason), (Decimal('3.1'), 'A', ''))
+
+    def test_uncertain_readings_say_why(self):
+        rows = self.rows('TSH 3.1 mIU/L 0.4 - 4.0 see note', 'Ferritin 45ng/mL 13 - 150', 'Zinc 70 ug/dL 60 - 120',
+                         'TSH 1.8 mIU/L 0.4 - 4.O')
+        self.assertEqual([r.check_reason for r in rows], ['ref_leftover', 'value_glued', 'name_unknown', 'ref_leftover'])
+        self.assertEqual((rows[1].value_numeric, rows[1].unit), (Decimal('45'), 'ng/mL'))
+
+    def test_reference_words_are_not_a_leftover(self):
+        [row] = self.rows('Ferritin 32.0 ng/mL 13 - 150 Adult female')
+        self.assertEqual(row.check_reason, '')
+
+    def test_a_missing_expected_unit_is_checked(self):
+        [row] = parse_rows('Ferritin 32', known, lambda name: 'ng/mL')
+        self.assertEqual(row.check_reason, 'unit_missing')
+
+    def test_a_name_and_value_split_over_two_lines_are_joined_and_checked(self):
+        [row] = self.rows('TSH', '3.1 mIU/L 0.4 - 4.0')
+        self.assertEqual((row.name, row.value_numeric, row.check_reason), ('TSH', Decimal('3.1'), 'split_line'))
+        self.assertEqual(row.source_lines, ['TSH', '3.1 mIU/L 0.4 - 4.0'])
+
+    def test_qualitative_results_are_stored_in_sentence_case(self):
+        detected, absent = self.rows('Chlamydia trachomatis: DETECTED', 'Candida NOT DETECTED')
+        self.assertEqual((detected.value_text, detected.flag), ('Detected', 'A'))
+        self.assertEqual((absent.value_text, absent.flag), ('Not detected', 'N'))
+
 
 class IdentifierTests(SimpleTestCase):
     TEXT = '\n'.join([
@@ -104,6 +140,10 @@ class ClassifyTests(SimpleTestCase):
         text = 'Liquid based cytology. LSIL. HPV negative for intraepithelial lesion elsewhere'
         result = classify(text, set(), False)
         self.assertEqual((result.report_type, result.smear_finding), (ReportType.SMEAR_ABNORMAL, 'LSIL'))
+
+    def test_worded_smear_findings_are_sentence_case(self):
+        result = classify('Cervical smear. Atypical squamous cells.', set(), False)
+        self.assertEqual(result.smear_finding, 'Atypical squamous')
 
     def test_unclear_smear_is_treated_as_abnormal_and_flagged(self):
         result = classify('Pap smear. See comment.', set(), False)

@@ -26,5 +26,7 @@ declare module "next-auth/jwt" {
     phone?: string;
     requiresPhone?: boolean;
     sessionExpired?: boolean;
+    /** When the user signed in (ms since epoch); the session ends 8 hours later. */
+    loginAt?: number;
   }
 }

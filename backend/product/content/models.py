@@ -5,6 +5,7 @@ Every item keeps a dated, immutable history: an edit adds a new version and neve
 one, so the clinic can always see what wording or cut-off was in force when something was sent.
 """
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
 
 from apps.common.models import BaseModel
@@ -45,6 +46,8 @@ class TemplateKind(models.TextChoices):
     PATHOLOGY = 'pathology', 'Pathology results'
     SMEAR = 'smear', 'Cervical smear'
     REPLY = 'reply', 'Reply about a prescription'
+    # A short line the drafting code inserts (e.g. "reference {{range}}"), keyed `phrase.<name>`.
+    PHRASE = 'phrase', 'System phrase'
 
 
 class TemplatePart(models.TextChoices):
@@ -85,13 +88,18 @@ class LeafletVersion(Version):
         constraints = [models.UniqueConstraint(fields=['leaflet', 'number'], name='content_leaflet_version_number')]
 
 
+TEMPLATE_KEY_VALIDATOR = RegexValidator(r'^[-a-zA-Z0-9_]+(\.[-a-zA-Z0-9_]+)?$',
+                                        'Use letters, numbers, hyphens and underscores (phrases: phrase.<name>).')
+
+
 class EmailTemplate(BaseModel):
     """
     One piece of a results email. The STI email, for example, is an opening, one section per
     positive result (section_key = the test code) and a closing, assembled when drafting.
     """
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='email_templates')
-    key = models.SlugField(max_length=80)
+    # A slug, or `phrase.<name>` for a system phrase.
+    key = models.CharField(max_length=80, validators=[TEMPLATE_KEY_VALIDATOR])
     language = models.CharField(max_length=2, choices=Language.choices, default=Language.ENGLISH)
     name = models.CharField(max_length=255)
     kind = models.CharField(max_length=20, choices=TemplateKind.choices)
@@ -129,6 +137,10 @@ class EmailTemplateVersion(Version):
     approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                     related_name='+')
     approved_at = models.DateTimeField(null=True, blank=True)
+    # For a translation: the version of the English template it was translated from. A translation
+    # is stale once the English template has a newer approved version.
+    translated_from = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True,
+                                        related_name='translations')
 
     class Meta(Version.Meta):
         constraints = [models.UniqueConstraint(fields=['template', 'number'], name='content_template_version_number')]
@@ -219,6 +231,12 @@ class AlertRuleVersion(Version):
     # examination with lab_check as the comparison. For blood pressure, threshold_a is the systolic
     # cut-off and threshold_b the diastolic one; crossing either fires the rule.
     vital = models.CharField(max_length=20, choices=VitalSign.choices, blank=True, default='')
+    # When set, the rule is checked against the patient's form answers by the named check. The codes
+    # are listed in content/answer_checks.py; no `choices` here, so content never imports alerts.
+    answer_check = models.CharField(max_length=40, blank=True, default='')
+    # Medicine names (matched as normalised substrings) the rule needs among the patient's current
+    # medicines, e.g. ["prometrium"]. Empty means the rule does not depend on medicines.
+    medicine_terms = models.JSONField(default=list, blank=True)
 
     class Meta(Version.Meta):
         constraints = [models.UniqueConstraint(fields=['rule', 'number'], name='content_alert_rule_version_number')]

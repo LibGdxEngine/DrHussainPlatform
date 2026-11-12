@@ -7,14 +7,15 @@ import { formatDay } from "@/features/emr/format";
 import { emrRoutes } from "@/features/emr/routes";
 import { SearchBox } from "@/features/emr/shell/SearchBox";
 import { ActionButton } from "@/features/emr/ui/Action";
-import { TextInput } from "@/features/emr/ui/Fields";
+import { SelectInput, TextInput } from "@/features/emr/ui/Fields";
 import { Panel } from "@/features/emr/ui/Panel";
 import { Pill } from "@/features/emr/ui/Pill";
 import { Table, Td, Th } from "@/features/emr/ui/Table";
 import { apiErrorMessage } from "@/lib/api/emr/errors";
 import { patientsApi, type PatientPage } from "@/lib/api/emr/patients";
+import { languageOptions, type PreferredLanguage } from "../logic";
 
-const columns = ["Patient", "File no.", "Date of birth", "First contact", "Added"];
+const columns = ["Patient", "File no.", "Date of birth", "First contact", "Added", "Email language"];
 const PAGE_SIZE = 20;
 
 interface PatientsBrowserProps {
@@ -52,6 +53,16 @@ export function PatientsBrowser({ refreshKey }: PatientsBrowserProps) {
       clearTimeout(timer);
     };
   }, [query, birthday, page, refreshKey]);
+
+  async function changeLanguage(id: string, preferred_language: PreferredLanguage) {
+    try {
+      const saved = await patientsApi.update(id, { preferred_language });
+      setData((prev) => prev && { ...prev, results: prev.results.map((p) => (p.id === saved.id ? saved : p)) });
+      setError(null);
+    } catch (err) {
+      setError(apiErrorMessage(err, "Could not save the language."));
+    }
+  }
 
   const rows = data?.results ?? [];
   const pages = data ? Math.max(1, Math.ceil(data.count / PAGE_SIZE)) : 1;
@@ -122,6 +133,18 @@ export function PatientsBrowser({ refreshKey }: PatientsBrowserProps) {
                   ) : null}
                 </Td>
                 <Td className="whitespace-nowrap text-[13px]">{formatDay(p.created_at)}</Td>
+                <Td>
+                  <SelectInput
+                    aria-label={`Preferred language for ${p.full_name}`}
+                    className="min-h-9 w-auto text-[13px]"
+                    value={p.preferred_language ?? "en"}
+                    onChange={(e) => void changeLanguage(p.id, e.target.value as PreferredLanguage)}
+                  >
+                    {languageOptions.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </SelectInput>
+                </Td>
               </tr>
             ))}
             {data && rows.length === 0 ? (

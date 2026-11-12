@@ -9,6 +9,7 @@ for presentations, not clinical content.
     python manage.py seed_demo_data
 """
 import hashlib
+import os
 from datetime import date, datetime, time, timedelta
 from email.message import EmailMessage
 from email.utils import format_datetime
@@ -17,6 +18,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -80,17 +82,14 @@ WORDING = {
                           '{{clinic.phone}} to book a consultation to go through them together.'),
     'follow_up_comparison': ('Your follow-up results',
                              'Dear {{patient.first_name}},\n\nHere is how your latest results compare with your '
-                             'previous ones:\n\n{{comparison.table}}\n\nThe treatment is doing what we hoped, apart '
-                             'from the points marked above, which we will discuss.' + SIGN_OFF),
+                             'previous ones:\n\n{{comparison.table}}\n\n{{comparison.attention}}' + SIGN_OFF),
     'pathology_results': ('Your pathology results',
                           'Dear {{patient.first_name}},\n\nYour pathology report from {{report.date}} has arrived. '
                           '[[summary of the finding]]\n\nNext step: [[next step]].' + SIGN_OFF),
     'sti_opening': ('Your swab results',
                     'Dear {{patient.first_name}},\n\nThank you for sending your swab results ({{report.date}}):\n\n'
                     '{{results.table}}'),
-    'sti_closing': (None,
-                    'Please avoid intimate contact until you have finished treatment, and we will arrange a repeat '
-                    'test to confirm it has cleared.' + SIGN_OFF),
+    'sti_closing': (None, '{{follow_up}}' + SIGN_OFF),
     'smear_section_1': ('Your smear result',
                         'Dear {{patient.first_name}},\n\nYour cervical smear is normal. Your next smear is due in '
                         '[[repeat interval]].\n\nNo further action is needed now.'),
@@ -98,10 +97,12 @@ WORDING = {
                            'Dear {{patient.first_name}},\n\nThank you for your message:\n\n> {{patient.question}}\n\n'
                            'Your current prescription:\n{{prescription}}\n\n[[answer to the patient\'s question]]'),
 }
-STI_SECTION = ('{{result.name}}: {{result.value}}.\n\nThis is common and very treatable. Your treatment: '
-               '{{prescription}}')
-SMEAR_SECTION = ('Dear {{patient.first_name}},\n\nYour cervical smear showed a change that needs a short follow-up '
-                 'visit. {{results.abnormal}}\n\nPlease phone {{clinic.phone}} to book a colposcopy appointment.')
+# Clinical advice is never written here: it stays a blank the doctor must fill before anything is sent.
+STI_SECTION = "{{result.name}}: {{result.value}}.\n\n[[Clinic's advice for this result]]\n\n{{prescription}}"
+# Smear plans 2 to 14 are slots with no wording loaded: neutral name, a blank body, never approved.
+SMEAR_PLAN_BODY = '[[Clinic wording for this plan]]'
+DEMO_NOTE = 'Demo wording'
+# The one Arabic row already in the demo. No other Arabic is written by the seed.
 ARABIC_RESULTS = ('نتائج التحاليل',
                   'عزيزتي {{patient.first_name}}،\n\nشكراً لإرسال نتائجك من {{report.lab}} (تاريخ العينة '
                   '{{report.date}}):\n\n{{results.table}}\n\nراجعتُ النتائج وهي لا تحتاج إلى إجراء عاجل. '
@@ -115,11 +116,13 @@ PRESCRIPTIONS = [
     ('Doxycycline 100 mg', '1 capsule twice daily for 7 days', 'Take with water and food; avoid direct sun.'),
 ]
 LEAFLETS = [
-    ('Starting HRT: what to expect', ['Starting HRT: what to expect', '', 'Sample leaflet for demonstration.',
-                                      'Most side effects settle within the first 3 months.']),
+    ('Starting HRT: what to expect', ['Starting HRT: what to expect', '', 'Sample leaflet for demonstration.']),
     ('After your swab: avoiding re-infection', ['After your swab: avoiding re-infection', '',
                                                 'Sample leaflet for demonstration.']),
 ]
+# In the library to pick from, but attached to no email by default.
+NO_DEFAULT_LEAFLET = 'Starting HRT: what to expect'
+
 
 
 def seed_examinations(patients, doctor, today):
@@ -162,8 +165,12 @@ class Command(BaseCommand):
         parser.add_argument('--user', default='admin@vclinic.local', help='Doctor (clinic owner) to act as.')
 
     def handle(self, *args, **options):
-        if not settings.DEBUG:
-            raise CommandError('Demo data is for development only (DEBUG is off).')
+        # Development (DEBUG on) or a preview stack that opted in with ALLOW_DEMO_SEED; never production.
+        module = settings.SETTINGS_MODULE or os.environ.get('DJANGO_SETTINGS_MODULE', '')
+        if module.rsplit('.', 1)[-1] == 'prod':
+            raise CommandError('Demo data is never loaded under the production settings.')
+        if not (settings.DEBUG or getattr(settings, 'ALLOW_DEMO_SEED', False)):
+            raise CommandError('Demo data is for development and preview only (set ALLOW_DEMO_SEED=1 on a preview).')
         organization = (Organization.objects.filter(slug=options['org']) if options['org']
                         else Organization.objects.order_by('created_at')).first()
         if organization is None:
@@ -173,30 +180,104 @@ class Command(BaseCommand):
             raise CommandError(f'{options["user"]} is not a member of {organization.name}.')
         from product.patients.models import Patient
 
-        if Patient.objects.filter(organization=organization).exists():
-            self.stdout.write(self.style.WARNING(f'{organization.name} already has patients; nothing was added.'))
-            return
         self.org, self.admin, self.today = organization, admin, date.today()
         self.now = timezone.now()
+        if Patient.objects.filter(organization=organization).exists():
+            # Re-run: add no patients, but bring the demo wording and rules up to date (a version the
+            # clinic edited itself is never touched).
+            self.wording()
+            self.retire_demo_extras()
+            self.stdout.write(self.style.WARNING(
+                f'{organization.name} already has patients; no patients were added. Demo wording refreshed.'))
+            return
         self.stdout.write(f'Seeding demo data into {organization.name}...')
         self.content()
         self.patients()
         self.reports()
         self.history()
         self.examinations()
+        self.intake_forms()
         self.inbox()
         self.audit()
         self.summary()
+
+    def set_wording(self, template, subject, body, *, approved=True):
+        """Give the template this demo wording as its newest version, approved or (for a blank slot) not."""
+        from product.content.models import EmailTemplateVersion
+        from product.content.placeholders import validate_text
+        from product.content.versioning import add_version
+
+        for text in (subject or '', body):
+            problems = validate_text(text)
+            if problems:
+                raise CommandError(f'Demo wording for {template.key} is invalid: {problems}')
+        version, _ = add_version(template, EmailTemplateVersion, {'subject': subject or '', 'body': body},
+                                 user=self.admin, note=DEMO_NOTE)
+        versions = EmailTemplateVersion.objects
+        if approved:
+            if version.approved_at is None:
+                versions.filter(pk=version.pk).update(approved_by=self.admin, approved_at=self.now)
+        else:
+            # An earlier demo version may be approved; no plan is approved until the clinic loads its wording.
+            versions.filter(template=template, note=DEMO_NOTE).update(approved_by=None, approved_at=None)
+        return version
+
+    def wording(self):
+        """
+        The demo email wording. Clinical advice stays a [[blank]]; smear plans 2 to 14 are neutral,
+        unapproved slots. A template whose newest version was written by a person is left alone.
+        """
+        from product.content.models import EmailTemplate, EmailTemplateVersion, TemplateKind
+
+        def untouched(template):
+            latest = template.latest
+            return latest is None or latest.note == DEMO_NOTE or latest.note.startswith('Empty slot')
+
+        for template in EmailTemplate.objects.filter(organization=self.org, language='en').exclude(
+                kind=TemplateKind.PHRASE):
+            if not untouched(template):
+                continue
+            if template.key in WORDING:
+                self.set_wording(template, *WORDING[template.key])
+            elif template.key.startswith('sti_section_'):
+                self.set_wording(template, None, STI_SECTION)
+            elif template.key.startswith('smear_section_'):
+                number = template.key.rsplit('_', 1)[-1]
+                name = f'Smear plan {number} (clinic wording not loaded)'
+                if template.name != name:
+                    template.name = name
+                    template.save(update_fields=['name', 'updated_at'])
+                self.set_wording(template, 'Your smear result', SMEAR_PLAN_BODY, approved=False)
+
+        english = EmailTemplate.objects.get(organization=self.org, key='results', language='en')
+        arabic, _ = EmailTemplate.objects.get_or_create(
+            organization=self.org, key='results', language='ar',
+            defaults=dict(name='Results email (Arabic)', kind=TemplateKind.RESULTS))
+        if untouched(arabic):
+            version = self.set_wording(arabic, *ARABIC_RESULTS)
+            if version.translated_from_id is None:
+                EmailTemplateVersion.objects.filter(pk=version.pk).update(translated_from=english.approved)
+
+    def retire_demo_extras(self):
+        """No demo-made R41 rule, and no default "Starting HRT" leaflet (a re-seed removes what older seeds left)."""
+        from product.alerts.models import PatientAlert
+        from product.content.models import AlertRule, EmailTemplate, Leaflet
+
+        rule = AlertRule.objects.filter(organization=self.org, code='R41').first()
+        if rule is not None and not rule.versions.exclude(note='Demo rule').exists():
+            with transaction.atomic():
+                PatientAlert.objects.filter(rule=rule).delete()
+                rule.delete()
+        leaflets = Leaflet.objects.filter(organization=self.org, title=NO_DEFAULT_LEAFLET)
+        for template in EmailTemplate.objects.filter(organization=self.org, key='menopause_results', language='en'):
+            template.default_leaflets.remove(*leaflets)
 
     # --- Clinic content ---------------------------------------------------------------------------
 
     def content(self):
         from product.content.models import (
-            ClinicProfile, EmailTemplate, EmailTemplateVersion, Leaflet, LeafletVersion, PrescriptionItem,
-            PrescriptionVersion, AlertRule, AlertRuleVersion, TemplateKind,
+            ClinicProfile, EmailTemplate, Leaflet, LeafletVersion, PrescriptionItem, PrescriptionVersion,
         )
-        from product.content.placeholders import validate_text
-        from product.content.versioning import add_version
         from product.mail.models import Mailbox, Security
         from product.onboarding import onboard_clinic
 
@@ -205,26 +286,7 @@ class Command(BaseCommand):
             display_name='V-Clinic', phone='+20 100 555 0142', doctor_name='Dr Hussain Gohar',
             signature='Kind regards,\nDr Hussain Gohar\nV-Clinic'))
 
-        def approve(template, subject, body):
-            for text in (subject or '', body):
-                problems = validate_text(text)
-                if problems:
-                    raise CommandError(f'Demo wording for {template.key} is invalid: {problems}')
-            version, _ = add_version(template, EmailTemplateVersion, {'subject': subject or '', 'body': body},
-                                     user=self.admin, note='Demo wording')
-            EmailTemplateVersion.objects.filter(pk=version.pk).update(approved_by=self.admin, approved_at=self.now)
-
-        for template in EmailTemplate.objects.filter(organization=self.org, language='en'):
-            if template.key in WORDING:
-                approve(template, *WORDING[template.key])
-            elif template.key.startswith('sti_section_'):
-                approve(template, None, STI_SECTION)
-            elif template.key.startswith('smear_section_'):
-                approve(template, 'Your smear result', SMEAR_SECTION)
-        arabic, _ = EmailTemplate.objects.get_or_create(
-            organization=self.org, key='results', language='ar',
-            defaults=dict(name='Results email (Arabic)', kind=TemplateKind.RESULTS))
-        approve(arabic, *ARABIC_RESULTS)
+        self.wording()
 
         self.prescriptions = []
         for position, (drug, dose, directions) in enumerate(PRESCRIPTIONS, start=1):
@@ -241,15 +303,9 @@ class Command(BaseCommand):
             version.file.save(version.original_filename, ContentFile(pdf), save=False)
             version.save()
             leaflets.append(leaflet)
-        EmailTemplate.objects.get(organization=self.org, key='menopause_results', language='en').default_leaflets.add(leaflets[0])
+        # Only the swab leaflet is attached by default; "Starting HRT" is in the library but attached to nothing.
         EmailTemplate.objects.get(organization=self.org, key='sti_closing', language='en').default_leaflets.add(leaflets[1])
-
-        # A red lab rule so the "red alert goes to the doctor first" flow can be shown.
-        rule = AlertRule.objects.create(organization=self.org, code='R41', sort_order=410)
-        AlertRuleVersion.objects.create(
-            rule=rule, number=1, field='Ferritin (labs)', pre='<', threshold_a='15', mid='ng/mL', level='red',
-            message='Severe iron deficiency: same-day call', lab_test_code='ferritin', lab_check='lt',
-            note='Demo rule', created_by=self.admin)
+        self.retire_demo_extras()
 
         mailbox, _ = Mailbox.objects.get_or_create(organization=self.org, defaults=dict(address='clinic@vclinic.test'))
         mailbox.address, mailbox.display_name, mailbox.enabled = 'clinic@vclinic.test', 'V-Clinic', True
@@ -410,6 +466,52 @@ class Command(BaseCommand):
     def examinations(self):
         seed_examinations(self.p, self.admin, self.today)
 
+    # --- Patient form ----------------------------------------------------------------------------------
+
+    def intake_forms(self):
+        """
+        Amira (61, postmenopausal bleeding) has a completed full form, answered with the catalogue's own
+        question ids and saved through the same service the patient link uses, so the answer rules run the
+        real way: R7 (bleeding a year after her last period), R16, R19 (current smoker), R23, R24 and R29.
+        """
+        from product.intake.catalogue import clean_answers
+        from product.intake.services import issue_form, run_alert_rules, save_answers
+
+        answers = clean_answers({
+            'reasons': ['meno', 'bleed'],
+            'last_period': '2016',
+            'period_status': 'stopped',
+            'bleed_after_year': 'yes',
+            'intermenstrual': 'no',
+            'menopause_age': 51,
+            'how_periods_stopped': 'natural',
+            'uterus': 'yes',
+            'ovaries': 'both',
+            'hs_breast_cancer': 'no',
+            'hs_coronary': 'no',
+            'hs_stroke': 'no',
+            'hs_vte': 'no',
+            'hs_unexplained_bleeding': 'no',
+            'hs_liver': 'no',
+            'hs_cancer_treatment': 'none',
+            'hs_migraine': 'no',
+            'smoking': 'current',
+            'phq2_interest': 2,
+            'phq2_down': 2,
+            'gad2_nervous': 1,
+            'gad2_worry': 1,
+            'self_harm': 0,
+            'peanut_allergy': 'no',
+            'fh_breast_cancer': [{'relative': 'mother', 'age': 48}],
+            'alcohol_units': 20,
+        })
+        form, _token = issue_form(self.org, self.p['amira'], 'full', created_by=self.admin)
+        save_answers(form, answers, [1, 2, 1, 0, 1, 0, 2, 1, 0, 1, 2], submit=True)
+        form.refresh_from_db()
+        if form.rules_evaluated_at is None:
+            # The rules run once the save has committed; run them now if this ran inside a transaction.
+            run_alert_rules(form)
+
     # --- Inbox ---------------------------------------------------------------------------------------
 
     def inbox(self):
@@ -466,7 +568,7 @@ class Command(BaseCommand):
             ('auth.signin_failed', 'accounts.user', None, {'identifier': self.admin.email}, 12, None),
             ('auth.signin', 'accounts.user', self.admin.pk, {}, 6, self.admin),
             ('patient.searched', 'patients.patient', None, {'query': 'ليلى'}, 5, self.admin),
-            ('patient_alert.opened', 'alerts.patientalert', None, {'patient_id': str(p['yasmin'].pk), 'code': 'R41'}, 2, self.admin),
+            ('patient_alert.opened', 'alerts.patientalert', None, {'patient_id': str(p['yasmin'].pk), 'code': 'R39'}, 2, self.admin),
         ]
         for action, resource_type, resource_id, metadata, hours_ago, actor in entries:
             row = AuditLog.objects.create(

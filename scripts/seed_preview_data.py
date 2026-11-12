@@ -4,7 +4,10 @@ Preview seed script for V-Clinic.
 Runs the base development seed, turns its organization into the demo clinic, adds
 login-ready (phone-verified) staff and pending invitations, then fills the clinic with
 the EMR demo data (`manage.py seed_demo_data`). A preview can then be explored without
-WhatsApp OTP delivery. Safe to run repeatedly.
+WhatsApp OTP delivery. Safe to run repeatedly: a second run adds no patients but refreshes the demo
+email wording and retires the old demo R41 rule and default "Starting HRT" leaflet.
+Needs DEBUG on (core.settings.dev) or ALLOW_DEMO_SEED=1 (core.settings.preview, set by
+docker-compose.preview.yml); it is refused under core.settings.prod.
 """
 import os
 import sys

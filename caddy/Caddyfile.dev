@@ -55,6 +55,13 @@
 
 	respond /internal/observability/auth/ 404
 
+	# The patient form's public endpoints take small JSON bodies only (the backend checks the same,
+	# INTAKE_MAX_BODY_BYTES); a larger body is refused before it reaches Django.
+	@public_intake path /api/product/intake/public/*
+	request_body @public_intake {
+		max_size 512KB
+	}
+
     reverse_proxy /api/auth/* frontend:3000
     reverse_proxy /api/bff/* frontend:3000
 	reverse_proxy /api/* backend:8000

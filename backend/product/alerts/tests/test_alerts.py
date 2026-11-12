@@ -13,6 +13,7 @@ from product.alerts.services import evaluate_patient
 from product.content.models import AlertRule, AlertRuleVersion, EmailTemplate, EmailTemplateVersion
 from product.content.starter import ensure_starter_content
 from product.content.versioning import add_version
+from product.orders.models import Order, PrescribedMedicine
 from product.patients.services import create_patient
 from product.records.services import store_document
 from product.results.catalog import ensure_catalog
@@ -50,12 +51,20 @@ class AlertTestCase(PrivateStorageMixin, APITestCase):
     def alerts(self, **filters):
         return {a.rule.code: a for a in PatientAlert.objects.filter(patient=self.patient, **filters)}
 
+    def prescribe(self, drug):
+        """A printed prescription: the patient's current medicine (R34 needs testosterone)."""
+        order = Order.objects.create(organization=self.clinic, patient=self.patient, kind=Order.Kind.PRESCRIPTION,
+                                     title='Prescription', delivery=Order.Delivery.PRINT, issued_by=self.doctor)
+        PrescribedMedicine.objects.create(order=order, drug=drug)
+        return order
+
 
 class EvaluationTests(AlertTestCase):
     def test_testosterone_above_the_cut_off_fires_r34_and_a_later_normal_result_clears_it(self):
+        self.prescribe('Testosterone gel')
         self.read(['Testosterone 62 ng/dL 8 - 60'], name='high.pdf', collected='03/07/2026')
         r34 = self.alerts(status='open')['R34']
-        self.assertEqual((r34.level, r34.detail, r34.rule_version.number), ('amber', '62 ng/dL > 50', 1))
+        self.assertEqual((r34.level, r34.detail, r34.rule_version.number), ('amber', '62 ng/dL > 50; testosterone gel', 1))
         self.read(['Testosterone 40 ng/dL 8 - 60'], name='normal.pdf', collected='03/10/2026')
         self.assertEqual(self.alerts()['R34'].status, 'resolved')
 
@@ -72,6 +81,7 @@ class EvaluationTests(AlertTestCase):
         self.assertNotIn('R34', self.alerts(status='open'))
 
     def test_acknowledged_alert_is_not_raised_again_for_the_same_result(self):
+        self.prescribe('Testosterone gel')
         self.read(['Testosterone 62 ng/dL 8 - 60'])
         alert = self.alerts(status='open')['R34']
         response = self.client.post(f'/api/product/alerts/{alert.id}/acknowledge/', {'reason': 'Dose reduced'},
@@ -84,6 +94,7 @@ class EvaluationTests(AlertTestCase):
     def test_a_red_lab_rule_holds_the_case_for_the_doctor_until_acknowledged(self):
         rule = AlertRule.objects.get(organization=self.clinic, code='R34')
         add_version(rule, AlertRuleVersion, {'level': 'red'}, user=self.doctor)
+        self.prescribe('Testosterone gel')
         case = self.read(['Testosterone 62 ng/dL 8 - 60'])
         self.assertEqual((case.status, case.flag_reasons), ('flagged', ['red_alert_R34']))
         alert = self.alerts(status='open')['R34']
@@ -92,6 +103,7 @@ class EvaluationTests(AlertTestCase):
         self.assertEqual(case.status, 'drafted')
 
     def test_list_and_permissions(self):
+        self.prescribe('Testosterone gel')
         self.read(['Testosterone 62 ng/dL 8 - 60'])
         listed = self.client.get('/api/product/alerts/', {'patient': str(self.patient.id)}).data['results']
         self.assertEqual(sorted(a['code'] for a in listed), ['R34', 'R39'])

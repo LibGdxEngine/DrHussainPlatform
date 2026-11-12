@@ -3,6 +3,7 @@ import logging
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.formats import date_format
 
 from product.patients.services import match_patient
 from product.records.models import Document, DocumentSlot
@@ -12,13 +13,15 @@ from .extraction.classify import classify
 from .extraction.parsers import choose_parser
 from .extraction.parsing import parse_date
 from .extraction.text import ExtractionError, extract_text
-from .models import InvestigationReport, LabTest, ResultValue
+from .models import InvestigationReport, LabTest, ReportType, ResultValue
 
 logger = logging.getLogger(__name__)
 
 # Only these categories hold investigation reports; letters, imaging and old notes are not read.
 REPORT_SLOTS = {DocumentSlot.LAB, DocumentSlot.PATHOLOGY}
 MAX_RAW_TEXT = 200_000
+# The report flag while any value it holds still needs the doctor's check.
+UNCERTAIN_VALUE = 'uncertain_value'
 
 
 def should_read(document: Document) -> bool:
@@ -71,11 +74,15 @@ def process_document(document: Document) -> InvestigationReport:
         return _save(report, flags=[error.code], method='', text='', parsed=None, catalog=catalog)
 
     parser = choose_parser(extracted.text)
-    parsed = parser.parse(extracted.text, known_test=lambda name: catalog.resolve(name) is not None)
+    parsed = parser.parse(extracted.text, known_test=lambda name: catalog.resolve(name) is not None,
+                          expected_unit=catalog.expected_unit)
     report.parser = parser.key
     match_status, patient_flags = check_patient(report, parsed.identifiers)
     report.match_status = match_status
     flags.extend(patient_flags)
+    for row in parsed.rows:
+        if not row.check_reason and extracted.uncertain_lines.intersection(row.source_lines):
+            row.check_reason = 'ocr_low_confidence'
     return _save(report, flags=flags, method=extracted.method, text=extracted.text, parsed=parsed, catalog=catalog)
 
 
@@ -106,7 +113,8 @@ def _save(report, *, flags, method, text, parsed, catalog) -> InvestigationRepor
                 raw_name=row.name[:255], value_text=row.value_text[:255], value_numeric=row.value_numeric,
                 unit=row.unit[:32], ref_low=row.ref_low, ref_high=row.ref_high, ref_text=row.ref_text[:128],
                 flag=row.flag, result_date=report.collected_on, lab_name=report.lab_name,
-                unreadable=row.unreadable, source=ResultValue.Source.EXTRACTED, position=position,
+                unreadable=row.unreadable, needs_check=bool(row.check_reason), check_reason=row.check_reason,
+                source=ResultValue.Source.EXTRACTED, position=position,
             )
         codes = {test.code for test in mapped if test is not None}
         positive = {test.code for test, row in zip(mapped, parsed.rows) if test is not None and row.flag == 'A'}
@@ -126,6 +134,8 @@ def _save(report, *, flags, method, text, parsed, catalog) -> InvestigationRepor
             flags.append('no_results_found')
         if any(row.unreadable for row in parsed.rows):
             flags.append('unreadable_value')
+        if any(row.check_reason for row in parsed.rows):
+            flags.append(UNCERTAIN_VALUE)
         if report.collected_on is None:
             flags.append('missing_result_date')
     if report.status != InvestigationReport.Status.CONFIRMED:
@@ -133,6 +143,69 @@ def _save(report, *, flags, method, text, parsed, catalog) -> InvestigationRepor
         report.status = InvestigationReport.Status.FLAGGED if report.flag_reasons else InvestigationReport.Status.PARSED
     report.refresh_history_eligibility()
     report.save()
+    _name_document(report)
+    return report
+
+
+def _name_document(report: InvestigationReport) -> None:
+    """An upload still titled with its file name gets a report title: "<type> · <lab> · <collected date>"."""
+    document = report.document
+    stem = document.original_filename.rsplit('.', 1)[0][:255]
+    if document.title != stem or report.report_type == ReportType.UNKNOWN:
+        return
+    parts = [ReportType(report.report_type).label, report.lab_name,
+             date_format(report.collected_on, 'j F Y') if report.collected_on else '']
+    document.title = ' · '.join(part for part in parts if part)[:255]
+    document.save(update_fields=['title', 'updated_at'])
+
+
+@transaction.atomic
+def check_value(value: ResultValue, *, user, corrections: dict) -> InvestigationReport:
+    """
+    The doctor confirms one uncertain value, correcting any of value_text, unit, ref_low, ref_high
+    and ref_text. The report loses its uncertain-value flag once no value needs a check.
+    """
+    from .extraction.parsing import qualitative_flag, row_flag, to_decimal
+
+    report = InvestigationReport.objects.select_for_update().get(pk=value.report_id)
+    value = ResultValue.objects.select_related('lab_test').get(pk=value.pk)
+    changed = {name for name, new in corrections.items() if getattr(value, name) != new}
+    old_text = value.value_text
+    for name in changed:
+        setattr(value, name, corrections[name])
+    kind = value.lab_test.kind if value.lab_test else LabTest.Kind.NUMERIC
+    if changed & {'value_text', 'ref_low', 'ref_high'}:
+        if kind == LabTest.Kind.QUALITATIVE:
+            value.value_numeric, value.flag = None, qualitative_flag(value.value_text)
+        elif kind == LabTest.Kind.NUMERIC:
+            value.value_numeric = to_decimal(value.value_text)
+            flag = row_flag(value.value_numeric, value.value_text, '', value.ref_low, value.ref_high)
+            # A flag the lab printed stands when there is no range to work one out from.
+            value.flag = flag or ('' if value.value_text != old_text else value.flag)
+    if 'value_text' in changed:
+        value.unreadable = kind == LabTest.Kind.NUMERIC and value.value_numeric is None
+    value.needs_check, value.checked_by, value.checked_at = False, user, timezone.now()
+    value.save()
+
+    flags = list(report.flag_reasons)
+    if not report.values.filter(needs_check=True).exists():
+        flags = [f for f in flags if f != UNCERTAIN_VALUE]
+    # An unreadable value the doctor has looked at (and left as it is) no longer holds the report.
+    if not report.values.filter(unreadable=True, checked_at__isnull=True).exists():
+        flags = [f for f in flags if f != 'unreadable_value']
+    report.flag_reasons = flags
+    if report.status != InvestigationReport.Status.CONFIRMED:
+        report.status = InvestigationReport.Status.FLAGGED if flags else InvestigationReport.Status.PARSED
+    report.refresh_history_eligibility()
+    report.save()
+    from product.alerts.services import evaluate_patient_safely
+
+    # Always, whatever happens to the report's case (sent, rejected or none): the checked value may fire a rule.
+    # The patient's other open cases are routed again; this report's own case is routed by the caller.
+    from product.review.models import ResultsCase
+
+    own = ResultsCase.objects.filter(report=report).values_list('pk', flat=True).first()
+    evaluate_patient_safely(report.patient, exclude_case=own)
     return report
 
 

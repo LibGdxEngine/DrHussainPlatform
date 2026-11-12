@@ -1,5 +1,6 @@
 """Patient form links: issuing, sending, verifying and submitting."""
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 
@@ -9,7 +10,14 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.formats import date_format
 
+from .catalogue import (
+    CATALOGUE_VERSION, QUESTIONS, RULE_LEVELS, SECTION_OF, SECTIONS, is_blank, missing_required, modules_for,
+    placement, sections_for, visible_questions,
+)
+from .history import age_on, patient_history
 from .models import MRS_ITEMS, IntakeForm
+
+logger = logging.getLogger(__name__)
 
 LINK_LIFETIME = timedelta(days=21)
 SESSION_MAX_AGE = 2 * 60 * 60
@@ -38,11 +46,12 @@ def _new_token(form: IntakeForm) -> str:
 
 
 def issue_form(organization, patient, kind: str, *, appointment=None, created_by=None,
-               delivery: str = '') -> tuple[IntakeForm, str]:
+               delivery: str = '', extra_modules=None) -> tuple[IntakeForm, str]:
     """
     The open form for this visit, with a fresh link. Re-issuing keeps the answers and stops the
     old link working. A completed form is never reopened: a new one is started instead. With a
-    delivery, the link is recorded as handed out that way.
+    delivery, the link is recorded as handed out that way. `extra_modules`, when given, replaces
+    the modules added on top of the ones her answers open.
     """
     form = None
     if appointment is not None:
@@ -54,6 +63,8 @@ def issue_form(organization, patient, kind: str, *, appointment=None, created_by
     elif form.status == IntakeForm.Status.LOCKED:
         form.status = IntakeForm.Status.IN_PROGRESS if form.answers or form.mrs else IntakeForm.Status.NOT_STARTED
         form.failed_attempts = 0
+    if extra_modules is not None:
+        form.extra_modules = list(dict.fromkeys(extra_modules))
     token = _new_token(form)
     if delivery:
         form.sent_at, form.sent_via = timezone.now(), delivery
@@ -167,7 +178,35 @@ def form_for_session(session: str) -> IntakeForm:
     return form
 
 
+class AnswersIncomplete(Exception):
+    """Shown, required questions were left blank on submit."""
+
+    def __init__(self, fields: list[str]):
+        super().__init__('Answer the questions marked before sending.')
+        self.fields = fields
+
+
+def form_age(form: IntakeForm) -> int | None:
+    """The patient's age when the form was sent (today for a form still open)."""
+    when = timezone.localdate(form.submitted_at) if form.submitted_at else timezone.localdate()
+    return age_on(form.patient.date_of_birth, when)
+
+
 def save_answers(form: IntakeForm, answers: dict, mrs: list[int] | None, *, submit: bool) -> IntakeForm:
+    """
+    Save the (catalogue-checked) answers. On submit, answers to questions the form did not show are
+    dropped, required questions are enforced (AnswersIncomplete), the shown questions and the
+    catalogue version are stamped, and the alert rules run once the save has committed.
+    """
+    if submit:
+        age = age_on(form.patient.date_of_birth, timezone.localdate())
+        shown = visible_questions(answers, age, form.extra_modules, form.kind)
+        answers = {qid: value for qid, value in answers.items() if qid in shown}
+        missing = missing_required(answers, age, form.extra_modules, form.kind)
+        if missing:
+            raise AnswersIncomplete(missing)
+        form.shown_questions = [qid for qid in QUESTIONS if qid in shown]
+        form.catalogue_version = CATALOGUE_VERSION
     form.answers = answers
     if mrs is not None:
         form.mrs = mrs
@@ -177,5 +216,124 @@ def save_answers(form: IntakeForm, answers: dict, mrs: list[int] | None, *, subm
         form.mrs_total = sum(form.mrs) if form.mrs and len(form.mrs) == MRS_ITEMS else None
     elif form.status == IntakeForm.Status.NOT_STARTED:
         form.status = IntakeForm.Status.IN_PROGRESS
-    form.save()
+    with transaction.atomic():
+        form.save()
+        if submit:
+            transaction.on_commit(lambda: run_alert_rules(form))
     return form
+
+
+def run_alert_rules(form: IntakeForm) -> None:
+    """
+    Check the patient against the alert rules after a submit, then re-route her open results cases
+    so a case screen shows a flag this form raised. The safe evaluator records its own errors on the
+    form; anything it lets through is logged and recorded here, so a submit never fails because of
+    the rules or the re-route.
+    """
+    try:
+        from product.alerts.services import evaluate_patient_safely
+
+        evaluate_patient_safely(form.patient, form)
+    except Exception as exc:  # noqa: BLE001 - the answers are saved; the doctor sees the failure
+        logger.exception('Alert rules failed after intake form %s was submitted', form.pk)
+        errors = [{'rule': 'all', 'error': type(exc).__name__}]
+        IntakeForm.objects.filter(pk=form.pk).update(rule_errors=errors, rules_evaluated_at=None)
+    try:
+        from product.review.services import reroute_open_cases
+
+        reroute_open_cases(form.patient)
+    except Exception:  # noqa: BLE001 - the answers are saved; a failed re-route must not fail the submit
+        logger.exception('Open cases could not be re-routed after intake form %s was submitted', form.pk)
+
+
+# --- Reading the answers ---------------------------------------------------------------------------
+
+def previous_answers(patient, *, kind: str = IntakeForm.Kind.FULL) -> dict:
+    """Her carry-forward answers from earlier complete forms (the newest answer to each question)."""
+    history = patient_history(patient)
+    out = {}
+    for section in sections_for(kind):
+        for question in section['questions']:
+            if question['carry_forward']:
+                value = history.merged(question['id'])
+                if value is not None:
+                    out[question['id']] = value
+    return out
+
+
+def _label(spec: dict, value) -> str:
+    for option in spec.get('options', []):
+        if option['value'] == value:
+            return option['label']
+    return str(value)
+
+
+def format_answer(spec: dict, value) -> str:
+    """An answer as the doctor reads it, with the catalogue's option labels."""
+    qtype = spec['type']
+    if qtype == 'multi':
+        return ', '.join(_label(spec, v) for v in value)
+    if qtype == 'tick':
+        return 'Yes' if value else 'No'
+    if qtype == 'rows':
+        rows = []
+        for row in value:
+            parts = [format_answer(f, row[f['id']]) for f in spec['fields'] if f['id'] in row and f['type'] != 'tick']
+            parts += [f['label'] for f in spec['fields'] if f['type'] == 'tick' and row.get(f['id']) is True]
+            rows.append(', '.join(parts))
+        return '; '.join(rows)
+    if qtype == 'number' and value == 'not_sure':
+        return 'Not sure'
+    return _label(spec, value)
+
+
+def _feeds_alert(question: dict) -> bool:
+    return any(RULE_LEVELS.get(rule) in ('red', 'amber') for rule in question.get('rules', []))
+
+
+def _flagged(question: dict, value) -> bool:
+    flag = question.get('flag')
+    if not flag or is_blank(value):
+        return False
+    if flag == 'any':
+        return True
+    values = value if isinstance(value, list) else [value]
+    return any(v in flag for v in values)
+
+
+def history_summary(form: IntakeForm) -> list[dict]:
+    """
+    The form's answers grouped by section for the doctor's Summary:
+    [{module, title, rows: [{question, label, value, highlight, not_answered}]}].
+
+    Rows are the questions the form showed, answered ones plus blank ones that feed a red or amber
+    rule (`not_answered`, highlighted). An answer that may set such a rule off (e.g. "yes", or Part A
+    "prefer to discuss with the doctor") is highlighted too.
+    """
+    answers = form.answers or {}
+    age = form_age(form)
+    modules = modules_for(answers, age, form.extra_modules, form.kind)
+    if form.shown_questions:
+        shown = set(form.shown_questions)
+    elif form.status == IntakeForm.Status.COMPLETE:
+        shown = set(answers)  # submitted before the shown questions were recorded
+    else:
+        shown = visible_questions(answers, age, form.extra_modules, form.kind)
+    rows_by_section: dict[str, list] = {}
+    for qid, question in QUESTIONS.items():
+        if qid not in shown or question['type'] == 'mrs':
+            continue
+        value = answers.get(qid)
+        blank, feeds = is_blank(value), _feeds_alert(question)
+        if blank and not feeds:
+            continue
+        section = placement(question, modules) or SECTION_OF[qid]
+        rows_by_section.setdefault(section, []).append({
+            'question': qid,
+            'label': question['label'],
+            'value': '' if blank else format_answer(question, value),
+            'highlight': (feeds and blank) or _flagged(question, value),
+            'not_answered': blank,
+        })
+    return [{'module': s['id'], 'title': s['title'], 'rows': rows_by_section[s['id']]}
+            for s in SECTIONS if s['id'] in rows_by_section]
